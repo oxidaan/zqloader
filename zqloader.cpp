@@ -80,7 +80,6 @@ SOFTWARE.
 #endif
 
 
-#define COMPRESS2
 
 
 namespace fs = std::filesystem;
