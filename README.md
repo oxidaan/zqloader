@@ -1,4 +1,4 @@
-zqloader
+ZQloader
 ====
 
 This is a turbo loader used to load machine code games into a **real** ZX Spectrum at high speed.  
@@ -17,21 +17,21 @@ Project
 ----
 There are two parts: 
 
-The Z80 assembled qloader.
+The Z80 assembled ZQloader.
 --
 This is the turbo loader running at the ZX spectrum, written in Z80 assemby. It is stored entirely into a BASIC `REM` statement, so it can be loaded in just one step, and all you have to type is `LOAD ""`.  
 
 Once loaded it copies itself to upper memory regions because lower RAM is [contended](https://en.wikipedia.org/wiki/Contended_memory) and not quick/stable enough for loading algortihms. Then it starts waiting for incoming turbo blocks.
-More about the [Z80 assembled qloader]
+More about the [Z80 assembled ZQloader]
 
 
-qloader.exe coded in C++ (17) 
+zqloader.exe coded in C++ (17) 
 ---
 Runs on the host computer. It uses [miniaudio](https://github.com/mackron/miniaudio) to generated loading sounds.  
-First it uploads the qloader (described aboved) itself to the ZX spectrum. It uses traditional ROM speed for that.
+First it uploads the ZQloader machine code (described above) itself to the ZX spectrum. It uses traditional ROM speed for that.
 
 After that it will read a TAP or TZX file. It will recognize a basic loader, taking the start address from that (as in `RANDOMIZE USR XXXX`) (also read `CLEAR` value, if any). Then it will load 1 or more code blocks, which can be a spash screen or machine code, compress them, and send these at turbo speed into the ZX spectrum. 
-More about the [C++ qloader...]
+More about the [C++ ZQloader...]
 
 
 Compression
@@ -42,16 +42,16 @@ The RLE compression algortitm compresses the most used byte value (usually this 
 Limitations/TODO's
 ---
 
-Most of these limitations can be worked around by just loading a Z80 snapshot.
+*Most of these limitations can be worked around by just loading a Z80 snapshot.*
 
 * It can only load games (or applications) that are in machine code, not BASIC. Any BASIC is ignored. This is because the loader itself is coded into a BASIC rem statement - and would get lost if any loaded BASIC over writes it. Yes, it is copied to upper memory regions as well, but this might als be overwritten as described here ****.  
-*TODO* a possible solution might be to have our c++ program recognize this situation and then copy the Z80 qloader code to the (lower 3rd) of the screen - then BASIC can be overwritten. Would spoil 1/3 of the splash screen however.
+*TODO* a possible solution might be to have our c++ program recognize this situation and then copy the Z80 ZQloader code to the (lower 3rd) of the screen - then BASIC can be overwritten. Would spoil 1/3 of the splash screen however.
 
-* It cannot load games that have any kind of copy protection. Or does any loading without BASIC. Eg *Horace and the Spiders* does some additional loading after Machine code started. QLoader cannot possible know where this extra datablock needs to go. Same for headerless: QLoader does not know where to put these.  
+* It cannot load games that have any kind of copy protection. Or does any loading without BASIC. Eg *Horace and the Spiders* does some additional loading after Machine code started. ZXloader cannot possible know where this extra datablock needs to go. Same for headerless: ZQloader does not know where to put these.  
 *TODO* a possible solution is to have the option to provide this information manually.
 
 * It can not load games that overwrite the BASIC memory area. Eg *Galaxians* loads splash screen, basic and machine code at once as one big block. This would overwrite our loader however.  
-*TODO* a possible solution might be to have our c++ program recognize this situation and then uses a Z80 qloader that only uses upper RAM area, not at the BASIC rem statement.
+*TODO* a possible solution might be to have our c++ program recognize this situation and then uses a Z80 ZQloader that only uses upper RAM area, not at the BASIC rem statement.
 
 * A program that does a CLEAR below XXXX is currently to big to load - would overwrite our loader at the REM statement.   
 *TODO* like described above the loader might use the (lower 3rd) of the screen.
