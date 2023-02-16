@@ -1,0 +1,57 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "dezog",
+            "request": "launch",
+            "name": "Debug with Dezog internal simulator",
+            "remoteType": "zsim",       // use internal simulator
+//            "remoteType": "zrcp",       // use ZEsarUX
+            // https://github.com/maziac/DeZog/blob/main/documentation/Usage.md
+            "zsim": {
+              //  "Z80N": true,         // ZX Next instruction set
+                "cpuLoadInterruptRange": 0, // bit of useless to cal. cpu load
+                "visualMemory": true,
+                "memoryModel": "ZX48K",
+                "ulaScreen": true,
+                "zxBorderWidth": 20,
+                "vsyncInterrupt": true,
+                "zxKeyboard": true,
+                "zxBeeper": true,
+                "loadZxRom": true
+            },
+            "zrcp": {               // ZEsarUX 
+                "port": 10000
+                //"hostname":"localhost"
+            },
+            "disassemblerArgs": {       // Arguments that can be passed to the internal disassembler.
+                "esxdosRst": true
+            },
+            "sjasmplus": [
+                {
+                    "path": "${fileDirname}/${fileBasenameNoExtension}.sld"     // debug file created by sjasmplus
+                }
+            ],
+            "commandsAfterLaunch": [
+                "-logpoint enable",
+                "-assertion enable",
+                "-wpmem enable"
+            ],
+            "history": {
+                "reverseDebugInstructionCount": 1000000,
+                "spotCount": 10,
+                "codeCoverageEnabled": true
+            },
+            "startAutomatically": false,     // when false breaks immidiately
+            "rootFolder": "${workspaceFolder}",
+            "load": "${fileDirname}/${fileBasenameNoExtension}.sna",        // snapshot binary output file to load
+         //   "load": "${fileDirname}/${fileBasenameNoExtension}.tap",        // not allowed with zsim
+         //   "topOfStack": "Stack_Top",
+          // only at ZEsarUX   "skipInterrupt": true,
+            "preLaunchTask": "sjasmplus"        // see tasks.json
+        }
+    ]
+}

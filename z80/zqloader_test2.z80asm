@@ -1,0 +1,277 @@
+
+ DEVICE ZXSPECTRUM48
+ DEFINE tape_file_name    "qloader_test2.tap"
+ DEFINE basic_name        "qloadertst"
+
+CHAN_OPEN               EQU  0x1601         
+PROG                    EQU 23635       // Zx spectrum system variable PROG indicates start address of basic
+SCR_CT                  EQU 23692       // avoid Scroll?
+CLEAR                  equ 32768       // CLEAR
+
+/*
+BASIC_LEN EQU BASIC_END-BASIC_START     // length of total basic inc mc-rem for SAVETAP
+
+
+// Write basic numbers shorter visible text allways "0" spares space.
+NUM2   MACRO	value
+      db "0"
+	  db	#0E,0,0
+	  dw	value
+	  db	#00
+      ENDM
+
+BASIC_START:
+    MODULE basic1
+        INCLUDE	"BasicLib.asm" 
+line_useval = 1   ;; Use VAL for numbers
+
+            LINE : db	clear : NUM2(CLEAR) :LEND       // 10 CLEAR 24000
+            LINE : db	print, usr, '(', peek : NUM2(PROG) : db '+' : NUM2(256) : db '*',  peek : NUM2(PROG + 1) : db '+' : NUM2(ASM_START) : db ')' : LEND   // 30 RANDOMIZE USR VAL"XXXX"
+	        LINE : db	rem                             // 40 REM
+//            LEND                                        // (REM)
+    ENDMODULE
+*/
+ 
+ ORG 30000 
+ASM_START:
+    ld A, 2                 
+    call CHAN_OPEN          // rst 10 goes to screen
+    ld DE, TEXT_START
+    call PRINT     
+    di
+    ld (DebugSp), SP        //  keep
+    ld SP,50000
+    exx                     
+        // I think BC', DE', HL' must be saved for save return to BASIC (or before ei)
+        push DE                  // #PP1
+        push HL                  // #PP2
+        push BC                  // #PP5
+    exx
+    push IY
+
+    ld A,0x12
+    ld BC, 0x1234
+    ld DE, 0x2345
+    ld HL, 0x3456
+    exx
+    ld BC, 0x4567
+    ld DE, 0x5678
+    ld HL, 0x6789
+    exx
+    ex AF, AF'
+    ld A, 0x23
+    ex AF, AF'
+    ld IX, 0x789A
+    ld IY, 0x89AB
+
+wait_for_key
+  	ld A,$7F 	        // Read from port 0xBFFE, read ENTER to break
+	in A,($FE)          //  bit 0 is !BREAK,
+    rrca                // check for keye pressed, when C: no key
+    jr c, wait_for_key
+
+    call PRINT_HEX_A
+
+
+
+    ld A,D
+    call PRINT_HEX_A
+    ld A,E
+    call PRINT_HEX_A
+
+    ld DE, TEXT_BC
+    call PRINT    
+    ld A,B
+    call PRINT_HEX_A
+    ld A,C
+    call PRINT_HEX_A
+
+    ld DE, TEXT_HL
+    call PRINT    
+    ld A,H
+    call PRINT_HEX_A
+    ld A,L
+    call PRINT_HEX_A
+
+    ld DE, TEXT_BCa
+    call PRINT    
+    exx
+    ld A,B
+    exx
+    call PRINT_HEX_A
+    exx
+    ld A,C
+    exx
+    call PRINT_HEX_A
+
+    ld DE, TEXT_DEa
+    call PRINT    
+    exx
+    ld A,D
+    exx
+    call PRINT_HEX_A
+    exx
+    ld A,E
+    exx
+    call PRINT_HEX_A
+
+    ld DE, TEXT_HLa
+    call PRINT    
+    exx
+    ld A,H
+    exx
+    call PRINT_HEX_A
+    exx
+    ld A,L
+    exx
+    call PRINT_HEX_A
+
+    ld DE, TEXT_Aa
+    call PRINT    
+    ex AF, AF'
+    ld B, A
+    ex AF, AF'
+    ld A, B
+    call PRINT_HEX_A
+
+    ld DE, TEXT_IX
+    call PRINT    
+    ld A, IXH
+    call PRINT_HEX_A
+    ld A, IXL
+    call PRINT_HEX_A
+
+    ld DE, TEXT_IY
+    call PRINT    
+    ld A, IYH
+    call PRINT_HEX_A
+    ld A, IYL
+    call PRINT_HEX_A
+
+    ld DE, TEXT_R
+    call PRINT    
+    ld A, R
+    call PRINT_HEX_A
+
+    ld DE, TEXT_I
+    call PRINT    
+    ld A, I
+    call PRINT_HEX_A
+
+end_to_basic:
+    pop IY
+    exx
+        pop BC          // #PP5
+        pop HL          // #PP2
+        pop DE          // #PP1
+    exx
+    ld SP, (DebugSp)
+    ei                  // #di1
+    ret   
+DebugSp: DS 2
+
+PRINT_HEX_A:
+    push DE
+    push AF
+    ld d, a
+    rra
+    rra
+    rra
+    rra
+    call .print_hex_nibble_A
+    ld a, d
+    call .print_hex_nibble_A
+
+    pop AF
+    pop DE
+    ret
+.print_hex_nibble_A
+    and 0b00001111
+    add '0'
+    cp '9' + 1
+    jr c, .ok
+    add 'A' - ('9' + 1)
+.ok
+    
+    call PRINTCHAR
+    ret
+
+
+// Print bit7-terminated string
+// DE: address of string
+PRINT:
+.loop    
+    ld A, (DE)
+    inc DE
+    bit 7,A
+    jr nz, .last
+    call PRINTCHAR
+    jr .loop
+.last    
+    and 0x7f
+    call PRINTCHAR 
+    ret
+
+PRINTCHAR
+    ld (SCR_CT),a           // avoid Scroll?
+    push IY
+    exx
+    push DE
+    push BC
+    exx
+    ex AF, AF'
+    PUSH AF
+    ex AF, AF'
+    rst 0x10
+    ex AF, AF'
+    pop AF
+    ex AF, AF'
+    exx
+    pop BC
+    pop DE
+    exx
+    pop IY
+    ret
+
+
+TEXT_START:    
+    DC "Key...\r"        // \r is a newline
+TEXT_A:    
+    DC " A="        // \r is a newline
+TEXT_BC:    
+    DC " BC="        // \r is a newline
+TEXT_DE:    
+    DC " DE="        // \r is a newline
+TEXT_HL:    
+    DC " HL="        // \r is a newline
+TEXT_Aa:    
+    DC " Aa="        // \r is a newline
+TEXT_BCa:    
+    DC " BCa="        // \r is a newline
+TEXT_DEa:    
+    DC " DEa="        // \r is a newline
+TEXT_HLa:    
+    DC " HLa="        // \r is a newline
+TEXT_IX:    
+    DC " IX="        // \r is a newline
+TEXT_IY:    
+    DC " IY="        // \r is a newline
+TEXT_I:    
+    DC " I="        // \r is a newline
+TEXT_R:    
+    DC " R="        // \r is a newline
+ASM_END
+/*
+ MODULE basic1
+    LEND                                        // (REM)
+ ENDMODULE    
+
+BASIC_END:
+*/
+
+ DISPLAY "-- Creating file: ", tape_file_name
+ EMPTYTAP tape_file_name
+// SAVETAP <filename>,    BASIC,<filenameintapeheader>,<start>,     <length> [,<autorunline>[,<lengthwithoutvars>]]
+ SAVETAP    tape_file_name,CODE,basic_name,        ASM_START, ASM_END-ASM_START, ASM_START
+
+ SAVESNA   "qloader_test2.sna", ASM_START
