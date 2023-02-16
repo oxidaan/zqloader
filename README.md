@@ -11,6 +11,8 @@ The loader is coded into a basic `REM` statement to have it loaded in one step, 
 
 To speed up even more data (can be) compressed before loading.
 
+The project code is portable and should be able to run under both Windows and Linux. (For Linux I briefly tried with WSL2/TODO)
+
 Project
 ----
 There are two parts: 
