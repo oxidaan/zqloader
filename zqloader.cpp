@@ -21,10 +21,18 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-// This project use the miniaudio libarary by David Read.
+// This project use the miniaudio sound library by David Read.
 
 
 // g++ - O2 - std = c++17 - pthread qloader.cpp - ldl
+
+#if __cplusplus < 201703L
+// At MSVC
+// Properties->General-> C++ Language Standard -> ISO c++17 Standard
+// also set at C / C++ -> Command Line -> Additional options : /Zc:__cplusplus
+// plus C / C++ -> Preprocessor -> Use standard comforming preprocessor
+#error "Need c++17 or more"
+#endif
 
 #ifdef _MSC_VER
 #pragma warning(push)
