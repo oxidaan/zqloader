@@ -24,11 +24,12 @@ SOFTWARE.
 // This project use the miniaudio sound library by David Read.
 
 
-// g++ - O2 - std = c++17 - pthread qloader.cpp - ldl
+// g++ - O2 - std = c++17 - pthread zqloader.cpp - ldl - Iminiaudio
+
 
 #if __cplusplus < 201703L
 // At MSVC
-// Properties->General-> C++ Language Standard -> ISO c++17 Standard
+// Properties -> C/C++ -> Language -> C++ Language Standard -> ISO c++17 Standard
 // also set at C / C++ -> Command Line -> Additional options : /Zc:__cplusplus
 // plus C / C++ -> Preprocessor -> Use standard comforming preprocessor
 #error "Need c++17 or more"
@@ -47,7 +48,7 @@ SOFTWARE.
 #endif
 
 #define MINIAUDIO_IMPLEMENTATION
-#include "miniaudio.h"
+#include <miniaudio.h>
 
 #ifdef _MSC_VER
 #pragma warning( pop )
