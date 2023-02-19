@@ -338,6 +338,7 @@ std::ostream& operator << (std::ostream& p_stream, ZxBlockType p_enum)
         ENUM_TAG(ZxBlockType, data);
         ENUM_TAG(ZxBlockType, raw);
         ENUM_TAG(ZxBlockType, unknown);
+        ENUM_TAG(ZxBlockType, error);
     }
     return p_stream;
 }
@@ -645,7 +646,6 @@ private:
         auto channels = pDevice->playback.channels;     // # channels eg 2 is stereo
         float* foutput = reinterpret_cast<float*>(pOutput);
         int index = 0;
-        std::array<int, 2> step = {};
         for (auto n = 0u; n < frameCount; n++)
         {
             float value = m_done ? 0.0f : GetNextSample(sampleRate);
