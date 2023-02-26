@@ -1,28 +1,13 @@
-/*
-MIT License
+//==============================================================================
+// PROJECT:         zqloader
+// FILE:            turboblock.z80asm
+// DESCRIPTION:     ZX Spectrum Z80 assember file for turboloader 'zqloader'
+// 
+// Copyright (c) 2023 Daan Scherft [Oxidaan]
+// This project uses the MIT license. See LICENSE.txt for details.
+//==============================================================================
 
-Copyright(c) 2023 Daan Scherft
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this softwareand associated documentation files(the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and /or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions :
-
-The above copyright noticeand this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
-
-
+// To be assembled with sjasmplus see https://github.com/z00m128/sjasmplus
 
 
     DEVICE ZXSPECTRUM48
@@ -33,13 +18,11 @@ SOFTWARE.
 //----------------------------------------------------------------------------
 
 // define DEBUG           // enable/add debug code
- define USE_TAP         // make a tap file with basic loader
-                        // else make a snapshot that can be debugged
  define TO_SCREEN       // add code to copy lower part to screen and run from there
  define COMPRESS2
 //----------------------------------------------------------------------------
 
-CHAN_OPEN               EQU  0x1601         
+CHAN_OPEN               EQU 0x1601         
 PROG                    EQU 23635       // Zx spectrum system variable PROG indicates start address of basic
 SCR_CT                  EQU 23692       // avoid Scroll?
 
@@ -73,25 +56,14 @@ ZERO_MIN                EQU 0           // not used
 
 //----------------------------------------------------------------------------
 
- ifdef USE_TAP
 ASM_UPPER_LEN   EQU ASM_END - ASM_UPPER_BEGIN       // length of code to be moved to upper for org/disp 0xffff - ASM_UPPER_LEN
 ASM_LOWER_LEN   EQU ASM_LOWER_END - ASM_LOWER_OFFSET       // length of code to be moved to upper for org/disp 0xffff - ASM_UPPER_LEN
- else
-ASM_LEN   EQU ASM_END - ASM_START       // length of code to be moved to upper for org/disp 0xffff - ASM_UPPER_LEN
- endif
 
-// ===========================================================================
- ifdef USE_TAP
-    DISPLAY "Using TAP mode creating BASIC loader"
- else    
-    DISPLAY "Using SNA mode creating snapshot that can be debugged"
- endif
 
 
 // ===========================================================================
 // ===========================================================================
  
- ifdef USE_TAP
 ASM_UPPER_OFFSET EQU ASM_UPPER_BEGIN - BASIC_START      // used at mc-move for source asm-offset
 
 // Write basic numbers shorter visible text allways "0" spares space.
@@ -155,22 +127,7 @@ ASM_START:
 //    ld BC, (load_address_at_basic)        //  @DEBUG eg 24032 (23755 + ASM_UPPER_OFFSET)
 //    ret                                   //  @DEBUG
  
- endif  // USE_TAP == 1
-// ===========================================================================
 
-
-
-    
-
-// ===========================================================================
-
- ifndef USE_TAP                                 // so sna
-    ORG   0xffff-(ASM_LEN -1)                   // entire code goes to upper memory
-ASM_START:    
-    DISPLAY "ASM_START = ",/A,ASM_START         // final start address of upper region
-    DISPLAY "ASM_LEN = ",/A,ASM_LEN             // len of upper region
-    DISPLAY "0xffff-ASM_LEN = ",/A,0xffff-ASM_LEN  
- endif  // USE_TAP == 0
 
 // ===========================================================================
 
@@ -195,9 +152,7 @@ LOAD:
   //  CP 123                        //  @DEBUG
   //  JR NZ, error                  //  @DEBUG
 
- ifdef USE_TAP                  // in debugger cannot load
 
-//    call LOAD                 // lower can't use call
 //============================================================================
 // Load Header, then data.
 // HL' is destination of header.
@@ -259,7 +214,6 @@ LOAD:
     sub 1                   // carry only when zero so ok (note: dec A does not affect c!)
     jr nc, checksum_error
 
- endif   //  USE_TAP == 1                // in debugger cannot load
     // Once here here a turbo block was correctly loaded 
    // LD A, (ASM_UPPER_START)     //  @DEBUG
    // CP 123       //  @DEBUG
@@ -457,11 +411,9 @@ DECOMPRESS
 //============================================================================
 
 
- ifdef USE_TAP
 ASM_LOWER_END: 
 ASM_UPPER_BEGIN:    
     DISP  0xffff-(ASM_UPPER_LEN -1)     // ENT
- endif
 
 
 
@@ -867,53 +819,37 @@ load_address_at_basic: BLOCK 2
 // ===========================================================================
 
 // ===========================================================================
- ifdef USE_TAP
     ENT         // DISP
- endif        
 // ===========================================================================
 ASM_END
 
 
 // ===========================================================================
- ifdef USE_TAP
 
     MODULE basic1
         LEND                                        // (REM)
     ENDMODULE
 BASIC_END
 
- endif    
 // ===========================================================================
 
 
-
- ifndef USE_TAP        // so sna debug fill buffer here
-    ORG header
- endif  
 
 
  EXPORT ASM_UPPER_LEN
  EXPORT CLEAR
-  //EXPORT SnapShotRegs
- //EXPORT SnapShotRegs_End
+
  
 
 // ===========================================================================
-
- ifndef USE_TAP
-//    SAVESNA "qloader.sna", start
-    DISPLAY "-- Creating file: zqloader.sna"
-    SAVESNA "zqloader.sna", start
- endif    
-// ===========================================================================
- 
-// ===========================================================================
- ifdef USE_TAP
     DISPLAY "-- Creating file: ", tape_file_name
     EMPTYTAP tape_file_name
     // SAVETAP <filename>,    BASIC,<filenameintapeheader>,<start>,     <length> [,<autorunline>[,<lengthwithoutvars>]]
     SAVETAP    tape_file_name,BASIC,basic_name,        BASIC_START, BASIC_LEN, 10
- endif    
+// ===========================================================================
+
+// ===========================================================================
+// Snapshot register-load code -> snapshotregs.bin
 // ===========================================================================
 
 LOAD_SNAPSHOT EQU SCREEN_23RD + BASIC_LEN - ASM_LOWER_OFFSET

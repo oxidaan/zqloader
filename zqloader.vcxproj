@@ -67,6 +67,10 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <CustomBuild />
+    <CustomBuild />
+    <CustomBuild />
+    <CustomBuild />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -90,13 +94,57 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="zqloader.cpp" />
+    <ClCompile Include="datablock.cpp" />
+    <ClCompile Include="enumstreamer.cpp" />
+    <ClCompile Include="miniaudio.cpp" />
+    <ClCompile Include="samplesender.cpp" />
+    <ClCompile Include="spectrum_loader.cpp" />
+    <ClCompile Include="symbols.cpp" />
+    <ClCompile Include="taploader.cpp" />
+    <ClCompile Include="taptoturboblocks.cpp" />
+    <ClCompile Include="test.cpp" />
+    <ClCompile Include="turboblock.cpp" />
+    <ClCompile Include="tzxloader.cpp" />
+    <ClCompile Include="z80snapshot_loader.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="LICENSE.txt" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
+    <CustomBuild Include="z80\zqloader.z80asm">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DeploymentContent>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">sjasmplus --fullpath -sld=$(OutputPath)%(Filename).sld -iC:/Tools/sjasmplus/examples/TapLib -iC:/Tools/sjasmplus/examples/BasicLib --exp=$(OutputPath)%(Filename).exp --lst --raw=$(OutputPath)%(Filename).raw --syntax=abf --color=on %(Filename)</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Performing Z80 assemly with sjasmplus</Message>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Filename).tap</Outputs>
+      <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</VerifyInputsAndOutputsExist>
+    </CustomBuild>
+    <CustomBuild Include="z80\zqloader_test.z80asm">
+      <FileType>Document</FileType>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="byte_tools.h" />
+    <ClInclude Include="compressor.h" />
+    <ClInclude Include="datablock.h" />
+    <ClInclude Include="event.h" />
+    <ClInclude Include="loadbinary.h" />
+    <ClInclude Include="pulsers.h" />
+    <ClInclude Include="samplesender.h" />
+    <ClInclude Include="spectrum_loader.h" />
+    <ClInclude Include="spectrum_types.h" />
+    <ClInclude Include="spectrum_consts.h" />
+    <ClInclude Include="symbols.h" />
+    <ClInclude Include="taploader.h" />
+    <ClInclude Include="taptospectrumloader.h" />
+    <ClInclude Include="taptoturboblocks.h" />
+    <ClInclude Include="turboblock.h" />
+    <ClInclude Include="types.h" />
+    <ClInclude Include="tzxloader.h" />
+    <ClInclude Include="z80snapshot_loader.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
