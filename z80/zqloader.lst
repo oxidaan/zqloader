@@ -1,0 +1,1359 @@
+# file opened: C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.z80asm
+  1   0000              //==============================================================================
+  2   0000              // PROJECT:         zqloader
+  3   0000              // FILE:            turboblock.z80asm
+  4   0000              // DESCRIPTION:     ZX Spectrum Z80 assember file for turboloader 'zqloader'
+  5   0000              //
+  6   0000              // Copyright (c) 2023 Daan Scherft [Oxidaan]
+  7   0000              // This project uses the MIT license. See LICENSE.txt for details.
+  8   0000              //==============================================================================
+  9   0000
+ 10   0000              // To be assembled with sjasmplus see https://github.com/z00m128/sjasmplus
+ 11   0000
+ 12   0000
+ 13   0000                  DEVICE ZXSPECTRUM48
+ 14   0000
+ 15   0000                  DEFINE tape_file_name    "zqloader.tap"
+ 16   0000                  DEFINE basic_name        "zqloader"
+ 17   0000
+ 18   0000              //----------------------------------------------------------------------------
+ 19   0000
+ 20   0000              // define DEBUG           // enable/add debug code
+ 21   0000               define TO_SCREEN       // add code to copy lower part to screen and run from there
+ 22   0000               define COMPRESS2
+ 23   0000              //----------------------------------------------------------------------------
+ 24   0000
+ 25   0000              CHAN_OPEN               EQU 0x1601
+ 26   0000              PROG                    EQU 23635       // Zx spectrum system variable PROG indicates start address of basic
+ 27   0000              SCR_CT                  EQU 23692       // avoid Scroll?
+ 28   0000
+ 29   0000              SCREEN_23RD             EQU 16384+4*1024
+ 30   0000
+ 31   0000
+ 32   0000              //----------------------------------------------------------------------------
+ 33   0000               ifdef DEBUG
+ 34   0000 ~            CLEAR                  equ 25500       // CLEAR
+ 35   0000               else
+ 36   0000              CLEAR                  equ 24500       // CLEAR eg horace (H.spiders: 24575)   min:24290
+ 37   0000               endif
+ 38   0000
+ 39   0000              //----------------------------------------------------------------------------
+ 40   0000              LEADER_MIN_EDGES        EQU 200         // Minimum edges a leader beed to have tobe accepted
+ 41   0000
+ 42   0000              LEADER_MAX              EQU 12          // a valid leader pulse is between LEADER_MAX and LEADER_MIN
+ 43   0000              LEADER_MIN              EQU 8           //
+ 44   0000
+ 45   0000              SYNC_MAX                EQU LEADER_MIN-1//  a sync is between SYNC_MIN and SYNC_MAX
+ 46   0000              SYNC_MIN                EQU 4           //
+ 47   0000
+ 48   0000              ONE_MAX                 EQU 12          // Took > 60 cycle:  timeout. B = 0:
+ 49   0000              //ONE_MIN                 EQU 5           // Took 40-60 cycle: "1"  B=1--20   / 1 -- ONE_MAX-ONE_MIN
+ 50   0000              //ONE_MIN                 EQU 4           // Took 40-60 cycle: "1"  B=1--20   / 1 -- ONE_MAX-ONE_MIN
+ 51   0000              ONE_MIN                 EQU 4           // @@ Took 40-60 cycle: "1"  B=1--20   / 1 -- ONE_MAX-ONE_MIN
+ 52   0000
+ 53   0000              ZERO_MAX                EQU ONE_MIN-1   // not used Took 20-40 cycle: "0"" B=21--40 / ONE_MAX-ONE_MIN  -- ONE_MAX-ZERO_MIN
+ 54   0000              ZERO_MIN                EQU 0           // not used
+ 55   0000
+ 56   0000
+ 57   0000              //----------------------------------------------------------------------------
+ 58   0000
+ 59   0000              ASM_UPPER_LEN   EQU ASM_END - ASM_UPPER_BEGIN           // length of code to be moved to upper for org/disp 0xffff - ASM_UPPER_LEN
+ 60   0000              ASM_LOWER_LEN   EQU ASM_LOWER_END - ASM_LOWER_OFFSET    // length of code to be moved to upper for org/disp 0xffff - ASM_UPPER_LEN
+ 61   0000
+ 62   0000
+ 63   0000
+ 64   0000              // ===========================================================================
+ 65   0000              // ===========================================================================
+ 66   0000
+ 67   0000              ASM_UPPER_OFFSET EQU ASM_UPPER_BEGIN - BASIC_START      // used at mc-move for source asm-offset
+ 68   0000
+ 69   0000              // Write basic numbers shorter visible text allways "0" spares space.
+ 70   0000              NUM2   MACRO	value
+ 71   0000 ~                  db "0"
+ 72   0000 ~            	  db	#0E,0,0
+ 73   0000 ~            	  dw	value
+ 74   0000 ~            	  db	#00
+ 75   0000                    ENDM
+ 76   0000
+ 77   0000              BASIC_START:
+ 78   0000                  MODULE basic1
+ 79   0000                      INCLUDE	"BasicLib.asm"
+# file opened: C:/Tools/sjasmplus/examples/BasicLib/BasicLib.asm
+  1+  0000              ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  2+  0000              ;; Basic writing library ;; Busy soft ;; 14.04.2022 ;;
+  3+  0000              ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  4+  0000
+  5+  0000              ;; This library can be used for (relative)
+  6+  0000              ;; easy writing basic programs in SjASMPlus.
+  7+  0000              ;;
+  8+  0000              ;; Macros:
+  9+  0000              ;;
+ 10+  0000              ;;   LINE ... begin of basic line
+ 11+  0000              ;;   LEND ... end of basic line
+ 12+  0000              ;;   NUM .... include number value into basic
+ 13+  0000              ;;
+ 14+  0000              ;; Control variables:
+ 15+  0000              ;;
+ 16+  0000              ;;   line_useval ... Enable use VAL "..." for macro NUM
+ 17+  0000              ;;   line_number ... Actual line number for actual basic line
+ 18+  0000              ;;   line_step ..... Increment for automatic numbering of lines
+ 19+  0000              ;;
+ 20+  0000              ;; Typical usage ...
+ 21+  0000              ;;
+ 22+  0000              ;;   LINE : db bright : NUM 1        : LEND
+ 23+  0000              ;;   LINE : db print,'"Hello world"' : LEND
+ 24+  0000              ;;
+ 25+  0000              ;; ... generates this program:
+ 26+  0000              ;;
+ 27+  0000              ;;   10 BRIGHT 1
+ 28+  0000              ;;   20 PRINT "Hello world"
+ 29+  0000              ;;
+ 30+  0000              ;; Please see examples for more info.
+ 31+  0000
+ 32+  0000              ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 33+  0000
+ 34+  0000              ;; Basic token definitions
+ 35+  0000              ;;
+ 36+  0000              ;;  Note:  absx notx orx andx  are used
+ 37+  0000              ;;  due to conflict with SjASMPlus operators
+ 38+  0000              ;;
+ 39+  0000              ;;  If you have conflict with another labels
+ 40+  0000              ;;  you can encapsulate your basic by this way:
+ 41+  0000              ;;
+ 42+  0000              ;;    MODULE basic
+ 43+  0000              ;;      INCLUDE BasicLib.asm
+ 44+  0000              ;;      LINE : ...... : LEND
+ 45+  0000              ;;      LINE : ...... : LEND
+ 46+  0000              ;;    ENDMODULE
+ 47+  0000
+ 48+  0000              spectrum	equ	#A3
+ 49+  0000              play		equ	#A4
+ 50+  0000              rnd		equ	#A5
+ 51+  0000              inkey		equ	#A6
+ 52+  0000              pi		equ	#A7
+ 53+  0000              fn		equ	#A8
+ 54+  0000              point		equ	#A9
+ 55+  0000              screen		equ	#Aa
+ 56+  0000              attr		equ	#Ab
+ 57+  0000              at		equ	#Ac
+ 58+  0000              tab		equ	#Ad
+ 59+  0000              valS		equ	#Ae
+ 60+  0000              code		equ	#Af
+ 61+  0000              val		equ	#B0
+ 62+  0000              len		equ	#B1
+ 63+  0000              sin		equ	#B2
+ 64+  0000              cos		equ	#B3
+ 65+  0000              tan		equ	#B4
+ 66+  0000              asn		equ	#B5
+ 67+  0000              acs		equ	#B6
+ 68+  0000              atn		equ	#B7
+ 69+  0000              ln		equ	#B8
+ 70+  0000              exp		equ	#B9
+ 71+  0000              int		equ	#Ba
+ 72+  0000              sqr		equ	#Bb
+ 73+  0000              sgn		equ	#Bc
+ 74+  0000              absx		equ	#Bd
+ 75+  0000              peek		equ	#Be
+ 76+  0000              in		equ	#Bf
+ 77+  0000              usr		equ	#C0
+ 78+  0000              str		equ	#C1
+ 79+  0000              chr		equ	#C2
+ 80+  0000              notx		equ	#C3
+ 81+  0000              bin		equ	#C4
+ 82+  0000              orx		equ	#C5
+ 83+  0000              andx		equ	#C6
+ 84+  0000              line		equ	#Ca
+ 85+  0000              then		equ	#Cb
+ 86+  0000              to		equ	#Cc
+ 87+  0000              step		equ	#Cd
+ 88+  0000              deffn		equ	#Ce
+ 89+  0000              cat		equ	#Cf
+ 90+  0000              format		equ	#D0
+ 91+  0000              move		equ	#D1
+ 92+  0000              erase		equ	#D2
+ 93+  0000              open		equ	#D3
+ 94+  0000              close		equ	#D4
+ 95+  0000              merge		equ	#D5
+ 96+  0000              verify		equ	#D6
+ 97+  0000              beep		equ	#D7
+ 98+  0000              circle		equ	#D8
+ 99+  0000              ink		equ	#D9
+100+  0000              paper		equ	#Da
+101+  0000              flash		equ	#Db
+102+  0000              bright		equ	#Dc
+103+  0000              inverse		equ	#Dd
+104+  0000              over		equ	#De
+105+  0000              out		equ	#Df
+106+  0000              lprint		equ	#E0
+107+  0000              llist		equ	#E1
+108+  0000              stop		equ	#E2
+109+  0000              read		equ	#E3
+110+  0000              data		equ	#E4
+111+  0000              restore		equ	#E5
+112+  0000              new		equ	#E6
+113+  0000              border		equ	#E7
+114+  0000              cont		equ	#E8
+115+  0000              continue	equ	#E8
+116+  0000              dim		equ	#E9
+117+  0000              rem		equ	#Ea
+118+  0000              for		equ	#Eb
+119+  0000              goto		equ	#Ec
+120+  0000              gosub		equ	#Ed
+121+  0000              input		equ	#Ee
+122+  0000              load		equ	#Ef
+123+  0000              list		equ	#F0
+124+  0000              let		equ	#F1
+125+  0000              pause		equ	#F2
+126+  0000              next		equ	#F3
+127+  0000              poke		equ	#F4
+128+  0000              print		equ	#F5
+129+  0000              plot		equ	#F6
+130+  0000              run		equ	#F7
+131+  0000              save		equ	#F8
+132+  0000              rand		equ	#F9
+133+  0000              randomize	equ	#F9
+134+  0000              if		equ	#Fa
+135+  0000              cls		equ	#Fb
+136+  0000              draw		equ	#Fc
+137+  0000              clear		equ	#Fd
+138+  0000              return		equ	#Fe
+139+  0000              copy		equ	#Ff
+140+  0000
+141+  0000              ;; Basic UDG definitions
+142+  0000
+143+  0000              udg_a	  equ	#90	;; 144
+144+  0000              udg_b	  equ	#91	;; 145
+145+  0000              udg_c	  equ	#92	;; 146
+146+  0000              udg_d	  equ	#93	;; 147
+147+  0000              udg_e	  equ	#94	;; 148
+148+  0000              udg_f	  equ	#95	;; 149
+149+  0000              udg_g	  equ	#96	;; 150
+150+  0000              udg_h	  equ	#97	;; 151
+151+  0000              udg_i	  equ	#98	;; 152
+152+  0000              udg_j	  equ	#99	;; 153
+153+  0000              udg_k	  equ	#9A	;; 154
+154+  0000              udg_l	  equ	#9B	;; 155
+155+  0000              udg_m	  equ	#9C	;; 156
+156+  0000              udg_n	  equ	#9D	;; 157
+157+  0000              udg_o	  equ	#9E	;; 158
+158+  0000              udg_p	  equ	#9F	;; 159
+159+  0000              udg_q	  equ	#A0	;; 160
+160+  0000              udg_r	  equ	#A1	;; 161
+161+  0000              udg_s	  equ	#A2	;; 162
+162+  0000              udg_t	  equ	#A3	;; 163
+163+  0000              udg_u	  equ	#A4	;; 164
+164+  0000
+165+  0000              ;; Basic control codes
+166+  0000
+167+  0000              comma	  equ	#06	;; db print,'"X',comma,'Y"'
+168+  0000              left	  equ	#08	;; db print,'"',border,left,left,'L V',border,left,'I"'
+169+  0000              right	  equ	#09	;; (does not work due to bug in zx rom)
+170+  0000              enter	  equ	#0D	;; end of basic line, cannot be used inside of line normally
+171+  0000              number	  equ	#0E	;; db '65535',number,0,0,#FF,#FF,0   ;;   But you can use: NUM 65535
+172+  0000              s_ink	  equ	#10	;; db print,'"',s_ink    ,2,'Hello world!"'
+173+  0000              s_paper	  equ	#11	;; db print,'"',s_paper  ,5,'Hello world!"'
+174+  0000              s_flash	  equ	#12	;; db print,'"',s_flash  ,1,'Hello world!"'
+175+  0000              s_bright  equ	#13	;; db print,'"',s_bright ,1,'Hello world!"'
+176+  0000              s_inverse equ	#14	;; db print,'"',s_inverse,1,'Hello world!"'
+177+  0000              s_over	  equ	#15	;; db print,'"',s_over   ,1,'Hello world!"'
+178+  0000              s_at	  equ	#16	;; db print,'"',s_at,10,10 ,'Hello world!"'
+179+  0000              s_tab	  equ	#17	;; db print,'"',s_tab,10,0 ,'Hello world!"'
+180+  0000
+181+  0000              ;; Default setting of control variables
+182+  0000
+183+  0000              line_useval	=	0
+184+  0000              line_number	=	10
+185+  0000              line_step	=	10
+186+  0000
+187+  0000              ;; Begin of basic line
+188+  0000
+189+  0000              LINE  MACRO
+190+  0000 ~            	ASSERT line_number < #4000 , Line number overflows
+191+  0000 ~            	db	high line_number
+192+  0000 ~            	db	low line_number
+193+  0000 ~            	LUA ALLPASS
+194+  0000 ~            	sj.parse_code('dw line_' .. tostring(sj.calc("line_number")) .. '_length')
+195+  0000 ~            	sj.parse_line(   'line_' .. tostring(sj.calc("line_number")) .. '_begin')
+196+  0000 ~            	ENDLUA
+197+  0000                    ENDM
+198+  0000
+199+  0000              ;; End of basic line
+200+  0000
+201+  0000              LEND  MACRO
+202+  0000 ~            	db	#0D
+203+  0000 ~            	LUA ALLPASS
+204+  0000 ~            	sj.parse_line('line_'
+205+  0000 ~            		.. tostring(sj.calc("line_number"))
+206+  0000 ~            		.. '_length = $ - line_'
+207+  0000 ~            		.. tostring(sj.calc("line_number"))
+208+  0000 ~            		.. '_begin')
+209+  0000 ~            	ENDLUA
+210+  0000 ~            line_number  =	line_number + line_step
+211+  0000                    ENDM
+212+  0000
+213+  0000              ;; Include number value into basic line
+214+  0000
+215+  0000              NUM   MACRO	value
+216+  0000 ~            	IF line_useval
+217+  0000 ~            	  db	val,'"'
+218+  0000 ~            	ENDIF
+219+  0000 ~            	  LUA ALLPASS
+220+  0000 ~            --	  sj.parse_code('db	"' .. tostring(sj.calc("value")) .. '"')
+221+  0000 ~            	  sj.parse_code('db	"' .. string.format("%05d", sj.calc("value")) .. '"')		-- DJS fill with zero's
+222+  0000 ~            	  ENDLUA
+223+  0000 ~            	IF line_useval
+224+  0000 ~            	  db	'"'
+225+  0000 ~            	ELSE
+226+  0000 ~            	  db	#0E,0,0
+227+  0000 ~            	  dw	value
+228+  0000 ~            	  db	#00
+229+  0000 ~            	ENDIF
+230+  0000                    ENDM
+231+  0000
+232+  0000              ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+233+  0000
+# file closed: C:/Tools/sjasmplus/examples/BasicLib/BasicLib.asm
+ 80   0000              line_useval = 1   ;; Use VAL for numbers
+ 81   0000
+ 82   0000                          LINE
+ 82   0000             >	ASSERT line_number < #4000 , Line number overflows
+ 82   0000 00          >	db	high line_number
+ 82   0001 0A          >	db	low line_number
+ 82   0002             >	LUA ALLPASS
+ 82   0002 ~           >	sj.parse_code('dw line_' .. tostring(sj.calc("line_number")) .. '_length')
+ 82   0002 ~           >	sj.parse_line(   'line_' .. tostring(sj.calc("line_number")) .. '_begin')
+ 82   0002 09 00       >dw line_10_length
+ 82   0004             >line_10_begin
+ 82   0004             >	ENDLUA
+ 82   0004 FD             db	clear
+ 82   0005                NUM2(CLEAR)
+ 82   0005 30          >      db "0"
+ 82   0006 0E 00 00    >	  db	#0E,0,0
+ 82   0009 B4 5F       >	  dw	(CLEAR)
+ 82   000B 00          >	  db	#00
+ 82   000C               LEND       // 10 CLEAR 24000
+ 82   000C 0D          >	db	#0D
+ 82   000D             >	LUA ALLPASS
+ 82   000D ~           >	sj.parse_line('line_'
+ 82   000D ~           >		.. tostring(sj.calc("line_number"))
+ 82   000D ~           >		.. '_length = $ - line_'
+ 82   000D ~           >		.. tostring(sj.calc("line_number"))
+ 82   000D ~           >		.. '_begin')
+ 82   000D             >line_10_length = $ - line_10_begin
+ 82   000D             >	ENDLUA
+ 82   000D             >line_number  =	line_number + line_step
+ 83   000D                      //    LINE :       db	print, peek : NUM(PROG) : db '+' : NUM(256) : db '*',  peek : NUM(PROG + 1) : db '+' : NUM(ASM_START) :LEND   // 20 PRINT PEEK VAL"XXXX"
+ 84   000D                      //    LINE : db for, "n=" :NUM(0): db to :NUM(10): LEND
+ 85   000D                      //    LINE : db print, "n,",    peek, "(", peek : NUM(PROG) : db '+' : NUM(256) : db '*',  peek : NUM(PROG + 1) : db '+' : NUM(ASM_START) : db "+n)" : LEND   // 20 PRINT PEEK VAL"XXXX"
+ 86   000D                      //    LINE : db next, "n": LEND
+ 87   000D                          LINE
+ 87   000D             >	ASSERT line_number < #4000 , Line number overflows
+ 87   000D 00          >	db	high line_number
+ 87   000E 14          >	db	low line_number
+ 87   000F             >	LUA ALLPASS
+ 87   000F ~           >	sj.parse_code('dw line_' .. tostring(sj.calc("line_number")) .. '_length')
+ 87   000F ~           >	sj.parse_line(   'line_' .. tostring(sj.calc("line_number")) .. '_begin')
+ 87   000F 26 00       >dw line_20_length
+ 87   0011             >line_20_begin
+ 87   0011             >	ENDLUA
+ 87   0011 F5 C0 28 BE    db	print, usr, '(', peek
+ 87   0015                NUM2(PROG)
+ 87   0015 30          >      db "0"
+ 87   0016 0E 00 00    >	  db	#0E,0,0
+ 87   0019 53 5C       >	  dw	(PROG)
+ 87   001B 00          >	  db	#00
+ 87   001C 2B             db '+'
+ 87   001D                NUM2(256)
+ 87   001D 30          >      db "0"
+ 87   001E 0E 00 00    >	  db	#0E,0,0
+ 87   0021 00 01       >	  dw	(256)
+ 87   0023 00          >	  db	#00
+ 87   0024 2A BE          db '*',  peek
+ 87   0026                NUM2(PROG + 1)
+ 87   0026 30          >      db "0"
+ 87   0027 0E 00 00    >	  db	#0E,0,0
+ 87   002A 54 5C       >	  dw	(PROG + 1)
+ 87   002C 00          >	  db	#00
+ 87   002D 2B             db '+'
+ 87   002E                NUM2(ASM_START)
+ 87   002E 30          >      db "0"
+ 87   002F 0E 00 00    >	  db	#0E,0,0
+ 87   0032 44 00       >	  dw	(ASM_START)
+ 87   0034 00          >	  db	#00
+ 87   0035 29             db ')'
+ 87   0036                LEND   // 30 RANDOMIZE USR VAL"XXXX"
+ 87   0036 0D          >	db	#0D
+ 87   0037             >	LUA ALLPASS
+ 87   0037 ~           >	sj.parse_line('line_'
+ 87   0037 ~           >		.. tostring(sj.calc("line_number"))
+ 87   0037 ~           >		.. '_length = $ - line_'
+ 87   0037 ~           >		.. tostring(sj.calc("line_number"))
+ 87   0037 ~           >		.. '_begin')
+ 87   0037             >line_20_length = $ - line_20_begin
+ 87   0037             >	ENDLUA
+ 87   0037             >line_number  =	line_number + line_step
+ 88   0037
+ 89   0037               ifdef DEBUG
+ 90   0037 ~                        LINE
+ 90   0037 ~              db for, "n="
+ 90   0037 ~             NUM2(header)
+ 90   0037 ~              db to
+ 90   0037 ~             NUM2(65535)
+ 90   0037 ~              LEND
+ 91   0037 ~                        LINE
+ 91   0037 ~              db print, "n,",  peek, "("
+ 91   0037 ~              db "n);\" \""
+ 91   0037 ~              LEND   // 20 PRINT PEEK VAL"XXXX"
+ 92   0037 ~                        LINE
+ 92   0037 ~              db next, "n"
+ 92   0037 ~              LEND
+ 93   0037               endif
+ 94   0037                          LINE
+ 94   0037             >	ASSERT line_number < #4000 , Line number overflows
+ 94   0037 00          >	db	high line_number
+ 94   0038 1E          >	db	low line_number
+ 94   0039             >	LUA ALLPASS
+ 94   0039 ~           >	sj.parse_code('dw line_' .. tostring(sj.calc("line_number")) .. '_length')
+ 94   0039 ~           >	sj.parse_line(   'line_' .. tostring(sj.calc("line_number")) .. '_begin')
+ 94   0039 04 00       >dw line_30_length
+ 94   003B             >line_30_begin
+ 94   003B             >	ENDLUA
+ 94   003B EF 22 22       db load, '"','"'
+ 94   003E                LEND
+ 94   003E 0D          >	db	#0D
+ 94   003F             >	LUA ALLPASS
+ 94   003F ~           >	sj.parse_line('line_'
+ 94   003F ~           >		.. tostring(sj.calc("line_number"))
+ 94   003F ~           >		.. '_length = $ - line_'
+ 94   003F ~           >		.. tostring(sj.calc("line_number"))
+ 94   003F ~           >		.. '_begin')
+ 94   003F             >line_30_length = $ - line_30_begin
+ 94   003F             >	ENDLUA
+ 94   003F             >line_number  =	line_number + line_step
+ 95   003F
+ 96   003F
+ 97   003F              	        LINE
+ 97   003F             >	ASSERT line_number < #4000 , Line number overflows
+ 97   003F 00          >	db	high line_number
+ 97   0040 28          >	db	low line_number
+ 97   0041             >	LUA ALLPASS
+ 97   0041 ~           >	sj.parse_code('dw line_' .. tostring(sj.calc("line_number")) .. '_length')
+ 97   0041 ~           >	sj.parse_line(   'line_' .. tostring(sj.calc("line_number")) .. '_begin')
+ 97   0041 E5 01       >dw line_40_length
+ 97   0043             >line_40_begin
+ 97   0043             >	ENDLUA
+ 97   0043 EA             db	rem                             // 40 REM
+ 98   0044                  ENDMODULE
+ 99   0044
+100   0044              // ===========================================================================
+101   0044
+102   0044              BASIC_LEN EQU BASIC_END-BASIC_START                     // length of total basic inc mc-rem for SAVETAP
+103   0044
+104   0044                  DISPLAY "BASIC_START = ",/A,BASIC_START             // usually 0
+105   0044                  DISPLAY "BASIC_LEN = ",/A,BASIC_LEN                 // total length of BASIC including MC code-REM (so tal length)
+106   0044                  DISPLAY "BASIC_END = ",/A,BASIC_END                 // end of BASIC s/a BASIC_LEN since BASIC_START is zero
+107   0044                  DISPLAY "ASM_START = ",/A,ASM_START                 // offset of MC code from BASIC_START
+108   0044                  DISPLAY "ASM_END = ",/A,ASM_END                     // len/end of total mc
+109   0044                  DISPLAY "ASM_LOWER_OFFSET = ",/A,ASM_LOWER_OFFSET   // offset of upper from start of basic, s/a ASM_UPPER_BEGIN
+110   0044                  DISPLAY "ASM_LOWER_LEN = ",/A,ASM_LOWER_LEN         // offset of upper from start of basic, s/a ASM_UPPER_BEGIN
+111   0044                  DISPLAY "ASM_UPPER_OFFSET = ",/A,ASM_UPPER_OFFSET   // offset of upper from start of basic, s/a ASM_UPPER_BEGIN
+112   0044                  DISPLAY "ASM_UPPER_LEN = ",/A,ASM_UPPER_LEN         // offset of upper from start of basic, s/a ASM_UPPER_BEGIN
+113   0044                  DISPLAY "ASM_UPPER_BEGIN = ",/A,ASM_UPPER_BEGIN     // offset of upper begin eg 376
+114   0044                  DISPLAY "ASM_UPPER_START = ",/A,ASM_UPPER_START     // start of upper begin eg 65253
+115   0044                  DISPLAY "0xffff-(ASM_UPPER_LEN -1) = ",/A,0xffff-(ASM_UPPER_LEN -1)         // s/a ASM_UPPER_START
+116   0044
+117   0044              ASM_START:
+118   0044                  // move loader to upper regions.
+119   0044 2A 53 5C         ld HL, (PROG)               // PROG variable contains start of BASIC typically 23755
+120   0047 11 2E 01         ld DE, ASM_UPPER_OFFSET     // offset from start of BASIC
+121   004A 19               add HL, DE                  // HL = (PROG) + ASM_UPPER_OFFSET
+122   004B 22 FE FF         ld (load_address_at_basic), HL    // keep for later (eg 24036)    (or 24117)
+123   004E 11 07 FF         ld DE, ASM_UPPER_START
+124   0051 01 F7 00         ld BC, ASM_UPPER_LEN - 2    // -2 do NOT overwrite load_address_at_basic just written
+125   0054 ED B0            ldir
+126   0056
+127   0056              //    ld BC, (load_address_at_basic)    //  @DEBUG eg 24032 (23755 + ASM_UPPER_OFFSET)
+128   0056              //    ret                               //  @DEBUG
+129   0056
+130   0056
+131   0056
+132   0056              // ===========================================================================
+133   0056
+134   0056
+135   0056
+136   0056              ASM_LOWER_OFFSET:
+137   0056              start:
+138   0056 3E 02            ld A, 2
+139   0058 CD 01 16         call CHAN_OPEN              // rst 10 goes to screen
+140   005B 11 D3 FF         ld DE, TEXT_START
+141   005E CD 07 FF         call PRINT                  // print "Loading..."
+142   0061 F3               di                          // di1
+143   0062 D9               exx
+144   0063                      // I think BC', DE', HL' must be saved for save return to BASIC (or before ei)
+145   0063 D5                   push DE                 // #PP1
+146   0064 E5                   push HL                 // #PP2
+147   0065 C5                   push BC                 // #PP5
+148   0066 D9               exx
+149   0067              next_block:
+150   0067              LOAD:
+151   0067                //  LD A, (ASM_UPPER_START)       //  @DEBUG
+152   0067                //  CP 123                        //  @DEBUG
+153   0067                //  JR NZ, error                  //  @DEBUG
+154   0067
+155   0067
+156   0067              //============================================================================
+157   0067              // Load Header, then data.
+158   0067              // HL' is destination of header.
+159   0067              // Return:
+160   0067              //  c=1 z=d  carry set: ok
+161   0067              //  c=0 z=0  break pressed
+162   0067              //  c=0 z=1  Timeout or checksum error
+163   0067              // General register usage:
+164   0067              // A For IN etc.
+165   0067              // carry: edge found; b is time measured.
+166   0067              //          no carry: no edge found:
+167   0067              //              z= 1 timeout, z=0 break pressed
+168   0067              // B  = edge counter
+169   0067              // C  = prev. edge (bit 5) + border color (bit 0-3)
+170   0067              // HL' = target addres to read, will be modified
+171   0067              // DE = length to read, will be zero when OK
+172   0067              // H  = major counter (leader)/checksum
+173   0067              // L  = byte being loaded
+174   0067
+175   0067                  // intialize edge plus border color -> c
+176   0067
+177   0067                  // Get intial value from port->C
+178   0067
+179   0067                  // E=ear, M=mic, K-keyboard, B = bordercolor
+180   0067                  //            7  6  5  4  3  2  1  0
+181   0067                  // in(0xfe):  0  E  0  K  K  K  K  K
+182   0067                  // out(0xfe): d  d  d  E !M  B  B  B
+183   0067 3E 7F            ld A,$7F 	                // Read from port 7FFE eg !BREAK is bit 0.
+184   0069 DB FE            in A,($FE)                  // Get initial value; bit 0 is space, bit 6 is ear
+185   006B              //    call PRINT_HEX_A            // @DEBUG
+186   006B E6 40            and   0b01000000            // mask ear
+187   006D F6 0A            or    0b00001010            // ear zero border red 010 <-> 101 cyan + also set mic and/or ear
+188   006F              //    ld b, 0b00001010            // ear zero border red 010 <-> 101 cyan + also set mic and/or ear
+189   006F              //    jr z, .earzero              // ear zero
+190   006F              //    ld b, 0b00001010            // ear one border red 010 <-> 101 cyan + also set mic and/or ear
+191   006F              //.earzero
+192   006F              //    or  B                       //  0b00000010 or  0b00011010 set mic + ear same as edge
+193   006F 4F               ld C, A                     // initialize c with result: 0E0EEBBB
+194   0070 26 47            ld H, 0b01000111            // The C xor value, see WAIT_FOR_EDGE
+195   0072
+196   0072
+197   0072                  // Initialize for loading header
+198   0072 D9               exx
+199   0073                  //    ld HL, header           // location of header @(HL++)
+200   0073 21 ED FF             ld HL, header-1         // location of header @ (++HL)
+201   0076 11 10 00             ld DE, sizeof_header    // length of header
+202   0079 0E 10                ld C, sizeof_header     // checksum
+203   007B D9               exx
+204   007C
+205   007C                //  cp A                        // set zero flag
+206   007C CD 17 FF         call LOAD_HEADER_PLUS_DATA  // upper, call is ok
+207   007F 28 65            jr z, error                 // error
+208   0081
+209   0081                  // check checksum
+210   0081 D9               exx
+211   0082 79               ld A, C                     // this is LD A, C' check checksum C' should be zero
+212   0083 D9               exx
+213   0084                 // call PRINT_HEX_A            // @DEBUG
+214   0084 D6 01            sub 1                       // carry only when zero so ok (note: dec A does not affect c!)
+215   0086 30 58            jr nc, checksum_error
+216   0088
+217   0088                  // Once here here a turbo block was correctly loaded
+218   0088                 // LD A, (ASM_UPPER_START)     //  @DEBUG
+219   0088                 // CP 123                      //  @DEBUG
+220   0088                 // JR NZ, error                //  @DEBUG
+221   0088
+222   0088 3A FD FF         ld A, (m_copy_to_screen)
+223   008B 3D               dec A
+224   008C 28 37            jr z, copy_me_to_screen     // continues from there!
+225   008E
+226   008E
+227   008E              load_ok:
+228   008E ED 5B F8 FF      ld DE, (m_clear_address)    // clear address/SP
+229   0092 D5               push DE                     // PP3 check later. might get lost when header overwritten
+230   0093 ED 5B F6 FF      ld DE, (m_usr_start_address)// just loaded last block last/start address
+231   0097 D5               push DE                     // PP4 check later. might get lost when header overwritten
+232   0098 ED 5B F2 FF      ld DE, (m_dest_address)     // destination address to copy/uncomress to
+233   009C 7A               ld A,D                      // check dest address is zero skip copy or decompressing
+234   009D B3               or E
+235   009E 28 16            jr z, copy_done             // dest zero then skip copy or decompressing
+236   00A0
+237   00A0                  // pop bc                     // @DEBUG (dummy pop PP4)
+238   00A0                  // pop bc                     // @DEBUG (dummy pop PP3)
+239   00A0                  // ld b, d                    // @DEBUG
+240   00A0                  // ld c, e                    // @DEBUG
+241   00A0                  // jr end_to_basic            // @DEBUG       eg 65252: ASM_UPPER_START
+242   00A0
+243   00A0                  // -- Now DE is copy destination address --
+244   00A0
+245   00A0 2A F0 FF         ld HL, (m_load_address)     // where data was received at load, when 0 take load_address_at_basic
+246   00A3
+247   00A3 7C               ld A, H
+248   00A4 B7               or A
+249   00A5 20 03            jr nz, .hl_is_load_address
+250   00A7 2A FE FF         ld HL, (load_address_at_basic)
+251   00AA
+252   00AA              .hl_is_load_address
+253   00AA                  // LD B, H                    // @DEBUG
+254   00AA                  // LD C, L                    // @DEBUG
+255   00AA                  // POP DE                     // @DEBUG PP4
+256   00AA                  // POP DE                     // @DEBUG PP3
+257   00AA                  // jr end_to_basic            // @DEBUG       // eg 24031 when at basic
+258   00AA ED 4B EE FF      ld BC, (m_length)           // payload size
+259   00AE                  // POP DE                     // @DEBUG  PP4
+260   00AE                  // POP DE                     // @DEBUG PP3
+261   00AE                  // jr end_to_basic            // @DEBUG       // eg 262 (is compressed) and loading at basic
+262   00AE
+263   00AE                  // -- Now DE is m_dest_address;  HL is m_load_address (or load_address_at_basic), BC is m_length --
+264   00AE
+265   00AE 3A F4 FF         ld A, (m_compression_type)  // compression type
+266   00B1 3D               dec A
+267   00B2 28 3F            jr z, DECOMPRESS            // m_compression_type == 1
+268   00B4                //  dec A
+269   00B4                //  jr z, SCREEN_DECOMPRESSION
+270   00B4
+271   00B4
+272   00B4
+273   00B4
+274   00B4
+275   00B4              just_copy:
+276   00B4                  // must be copy to DE without compresion
+277   00B4                  // all registers for ldir still fine.
+278   00B4 ED B0            ldir
+279   00B6              //    jr copy_done
+280   00B6
+281   00B6
+282   00B6              SCREEN_DECOMPRESSION:           // TODO
+283   00B6
+284   00B6
+285   00B6              decompress_done:
+286   00B6              copy_done:
+287   00B6
+288   00B6 E1               pop HL                      // PP4 last block?
+289   00B7 D1               pop DE                      // PP3 clear_address
+290   00B8 7C               ld A, H
+291   00B9 B5               or L
+292   00BA 28 AB            jr z, next_block            // when HL == 0 continue to next block
+293   00BC 7D               ld A, L
+294   00BD 3D               dec A
+295   00BE B4               or H
+296   00BF              //    call PRINT_DEBUG            // @DEBUG
+297   00BF 28 2B            jr z, end_to_basic          // HL = 1 so last block but do not start MC, return to BASIC.
+298   00C1
+299   00C1                  // -- When here: --
+300   00C1                  // -- HL is start addres as in RANDOMIZE USR xxxxx --
+301   00C1                  // -- DE is address as in CLEAR xxxxx. --
+302   00C1              call_usr:
+303   00C1 EB               ex DE, HL                   // This is ld SP, DE
+304   00C2 F9               ld SP, HL                   // put SP at CLEAR address.
+305   00C3 EB               ex DE, HL
+306   00C4              //    exx                         //  @DEBUG
+307   00C4              //        pop BC                  // #PP5      @DEBUG
+308   00C4              //        pop HL                  // #PP2      @DEBUG
+309   00C4              //        pop DE                  // #PP1      @DEBUG
+310   00C4              //    exx                         // @DEBUG
+311   00C4              //    ei                          // #di1 TODO @DEBUG
+312   00C4 E9               jp HL                       // note: this also means HL is PC once there
+313   00C5
+314   00C5              copy_me_to_screen:
+315   00C5 2A 53 5C         ld HL, (PROG)               // PROG variable contains start of BASIC typically 23755
+316   00C8 11 56 00         ld DE, ASM_LOWER_OFFSET     // offset from start of BASIC
+317   00CB 19               add HL, DE                  // HL = (PROG) + ASM_LOWER_OFFSET
+318   00CC 11 00 50         ld DE, SCREEN_23RD          // lower 3rd of screen
+319   00CF 01 D8 00         ld BC, ASM_LOWER_LEN
+320   00D2 ED B0            ldir
+321   00D4 31 00 58         ld SP, 16384+6*1024         // also put stack at (end of) screen! We cant go back to basic anyway
+322   00D7 21 D8 50         ld HL, SCREEN_23RD + ASM_UPPER_OFFSET - ASM_LOWER_OFFSET
+323   00DA 22 FE FF         ld (load_address_at_basic), HL                  // also adjust this!!
+324   00DD C3 38 50         jp SCREEN_23RD + load_ok - ASM_LOWER_OFFSET     // and go on from there (load_ok)
+325   00E0
+326   00E0              // Show error messages
+327   00E0              checksum_error:
+328   00E0 11 DF FF         ld DE, TEXT_CHECKSUM_ERROR
+329   00E3 CD 07 FF         call PRINT
+330   00E6
+331   00E6              error:
+332   00E6 11 E8 FF         ld DE, TEXT_ERROR
+333   00E9 CD 07 FF         call PRINT
+334   00EC
+335   00EC              end_to_basic:
+336   00EC D9               exx
+337   00ED C1                   pop BC                  // #PP5
+338   00EE E1                   pop HL                  // #PP2
+339   00EF D1                   pop DE                  // #PP1
+340   00F0 D9               exx
+341   00F1 FB               ei                          // #di1
+342   00F2 C9               ret
+343   00F3
+344   00F3
+345   00F3
+346   00F3              //============================================================================
+347   00F3              // RLE decompress. Both 1st most occuring as 2nd most occoring bytes are coded.
+348   00F3              // Largely ldir compatible so:
+349   00F3              // HL: Source
+350   00F3              // DE: Dest
+351   00F3              // BC: Length/counter
+352   00F3              // A, IX is touched.
+353   00F3              DECOMPRESS
+354   00F3              //    di                        // di2 IY is used in interrupts and here so di
+355   00F3 FD E5            push IY
+356   00F5                  // 40 T 8B
+357   00F5 DD 2A FA FF      ld IX, (m_rle_most)         // IXH = not used; IXL = (m_rle_most+0) so most
+358   00F9 FD 2A FB FF      ld IY, (m_rle_min1)         // IYH = (m_rle_min1+1) so min2; IYL = (m_rle_min1+0) so min1
+359   00FD              .beginloop:
+360   00FD 7E               ld A, (HL)                  // take a byte
+361   00FE 23               inc HL                      // move to next byte
+362   00FF 0B               dec BC                      // decrement counter
+363   0100 FD BD            cp IYL                      // is it min1?
+364   0102 28 16            jr z, .write_max1           // then write max1
+365   0104 FD BC            cp IYH                      // is it min2?
+366   0106 28 0A            jr z, .write_max2           // then write max2
+367   0108              .write_A:
+368   0108 12               ld (DE), A                  // normal write
+369   0109 13               inc DE
+370   010A              .nextloop
+371   010A 78               ld A, B                     // check zero
+372   010B B1               or C
+373   010C 20 EF            jr nz, .beginloop
+374   010E FD E1            pop IY
+375   0110              //    ei                        // di2
+376   0110 18 A4            jr decompress_done          // was: ret
+377   0112              .write_max2:
+378   0112 BE               cp (HL)                     // A must still be min2
+379   0113 28 15            jr z, .itsmin               // a second min2 seen, write min2 as value
+380   0115 7E               ld A, (HL)                  // A=value to write (val)
+381   0116 0B               dec BC                      // decrement counter
+382   0117 23               inc HL
+383   0118 18 05            jr .write_rle_bytes
+384   011A              .write_max1:                    // occurs move often so put last to avoid jump
+385   011A BE               cp (HL)                     // A must still be min1
+386   011B 28 0D            jr z, .itsmin               // a second min1 seen, write min1 as normal value
+387   011D DD 7D            ld A, IXL                   // A=most
+388   011F              .write_rle_bytes:
+389   011F                  // write value in A (HL)-times to DE, DE and HL updated.
+390   011F                  // With ldir hard to write just one byte: so
+391   011F                  // with djnz, shorter, loop slightly slower 21 vs 26, can write one byte easily, no need to push hl
+392   011F C5               push BC
+393   0120 46               ld B, (HL)                  // count
+394   0121              .loop
+395   0121 12               ld (DE), A
+396   0122 13               inc DE
+397   0123 10 FC            djnz .loop
+398   0125 C1               pop BC
+399   0126
+400   0126 23               inc HL
+401   0127 0B               dec BC
+402   0128 18 E0            jr .nextloop
+403   012A
+404   012A              .itsmin:                        // write min1 or min2 as normal value. This should occur rarely
+405   012A 23               inc HL                      // just need to increase HL, A is min1 or min2
+406   012B 0B               dec BC
+407   012C 18 DA            jr .write_A
+408   012E
+409   012E              //============================================================================
+410   012E              //============================================================================
+411   012E              //============================================================================
+412   012E
+413   012E
+414   012E              ASM_LOWER_END:
+415   012E              ASM_UPPER_BEGIN:
+416   012E                  DISP  0xffff-(ASM_UPPER_LEN -1)     // ENT
+417   FF07
+418   FF07
+419   FF07
+420   FF07              //============================================================================
+421   FF07              //============================================================================
+422   FF07              //============================================================================
+423   FF07
+424   FF07              ASM_UPPER_START:
+425   FF07
+426   FF07               ifdef DEBUG
+427   FF07 ~
+428   FF07 ~            edge_sometimes_show_error:
+429   FF07 ~                // debug code! Print B as hex every 256 cycles
+430   FF07 ~            .debug_cnt+*:   ld A, 0
+431   FF07 ~                dec A
+432   FF07 ~                ld (.debug_cnt), A
+433   FF07 ~                or A
+434   FF07 ~                jp nz, wait_for_first_edge
+435   FF07 ~            edge_show_error:
+436   FF07 ~                call PRINT_HEX_B
+437   FF07 ~                jp wait_for_first_edge
+438   FF07 ~
+439   FF07 ~
+440   FF07 ~            // ---------------------------------------------------------------------------
+441   FF07 ~
+442   FF07 ~            // print a "*"
+443   FF07 ~            PRINT_DEBUG
+444   FF07 ~                push AF
+445   FF07 ~                push DE
+446   FF07 ~                ld DE, TEXT_DEBUG
+447   FF07 ~                call PRINT
+448   FF07 ~                pop AF
+449   FF07 ~                pop DE
+450   FF07 ~                ret
+451   FF07 ~            //----------------------------------------------------------------------------
+452   FF07 ~
+453   FF07 ~            // eg F3/F4 at lead tone 700/700
+454   FF07 ~            // eg 230/239 at lead tone 1400/1400
+455   FF07 ~            DEBUGSTOREEDGES:
+456   FF07 ~                DI
+457   FF07 ~                LD B, 0
+458   FF07 ~                call WAIT_FOR_EDGE
+459   FF07 ~                call WAIT_FOR_EDGE          // 17 -> 7+ 17+20 + 111 = 155T=>edge-IN . Wait for stop-bit->start bit edge this is the only guaranteed edge.
+460   FF07 ~                call SOMETIMES_PRINT_B
+461   FF07 ~                jr DEBUGSTOREEDGES
+462   FF07 ~
+463   FF07 ~            //----------------------------------------------------------------------------
+464   FF07 ~
+465   FF07 ~
+466   FF07 ~            // debug code! Print B as hex every 256 cycles
+467   FF07 ~            SOMETIMES_PRINT_B:
+468   FF07 ~            .debug_cnt+*:   ld A, 0
+469   FF07 ~                dec A
+470   FF07 ~                ld (.debug_cnt), A
+471   FF07 ~                or A
+472   FF07 ~                ret nz
+473   FF07 ~                jr PRINT_HEX_B
+474   FF07 ~
+475   FF07 ~
+476   FF07 ~
+477   FF07 ~            //----------------------------------------------------------------------------
+478   FF07 ~            PRINT_HEX_BC
+479   FF07 ~                ld A,B
+480   FF07 ~                call PRINT_HEX_A
+481   FF07 ~                ld A,C
+482   FF07 ~                jp PRINT_HEX_A
+483   FF07 ~
+484   FF07 ~            // print B as hex
+485   FF07 ~            PRINT_HEX_B
+486   FF07 ~                ld A,B
+487   FF07 ~
+488   FF07 ~            // print A as hex
+489   FF07 ~            PRINT_HEX_A:
+490   FF07 ~                push DE
+491   FF07 ~                push AF
+492   FF07 ~                ld d, a
+493   FF07 ~                rra
+494   FF07 ~                rra
+495   FF07 ~                rra
+496   FF07 ~                rra
+497   FF07 ~                call .print_hex_nibble_A
+498   FF07 ~                ld a, d
+499   FF07 ~                call .print_hex_nibble_A
+500   FF07 ~                pop AF
+501   FF07 ~                pop DE
+502   FF07 ~                ret
+503   FF07 ~            .print_hex_nibble_A
+504   FF07 ~                and 0b00001111
+505   FF07 ~                add '0'
+506   FF07 ~                cp '9' + 1
+507   FF07 ~                jr c, .ok
+508   FF07 ~                add 'A' - ('9' + 1)
+509   FF07 ~            .ok
+510   FF07 ~                ld (SCR_CT),a               // avoid Scroll?
+511   FF07 ~                rst 0x10
+512   FF07 ~                ret
+513   FF07 ~            //----------------------------------------------------------------------------
+514   FF07 ~
+515   FF07 ~
+516   FF07 ~
+517   FF07 ~
+518   FF07               endif      // DEBUG
+519   FF07
+520   FF07              //===========================================================================
+521   FF07
+522   FF07
+523   FF07              // Print bit7-terminated string
+524   FF07              // DE: address of string
+525   FF07              PRINT:
+526   FF07              .loop
+527   FF07 1A               ld A, (DE)
+528   FF08 13               inc DE
+529   FF09 32 8C 5C         ld (SCR_CT),A               // avoid "Scroll?"
+530   FF0C CB 7F            bit 7,A
+531   FF0E 20 03            jr nz, .last
+532   FF10 D7               rst 0x10
+533   FF11 18 F4            jr .loop
+534   FF13              .last
+535   FF13 E6 7F            and 0x7f
+536   FF15 D7               rst 0x10
+537   FF16 C9               ret
+538   FF17
+539   FF17               //============================================================================
+540   FF17               //============================================================================
+541   FF17
+542   FF17
+543   FF17              //============================================================================
+544   FF17              // LOAD_HEADER_PLUS_DATA
+545   FF17              // HL' storage location-1, must be header location-1.
+546   FF17              // DE': # bytes to load must be size of header.
+547   FF17              // C: last IN at WAIT_FOR_EDGE; border color.
+548   FF17              // C': Checksum init value must also be sizeof header.
+549   FF17              // Out:
+550   FF17              // When OK: The header plus data is read.
+551   FF17              // C': checksum / must be zero at end when ok.
+552   FF17              // L: last byte loaded.
+553   FF17              // At return:
+554   FF17              //  z=0  ok
+555   FF17              //  z=1  Timeout or error (B==0)
+556   FF17              LOAD_HEADER_PLUS_DATA:
+557   FF17
+558   FF17              // wait for edge until enter pressed.
+559   FF17              // Note value of B is not really relevant at first.
+560   FF17              wait_for_first_edge:
+561   FF17 3E BF         	ld A,$BF 	                // Read from port 0xBFFE, read ENTER to break
+562   FF19 DB FE        	in A,($FE)                  // bit 0 is !BREAK,
+563   FF1B 0F               rrca                        // check for key pressed, when C: no key
+564   FF1C D0               ret nc
+565   FF1D CD C4 FF         call WAIT_FOR_EDGE
+566   FF20 28 F5            jr z,  wait_for_first_edge  // When z timeout: no edge.  Note B is now 0
+567   FF22
+568   FF22                  // --- We now saw a (single) edge ---
+569   FF22
+570   FF22                  // First need at least 200 edges with matching time between LEADER_MIN(8#) -- LEADER_MAX (12#)
+571   FF22                  // B out-> 12#11 10 09 08 07 06 05 04 03 02 01  00    # ->B out
+572   FF22                  //          1  2  3  4  5  6  7  8# 9 10 11 12  (12)  # cycles (#INs done)
+573   FF22                  //          -  -  -  -  -  -  - ok ok ok ok ok  t/o     (- = to soon)
+574   FF22
+575   FF22 2E C8            ld L, LEADER_MIN_EDGES      // (eg 200) > 200 correct edges needed
+576   FF24              .leader_loop1:
+577   FF24 06 0C            ld B, LEADER_MAX            // # counts = max acceptable time between edges
+578   FF26 CD C4 FF         call WAIT_FOR_EDGE
+579   FF29              ///    jr nc,edge_sometimes_show_error          //  @DEBUG
+580   FF29 28 EC          	jr z, wait_for_first_edge   // T/O no edge (note B is 0 when T/O)
+581   FF2B
+582   FF2B 78               ld A, B
+583   FF2C FE 06            cp LEADER_MAX+2-LEADER_MIN   // minimum acceptable time between edges (eg 12+2-8=6)
+584   FF2E                  // B > LEADER_MAX-LEADER_MIN (eg 4) : waited shorter than LEADER_MIN -> nc -> nok to soon
+585   FF2E 30 E7            jr nc,wait_for_first_edge   // edge < LEADER_MIN so to soon (-)
+586   FF30 2D               dec L                       // #matching edges B = 4,3,2,1
+587   FF31 20 F1            jr nz, .leader_loop1
+588   FF33
+589   FF33                  // --- We now saw 200 ('LEADER_MIN_EDGES') valid leader cycles ---
+590   FF33
+591   FF33                  // Continue with leader but now also check for sync
+592   FF33                  // eg LEADER_MAX (12#), LEADER_MIN(8), SYNC_MIN(4#)
+593   FF33                  // B out-> 12#11 10 09 08 07 06 05 04 03 02 01  00    # ->B out
+594   FF33                  //          1  2  3  4# 5  6  7  8# 9 10 11 12  (12)  # cycles (#INs done)
+595   FF33                  //          -  -  -  S  S  S  S ld ld ld ld ld  t/o    (- = to soon)
+596   FF33
+597   FF33              .leader_loop2:
+598   FF33 06 0C            ld B, LEADER_MAX
+599   FF35 CD C4 FF         call WAIT_FOR_EDGE
+600   FF38 28 DD          	jr z, wait_for_first_edge   // > LEADER_MAX counts no edge: timeout (note B is 0 when T/O)
+601   FF3A 78               ld A, B
+602   FF3B FE 0A        	cp LEADER_MAX+2-SYNC_MIN    // minimum acceptable time between edges eg(12+2-4=10)
+603   FF3D                  // B > LEADER_MAX-SYNC_MIN : waited shorter than SYNC_MIN -> nc -> nok to soon
+604   FF3D 30 D8            jr nc,wait_for_first_edge   // edge < SYNC_MIN counts, (B=9,11,11) to soon not even a sync to soon start all over
+605   FF3F FE 06        	cp LEADER_MAX+2-LEADER_MIN 	// (12+2-8=6) edge SYNC_MIN-LEADER_MIN counts its a sync
+606   FF41                  // B > LEADER_MAX-LEADER_MIN : waited shorter than LEADER_MIN but longer than SYNC_MIN -> its a sync
+607   FF41 38 F0            jr c, .leader_loop2         // edge between LEADER_MIN-LEADER_MAX counts valid leader but no sync continue
+608   FF43
+609   FF43                  // --- We now saw a sync (eg B=8,7,6,5) ---
+610   FF43                  // When fails now do not try again.
+611   FF43                  // call PRINT_DEBUG
+612   FF43
+613   FF43 79               ld    A, C
+614   FF44 EE 03            xor   0b00000011            //  Toggle border 001 red <-> 110 yellow from now on
+615   FF46 4F               ld    C, A
+616   FF47
+617   FF47
+618   FF47                  //  ld HL', header            // already done
+619   FF47                  //  ld DE', sizeof_header     // already done
+620   FF47 CD 61 FF         call LOAD_BYTES             // load header
+621   FF4A C8               ret z                       // loading error
+622   FF4B
+623   FF4B
+624   FF4B                  // -- We now have read a header --
+625   FF4B
+626   FF4B                  // Intialize using header just read.
+627   FF4B                  // Initialize length as from header read.
+628   FF4B                  // Initialize load location as from header just read.
+629   FF4B                  // when 0 (at least ixh), load into basic at REM ie load_address_at_basic
+630   FF4B D9               exx
+631   FF4C ED 5B EE FF          ld DE, (m_length)       // now has length of data to be received
+632   FF50 2A F0 FF             ld HL, (m_load_address) // m_load_address
+633   FF53              //        ld HL, 16384            //  @DEBUG
+634   FF53 7C                   ld A, H
+635   FF54 B7                   or A
+636   FF55 C2 5B FF             jp nz, .not_basic       // LOAD data, normal
+637   FF58 2A FE FF             ld HL, (load_address_at_basic)          // when 0 load at load_address_at_basic REM overwritting our loader code there
+638   FF5B              .not_basic
+639   FF5B 2B                   dec HL                  // @Opt (++HL)
+640   FF5C 7A                   ld A, D
+641   FF5D B3                   or E
+642   FF5E D9               exx
+643   FF5F 28 5F            jr z, load_done             // length zero nothing more to do, but need to unset z
+644   FF61
+645   FF61
+646   FF61              //============================================================================
+647   FF61
+648   FF61                MACRO READ_ONE_BIT            // 111T states
+649   FF61 ~                ld B, D                     // # counts eg 12
+650   FF61 ~                call WAIT_FOR_EDGE          // 69T
+651   FF61 ~                ret z
+652   FF61 ~                ld A, B
+653   FF61 ~                cp E                        // (eg 12+2-6=8)
+654   FF61 ~                rl L
+655   FF61                ENDM
+656   FF61                MACRO READ_ONE_BIT_NO_RETZ    // 42T states
+657   FF61 ~                ld B, D                     // # counts eg 12
+658   FF61 ~                call WAIT_FOR_EDGE          // #3
+659   FF61 ~                ld A, B
+660   FF61 ~                cp E                        // (eg 12+2-6=8)
+661   FF61 ~                rl L
+662   FF61                ENDM
+663   FF61
+664   FF61
+665   FF61
+666   FF61
+667   FF61              //============================================================================
+668   FF61              // LOAD_BYTES
+669   FF61              // In:
+670   FF61              // HL' storage location, this is modified (walks to end) (was IX)
+671   FF61              // DE': # bytes to load (including not stored checksum byte), this is modified (walks down to zero) (was DE)
+672   FF61              // C: last IN at WAIT_FOR_EDGE; border color.
+673   FF61              // C': Checksum init value must be sizeof header. (was H)
+674   FF61              // Out:
+675   FF61              // C': checksum / must be zero at end when ok. (was H)
+676   FF61              // L: last byte loaded.
+677   FF61              //  z=1 error
+678   FF61              //  z=0 ok
+679   FF61              // Used:
+680   FF61              // HL': (increases)
+681   FF61              // DE': (walks to zero)
+682   FF61              // C': Checksum
+683   FF61              // H must be 0b01000111
+684   FF61              // L: Now/Last loaded byte
+685   FF61              // B: timing at WAIT_FOR_EDGE
+686   FF61              // C: last IN value to check changes; border color at WAIT_FOR_EDGE
+687   FF61              // D: ONE_MAX, used to to quickly put in B
+688   FF61              // E: ONE_MAX+2-ONE_MIN, used to to quickly compare to B
+689   FF61              // A: temporary storage
+690   FF61              //
+691   FF61              // eg ONE_MAX (12#), ONE_MIN(6#)/ZERO_MAX(5), ZERO_MIN(0)
+692   FF61              // B out-> 12#11 10 09 08 07 06 05 04 03 02 01  00    # ->B out
+693   FF61              //          1  2  3  4  5  6# 7  8  9 10 11 12  (12)  # cycles (#INs done)
+694   FF61              //          0  0  0  0  0  1  1  1  1  1  1  1  t/o     (- = to soon)
+695   FF61              LOAD_BYTES:
+696   FF61              //.nextbyte
+697   FF61 16 0C            ld D, ONE_MAX
+698   FF63 1E 0A            ld E, ONE_MAX+2-ONE_MIN     // eg 12+2-6 = 8
+699   FF65 06 C8            ld B, 200                   // @Opt Mini sync
+700   FF67 CD C4 FF         call WAIT_FOR_EDGE          // @Opt Mini sync
+701   FF6A C8               ret z                       // @Opt Mini sync
+702   FF6B
+703   FF6B              .nextbyte
+704   FF6B              //   ld L,1            // @ no unroll loop
+705   FF6B
+706   FF6B              // Time between WAIT_FOR_EDGE calls: 42T
+707   FF6B              // Min Time between IN's 42T + 69T = 111T
+708   FF6B              // Max Time between IN's 82T + 69T = 151T
+709   FF6B              // entire byte = 391T + 8 * 69 = 943T (~118T per bit)
+710   FF6B              .nextbit
+711   FF6B                  READ_ONE_BIT
+711   FF6B 42          >    ld B, D                     // # counts eg 12
+711   FF6C CD C4 FF    >    call WAIT_FOR_EDGE          // 69T
+711   FF6F C8          >    ret z
+711   FF70 78          >    ld A, B
+711   FF71 BB          >    cp E                        // (eg 12+2-6=8)
+711   FF72 CB 15       >    rl L
+712   FF74              //    jp nc, .nextbit           // @opt no unroll loop
+713   FF74
+714   FF74              .nextbit2
+715   FF74                  READ_ONE_BIT
+715   FF74 42          >    ld B, D                     // # counts eg 12
+715   FF75 CD C4 FF    >    call WAIT_FOR_EDGE          // 69T
+715   FF78 C8          >    ret z
+715   FF79 78          >    ld A, B
+715   FF7A BB          >    cp E                        // (eg 12+2-6=8)
+715   FF7B CB 15       >    rl L
+716   FF7D              //    jr nc, .nextbit2          // @opt no unroll loop2 / @correct first bit
+717   FF7D
+718   FF7D                  READ_ONE_BIT
+718   FF7D 42          >    ld B, D                     // # counts eg 12
+718   FF7E CD C4 FF    >    call WAIT_FOR_EDGE          // 69T
+718   FF81 C8          >    ret z
+718   FF82 78          >    ld A, B
+718   FF83 BB          >    cp E                        // (eg 12+2-6=8)
+718   FF84 CB 15       >    rl L
+719   FF86
+720   FF86                  READ_ONE_BIT_NO_RETZ
+720   FF86 42          >    ld B, D                     // # counts eg 12
+720   FF87 CD C4 FF    >    call WAIT_FOR_EDGE          // #3
+720   FF8A 78          >    ld A, B
+720   FF8B BB          >    cp E                        // (eg 12+2-6=8)
+720   FF8C CB 15       >    rl L
+721   FF8E D9               exx
+722   FF8F 23                   inc HL                  // @Opt  (++HL) @Opt spreading
+723   FF90 1B                   dec de                  // spreading
+724   FF91 D9               exx                         // 20T
+725   FF92
+726   FF92                  READ_ONE_BIT
+726   FF92 42          >    ld B, D                     // # counts eg 12
+726   FF93 CD C4 FF    >    call WAIT_FOR_EDGE          // 69T
+726   FF96 C8          >    ret z
+726   FF97 78          >    ld A, B
+726   FF98 BB          >    cp E                        // (eg 12+2-6=8)
+726   FF99 CB 15       >    rl L
+727   FF9B
+728   FF9B                  READ_ONE_BIT
+728   FF9B 42          >    ld B, D                     // # counts eg 12
+728   FF9C CD C4 FF    >    call WAIT_FOR_EDGE          // 69T
+728   FF9F C8          >    ret z
+728   FFA0 78          >    ld A, B
+728   FFA1 BB          >    cp E                        // (eg 12+2-6=8)
+728   FFA2 CB 15       >    rl L
+729   FFA4
+730   FFA4                  READ_ONE_BIT
+730   FFA4 42          >    ld B, D                     // # counts eg 12
+730   FFA5 CD C4 FF    >    call WAIT_FOR_EDGE          // 69T
+730   FFA8 C8          >    ret z
+730   FFA9 78          >    ld A, B
+730   FFAA BB          >    cp E                        // (eg 12+2-6=8)
+730   FFAB CB 15       >    rl L
+731   FFAD
+732   FFAD                  READ_ONE_BIT_NO_RETZ
+732   FFAD 42          >    ld B, D                     // # counts eg 12
+732   FFAE CD C4 FF    >    call WAIT_FOR_EDGE          // #3
+732   FFB1 78          >    ld A, B
+732   FFB2 BB          >    cp E                        // (eg 12+2-6=8)
+732   FFB3 CB 15       >    rl L
+733   FFB5
+734   FFB5
+735   FFB5                  // -- We now have a new byte in L --
+736   FFB5
+737   FFB5                  // store loaded byte L ->(HL')
+738   FFB5 7D               ld A, L
+739   FFB6 D9               exx
+740   FFB7              //        inc HL                  // @Opt (++HL) / spreading / @ no unroll loop
+741   FFB7 77                   ld (HL), A              // HL'= storage pointer
+742   FFB8 81                   add C                   // C' is checksum
+743   FFB9 4F                   ld C, A                 // DE'= byte count
+744   FFBA                     // inc HL                  // @Opt (HL++) spreading / @ no unroll loop
+745   FFBA                    //  dec de                  // spreading / @ no unroll loop
+746   FFBA 7A                   ld A, D                 // check DE zero
+747   FFBB B3                   or E
+748   FFBC D9               exx
+749   FFBD
+750   FFBD C2 6B FF         jp nz, .nextbyte            // 61T since WAIT_FOR_EDGE; 61+62 = 123 since last in
+751   FFC0                  // done!
+752   FFC0              load_done
+753   FFC0 BA               cp D                        // D != 0 for sure (not so D') so this unsets z
+754   FFC1 C9               ret
+755   FFC2
+756   FFC2              //============================================================================
+757   FFC2              // WAIT_FOR_EDGE
+758   FFC2              // Before before IN: 7 T states excl. call excl. IN itself
+759   FFC2              // Since last IN: 62 T States including IN itself and ret
+760   FFC2              // Cycle time between IN's : 22 + 12 + 16 = 50 T
+761   FFC2              // Immidiate edge seen: (1 IN) 69 T states, excl. call incl. ret; B not changed
+762   FFC2              // 1 cycle (2 IN's):               50 + 69 = 119 T states B = B-1
+763   FFC2              // n cycle (n+1 IN's):         (n*50) + 69       T states B = B-n
+764   FFC2              // timeout done B IN's       (B-1)*50 + 69       T States B = 0
+765   FFC2              // C is last edge plus border color, flips when changed: 0E000BBB
+766   FFC2              // H the C xor value, must be 0b01000111 or 01011111
+767   FFC2              // B in is max counter out: counts left.
+768   FFC2              // #IN's done =  1 + B-in - B-out
+769   FFC2              // DE, HL not touched
+770   FFC2              // Return:
+771   FFC2              //  z=1  timeout
+772   FFC2              //  z=0 OK
+773   FFC2              wait_for_edge_loop:
+774   FFC2 05               dec B                       // Dec. cycle count (carry not touched) 43 since in
+775   FFC3 C8               ret z                       // 5/11 t/o, note carry still not set    (c=0 z=1)
+776   FFC4              WAIT_FOR_EDGE:
+777   FFC4 3E 7F         	ld A,$7F 	                // Read from port 0x7FFE, read BREAK and EAR. 49 + 16 since prev. IN is 59
+778   FFC6 DB FE        	in A,($FE)                  //  bit 0 is !BREAK, bit 6 is ear
+779   FFC8 A9               xor C                       //  detect change at ear (also reset carry)
+780   FFC9 E6 40            and 0b01000000              // mask ear 31 since in
+781   FFCB 28 F5            jr z, wait_for_edge_loop    // when loop: 43 since in
+782   FFCD
+783   FFCD                  // -- Once here: change seen --
+784   FFCD
+785   FFCD                  // C = 0E001BBB
+786   FFCD 79               ld A,C
+787   FFCE AC               xor H                       // H = 01000111 or 01011111
+788   FFCF 4F               ld C,A
+789   FFD0 D3 FE            out ($FE),A                 // toggle border color      // 000EMBBB
+790   FFD2 C9               ret                         // += 51 (c=1 z=0)
+791   FFD3
+792   FFD3              //============================================================================
+793   FFD3              //============================================================================
+794   FFD3
+795   FFD3              TEXT_START:
+796   FFD3 20 4C 6F 61      DC " Loading...\r"        // \r is a newline
+796   FFD7 64 69 6E 67
+796   FFDB 2E 2E 2E 8D
+797   FFDF              TEXT_CHECKSUM_ERROR:
+798   FFDF 43 48 45 43      DC "CHECKSUM "
+798   FFE3 4B 53 55 4D
+798   FFE7 A0
+799   FFE8              TEXT_ERROR:
+800   FFE8 45 52 52 4F      DC "ERROR\r"
+800   FFEC 52 8D
+801   FFEE
+802   FFEE               ifdef DEBUG
+803   FFEE ~            TEXT_DEBUG:
+804   FFEE ~                DC "*"
+805   FFEE               endif
+806   FFEE
+807   FFEE              //============================================================================
+808   FFEE              // s/a struct TurboBlock::Header
+809   FFEE              //============================================================================
+810   FFEE
+811   FFEE              sizeof_header equ 16
+812   FFEE 00 00 00...  header:  BLOCK sizeof_header
+813   FFFE              m_length equ header + 0
+814   FFFE              m_load_address equ header + 2
+815   FFFE              m_dest_address equ header + 4
+816   FFFE              m_compression_type equ header + 6
+817   FFFE              m_checksum equ header + 7
+818   FFFE              m_usr_start_address equ header + 8
+819   FFFE              m_clear_address equ header + 10
+820   FFFE              m_rle_most equ header + 12
+821   FFFE              m_rle_min1 equ header + 13
+822   FFFE              m_rle_min2 equ header + 14
+823   FFFE              m_copy_to_screen equ header + 15
+824   FFFE
+825   FFFE
+826   FFFE 00 00        load_address_at_basic: BLOCK 2
+827   0000
+828   0000              // ===========================================================================
+829   0000              // ===========================================================================
+830   0000
+831   0000              // ===========================================================================
+832   0000                  ENT         // DISP
+833   0227              // ===========================================================================
+834   0227              ASM_END
+835   0227
+836   0227
+837   0227              // ===========================================================================
+838   0227
+839   0227                  MODULE basic1
+840   0227                      LEND                                        // end of REM line
+840   0227 0D          >	db	#0D
+840   0228             >	LUA ALLPASS
+840   0228 ~           >	sj.parse_line('line_'
+840   0228 ~           >		.. tostring(sj.calc("line_number"))
+840   0228 ~           >		.. '_length = $ - line_'
+840   0228 ~           >		.. tostring(sj.calc("line_number"))
+840   0228 ~           >		.. '_begin')
+840   0228             >line_40_length = $ - line_40_begin
+840   0228             >	ENDLUA
+840   0228             >line_number  =	line_number + line_step
+841   0228                  ENDMODULE
+842   0228              BASIC_END
+843   0228
+844   0228              // ===========================================================================
+845   0228
+846   0228
+847   0228
+848   0228
+849   0228
+850   0228              // ===========================================================================
+851   0228                  DISPLAY "-- Creating file: ",    "zqloader.tap"
+852   0228                  EMPTYTAP    "zqloader.tap"
+853   0228                  // SAVETAP <filename>,    BASIC,<filenameintapeheader>,<start>,     <length> [,<autorunline>[,<lengthwithoutvars>]]
+854   0228                  SAVETAP       "zqloader.tap",BASIC,       "zqloader",        BASIC_START, BASIC_LEN, 10
+855   0228              // ===========================================================================
+856   0228
+857   0228
+858   0228
+859   0228
+860   0228              // ===========================================================================
+861   0228              // Snapshot register-load code -> snapshotregs.bin
+862   0228              // ===========================================================================
+863   0228
+864   0228              LOAD_SNAPSHOT EQU SCREEN_23RD + BASIC_LEN - ASM_LOWER_OFFSET
+865   0228
+866   0228               ORG 0
+867   0000              SNAPSHOT_CODE_BEGIN
+868   0000              //    ld (LOAD_SNAPSHOT + DebugSp), SP        //  @DEBUG
+869   0000              //    ld SP, (LOAD_SNAPSHOT + DebugSp)        //  @DEBUG
+870   0000              //    ret
+871   0000 31 0A 52                         ld SP, LOAD_SNAPSHOT +  SnapShotStack
+872   0003 3E 00        flags_and_border+1: ld A, 0
+873   0005 D3 FE                            out ($FE),a // border color 0xD3 0xFE
+874   0007 01 00 00     BC_reg+1:           ld BC, 0
+875   000A 11 00 00     DE_reg+1:           ld DE, 0
+876   000D 21 00 00     HL_reg+1:           ld HL, 0
+877   0010 D9                               exx
+878   0011 08                               ex af, af'
+879   0012 01 00 00     BCa_reg+1:          ld BC, 0
+880   0015 11 00 00     DEa_reg+1:          ld DE, 0
+881   0018 21 00 00     HLa_reg+1:          ld HL, 0
+882   001B F1                               pop AF
+883   001C 08                               ex af, af'
+884   001D D9                               exx
+885   001E DD 21 00 00  IX_reg+*:           ld IX, 0
+886   0022 FD 21 00 00  IY_reg+*:           ld IY, 0
+887   0026 3E 27        R_reg+*:            LD A, R_reg
+888   0028 ED 4F                            LD R, A
+889   002A 3E 2B        I_reg+*:            LD A, I_reg
+890   002C ED 47                            LD I, A
+891   002E F1                               pop AF          // AF itself
+892   002F 31 00 00     SP_reg+*:           ld SP, 0
+893   0032 ED 56        imode:              im 1
+894   0034 FB           ei_di:              ei
+895   0035 C3 00 00     PC_reg+*:           jp 0
+896   0038              SnapShotStack:
+897   0038 00           Fa_reg:  DEFS 1
+898   0039 00           Aa_reg:  DEFS 1
+899   003A 00           F_reg:   DEFS 1
+900   003B 00           A_reg:   DEFS 1
+901   003C              //DebugSp: DEFS 2     //  @DEBUG
+902   003C
+903   003C
+904   003C
+905   003C              // ===========================================================================
+906   003C              SNAPSHOT_CODE_END
+907   003C
+908   003C              SNAPSHOT_CODE_LEN EQU SNAPSHOT_CODE_END-SNAPSHOT_CODE_BEGIN
+909   003C               DISPLAY "SNAPSHOT_CODE_BEGIN = ",/A,SNAPSHOT_CODE_BEGIN
+910   003C               DISPLAY "SNAPSHOT_CODE_END = ",/A,SNAPSHOT_CODE_END
+911   003C               DISPLAY "SNAPSHOT_CODE_LEN = ",/A,SNAPSHOT_CODE_LEN
+912   003C               DISPLAY "LOAD_SNAPSHOT = ",/A,LOAD_SNAPSHOT
+913   003C               DISPLAY "SCREEN_23RD + BASIC_LEN - ASM_LOWER_OFFSET = ",/A, SCREEN_23RD + BASIC_LEN - ASM_LOWER_OFFSET
+914   003C               DISPLAY "(load address at basic=) SCREEN_23RD + ASM_UPPER_OFFSET - ASM_LOWER_OFFSET = ",/A, SCREEN_23RD + ASM_UPPER_OFFSET - ASM_LOWER_OFFSET
+915   003C               DISPLAY "(end load address at basic=) SCREEN_23RD + ASM_UPPER_OFFSET - ASM_LOWER_OFFSET + ASM_UPPER_LEN= ",/A, SCREEN_23RD + ASM_UPPER_OFFSET - ASM_LOWER_OFFSET + ASM_UPPER_LEN
+916   003C               DISPLAY "SCREEN_23RD + load_ok - ASM_LOWER_OFFSET = ",/A, SCREEN_23RD + load_ok - ASM_LOWER_OFFSET
+917   003C
+918   003C               SAVEBIN "snapshotregs.bin", SNAPSHOT_CODE_BEGIN, SNAPSHOT_CODE_LEN
+919   003C              // ENT
+920   003C
+921   003C              // ===========================================================================
+922   003C              // export to zqloader.exp
+923   003C              // ===========================================================================
+924   003C
+925   003C               EXPORT ASM_UPPER_LEN
+926   003C               EXPORT CLEAR
+927   003C
+928   003C               EXPORT LOAD_SNAPSHOT
+929   003C               EXPORT flags_and_border
+930   003C               EXPORT BC_reg
+931   003C               EXPORT DE_reg
+932   003C               EXPORT HL_reg
+933   003C               EXPORT BCa_reg
+934   003C               EXPORT DEa_reg
+935   003C               EXPORT HLa_reg
+936   003C               EXPORT IX_reg
+937   003C               EXPORT IY_reg
+938   003C               EXPORT R_reg
+939   003C               EXPORT I_reg
+940   003C               EXPORT imode
+941   003C               EXPORT ei_di
+942   003C               EXPORT SP_reg
+943   003C               EXPORT PC_reg
+944   003C               EXPORT Fa_reg
+945   003C               EXPORT Aa_reg
+946   003C               EXPORT A_reg
+947   003C               EXPORT F_reg
+948   003C
+949   003C               // ===========================================================================
+# file closed: C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.z80asm

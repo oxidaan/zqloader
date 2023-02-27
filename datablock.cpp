@@ -4,7 +4,7 @@
 
 namespace fs = std::filesystem;
 
-
+template <>
 DataBlock& DataBlock::LoadFromFile(const fs::path &p_filename)
 {
     std::ifstream fileread(p_filename, std::ios::binary | std::ios::ate);

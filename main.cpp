@@ -73,7 +73,7 @@ int Key()
 void Help()
 {
     std::cout << 1 + &*R"(
-QLoader
+ZQLoader
 
 This is a turbo loader to load machine code (typical games) into a *real* ZX Spectrum at high speed.  
 This loader is capable of loading a 48K game in about 30 seconds. This time includes the time of 
@@ -87,7 +87,7 @@ syntax:
 qloader.exe
     path/to/filename        First file: can be a tap or tzx file and will be loaded at normal speed
                             into a real ZX spectrum. 
-                            Only when the file here is 'qloader.tap' it can load the second file:
+                            Only when the file here is 'zqloader.tap' it can load the second file:
     path/to/filename        Second file, also a .tap or .tzx or a z80 snapshot file. When given will 
                             be send to the ZX spectrum at turbo speed.
     volume                  A float between 0.0 and 1.0: sets volume. Default 1.0 (max).
@@ -95,8 +95,8 @@ qloader.exe
     invert_right            Invert the right (stereo) sound channel.
 
 
-(C) 2023 Daan Scherft.
-This project uses the miniaudio libarary by David Read.
+(C) 2023 Daan Scherft [Oxidaan].
+This project uses the miniaudio libarary by David Read. (https://miniaud.io/)
 
 )";
 }

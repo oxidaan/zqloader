@@ -39,8 +39,10 @@ private:
     using Pulsers = std::vector<PulserPtr>;
 
 public:
-
+    // Ctor
     SpectrumLoader();
+    
+    // Dtor
     ~SpectrumLoader();
 
 
