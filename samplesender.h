@@ -15,7 +15,8 @@
 
 struct ma_device;
 
-/// Send (sound) samples using miniadio. This class maintains miniaudio.
+/// This class maintains / wraps miniaudio.
+/// Uses to send (sound) samples (as pulses) using miniadio. 
 /// Forms connection between miniaudio and the 'Pulser' classes, using call-backs.
 /// Uses call-backs set with:
 /// SetOnGetDurationWait
@@ -65,14 +66,7 @@ public:
     SampleSender& Start();
 
     /// Wait for SampleSender (that is: wait for miniaudio thread to stop)
-    SampleSender& Wait()
-    {
-        if (m_is_running)
-        {
-            m_event.wait();
-        }
-        return *this;
-    }
+    SampleSender& Wait();
 
     /// Stop SampleSender (that is: stop miniaudio thread)
     SampleSender& Stop();

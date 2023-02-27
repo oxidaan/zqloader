@@ -11,6 +11,7 @@
 #include "pulsers.h"
 #include "compressor.h"
 #include <filesystem>
+namespace fs = std::filesystem;
 
 
 
@@ -443,8 +444,8 @@ std::pair<CompressionType, DataBlock> TurboBlock::TryCompress(const DataBlock& p
     return { p_compression_type, p_data.Clone() };
 }
 
-
-TurboBlocks::TurboBlocks(std::filesystem::path p_symbol_file_name) :
+template<>
+TurboBlocks::TurboBlocks(const fs::path &p_symbol_file_name) :
     m_symbols(p_symbol_file_name)
 {
 }

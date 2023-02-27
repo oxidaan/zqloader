@@ -17,9 +17,11 @@
 #include <string>
 
 
+
 namespace fs = std::filesystem;
 
-Z80SnapShotLoader& Z80SnapShotLoader::Load(fs::path p_filename)
+
+Z80SnapShotLoader& Z80SnapShotLoader::Load(const fs::path &p_filename)
 {
     std::ifstream fileread(p_filename, std::ios::binary);
     if (!fileread)

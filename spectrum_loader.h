@@ -11,13 +11,16 @@
 
 //#include <chrono>
 #include <vector>
-#include <memory>       // std::unique_ptr
+#include <memory>           // std::unique_ptr
+#include <functional>       // std::bind
 
+#include "types.h"
 #include "samplesender.h"
 #include "spectrum_types.h"
 #include "datablock.h"      // Datablock used
-//#include "pulsers.h"
+
 class Pulser;
+class SampleSender;
 
 
 
@@ -62,16 +65,16 @@ public:
     /// Reset SpectrumLoader.
     SpectrumLoader& Reset()
     {
-        m_current_block = 0;
+        m_current_pulser = 0;
         return *this;
     }
 
     /// And any pulser to process.
     template <class TPulser, typename std::enable_if<std::is_base_of<Pulser, TPulser>::value, int>::type = 0>
-    SpectrumLoader& AddBlock(TPulser p_block)
+    SpectrumLoader& AddPulser(TPulser p_block)
     {
         PulserPtr ptr = std::make_unique< TPulser >(std::move(p_block));
-        m_datablocks.push_back(std::move(ptr));
+        m_pulsers.push_back(std::move(ptr));
         return *this;
     }
 
@@ -129,12 +132,12 @@ private:
 
     Pulser& GetCurrentBlock() const
     {
-        return *(m_datablocks[m_current_block]);
+        return *(m_pulsers[m_current_pulser]);
     }
 
 private:
-    Pulsers m_datablocks;
-    size_t m_current_block = 0;
+    Pulsers m_pulsers;
+    size_t m_current_pulser = 0;
     SampleSender m_sample_sender;
 
 };

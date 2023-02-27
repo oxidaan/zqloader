@@ -11,12 +11,8 @@
 
 #include <cstdint>
 #include "taploader.h"
+#include <filesystem>       // std::filesystem::path
 
-
-namespace std::filesystem
-{
-    class path;
-}
 
 /// Loads TZX files.
 /// Result ends up at virtual function at given TapLoader, see CTOR.
@@ -33,8 +29,9 @@ public:
     {}
 
 
-    ///  Loads given tzx file.
-    TzxLoader& Load(std::filesystem::path p_filename, std::string p_zxfilename);
+    /// Loads given tzx file.
+    /// TPath must be std::filesystem::path
+    TzxLoader& Load(const std::filesystem::path &p_filename, std::string p_zxfilename);
 
     ///  Loads tzx file from given stream.
     TzxLoader& Load(std::istream& p_stream, std::string p_zxfilename);

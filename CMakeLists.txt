@@ -6,6 +6,7 @@ project(zqloader VERSION 0.1.0 LANGUAGES CXX)
 
 
 
+# For include files I dont really care using GLOB.
 file(GLOB INCLUDE
     "zqloader/*.h"
     "*.h"
@@ -13,13 +14,34 @@ file(GLOB INCLUDE
 
 
 set(SOURCE
-    zqloader.cpp
+    z80snapshot_loader.cpp
+    datablock.cpp
+    enumstreamer.cpp
+    main.cpp
+    miniaudio.cpp
+    samplesender.cpp
+    spectrum_loader.cpp
+    symbols.cpp
+    taploader.cpp
+    taptoturboblocks.cpp
+    test.cpp
+    turboblock.cpp
+    tzxloader.cpp
 )
 
-
+set(DOCUMENTATION
+    README.md
+    LICENSE.txt
+)    
 
 add_executable(${PROJECT_NAME}  ${SOURCE} ${INCLUDE} ${DOCUMENTATION} )
+
+# We need c++17
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+
+# Here lives miniaduo.h
 target_include_directories(${PROJECT_NAME} PRIVATE miniaudio)
+
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     "NDEBUG;"
     "_CONSOLE;"
@@ -57,7 +79,7 @@ if(UNIX)
     )
 endif()
 
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+
 
 
 

@@ -8,10 +8,11 @@
 //==============================================================================
 
 #include "tzxloader.h"
-#include <filesystem>
-#include <fstream>
 #include "loadbinary.h"
 #include "datablock.h"
+#include <fstream>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 
 enum class TzxBlockType : uint8_t
@@ -46,9 +47,9 @@ std::ostream& operator << (std::ostream& p_stream, TzxBlockType p_enum);
 
 
 
-namespace fs = std::filesystem;
 
-TzxLoader& TzxLoader::Load(fs::path p_filename, std::string p_zxfilename)
+
+TzxLoader& TzxLoader::Load(const fs::path &p_filename, std::string p_zxfilename)
 {
     std::ifstream fileread(p_filename, std::ios::binary);
     if (!fileread)
@@ -60,6 +61,7 @@ TzxLoader& TzxLoader::Load(fs::path p_filename, std::string p_zxfilename)
     //   MoveToLoader(p_loader);
     return *this;
 }
+
 
 // http://k1.spdns.de/Develop/Projects/zasm/Info/TZX%20format.html
 // https://worldofspectrum.net/TZXformat.html

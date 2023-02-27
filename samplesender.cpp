@@ -45,6 +45,17 @@ SampleSender& SampleSender::Start()
     return *this;
 }
 
+/// Wait for SampleSender (that is: wait for miniaudio thread to stop)
+
+inline SampleSender& SampleSender::Wait()
+{
+    if (m_is_running)
+    {
+        m_event.wait();
+    }
+    return *this;
+}
+
 /// Stop SampleSender (that is: stop miniaudio thread)
 SampleSender& SampleSender::Stop()
 {

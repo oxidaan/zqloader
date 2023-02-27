@@ -11,17 +11,14 @@
 
 #include <map>
 #include <string>
-
-namespace std::filesystem
-{
-    class path;
-}
+#include <filesystem>       //  std::filesystem::path 
 
 /// Loads and maintains z80 symbols as saved by sjasmplus to an export file.
+/// eg zqloader.exp.
 class Symbols
 {
 public:
-    /// CTOR, loads symbols from given export file.
+    /// CTOR, loads symbols from given export file. Typical 'zqloader.exp'
     Symbols(const std::filesystem::path &p_filename)
     {
         ReadSymbols(p_filename);

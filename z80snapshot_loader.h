@@ -9,17 +9,14 @@
 
 #pragma once
 
+#include "datablock.h"
 #include <cstdint>
 #include <iosfwd>
-#include "datablock.h"
+#include <filesystem>
 
 class TurboBlocks;
 class Symbols;
 
-namespace std::filesystem
-{
-    class path;
-}
 
 /// Loads Z80 snapshot files.
 /// See https://worldofspectrum.org/faq/reference/z80format.htm
@@ -98,7 +95,7 @@ public:
     {}
 
     ///  Load Z80 snapshot file from given filename.
-    Z80SnapShotLoader& Load(std::filesystem::path p_filename);
+    Z80SnapShotLoader& Load(const std::filesystem::path &p_filename);
 
     ///  Load Z80 snapshot file from given stream.
     Z80SnapShotLoader& Load(std::istream& p_stream);

@@ -2,10 +2,7 @@
 
 
 #include <vector>
-namespace std::filesystem
-{
-    class path;
-}
+#include <filesystem>       //  std::filesystem::path 
 
 
 /// Used for all data block storages.
@@ -43,7 +40,7 @@ public:
     }
 
     ///  Load (binary) from given file
-    DataBlock& LoadFromFile(std::filesystem::path p_filename);
+    DataBlock& LoadFromFile(const std::filesystem::path &p_filename);
 };
 
 

@@ -4,7 +4,8 @@
 
 namespace fs = std::filesystem;
 
-DataBlock& DataBlock::LoadFromFile(fs::path p_filename)
+
+DataBlock& DataBlock::LoadFromFile(const fs::path &p_filename)
 {
     std::ifstream fileread(p_filename, std::ios::binary | std::ios::ate);
     if (!fileread)

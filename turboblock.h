@@ -10,16 +10,14 @@
 #pragma once
 
 
-#include <cstdint>
-#include <iostream>
 #include "datablock.h"
-#include <chrono>
 #include "symbols.h"        // Symbols member
+#include <cstdint>
+#include <iosfwd>
+#include <memory>           // std::unique_ptr
+#include <chrono>
 
-namespace std::filesystem
-{
-    class path;
-}
+
 
 class TurboBlock;
 class SpectrumLoader;
@@ -53,7 +51,9 @@ public:
     };
 public:
     /// CTOR, take an EXP file name that will be used to load symbols.
-    TurboBlocks(std::filesystem::path p_symbol_file_name);
+    /// TPath must be std::filesystem::path
+    template <class TPath>
+    TurboBlocks(const TPath &p_symbol_file_name);
 
     /// DTOR
     ~TurboBlocks();

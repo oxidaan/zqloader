@@ -47,6 +47,7 @@ uint16_t Test(TurboBlocks& p_blocks, fs::path p_filename);
 #ifndef _WIN32
 
 #include <termios.h>
+#include <unistd.h>     // STDIN_FILENO
 int Key()
 {
     struct termios prev, newatt;

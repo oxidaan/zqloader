@@ -77,7 +77,7 @@ public:
     template<class TLoader>
     void MoveToLoader(TLoader& p_loader)
     {
-        p_loader.AddBlock(std::move(*this));
+        p_loader.AddPulser(std::move(*this));
     }
 
 protected:
@@ -171,7 +171,7 @@ public:
     template<class TLoader>
     void MoveToLoader(TLoader& p_loader)
     {
-        p_loader.AddBlock(std::move(*this));
+        p_loader.AddPulser(std::move(*this));
     }
 private:
     void SetPattern()
@@ -286,7 +286,7 @@ public:
     template<class TLoader>
     void MoveToLoader(TLoader& p_loader)
     {
-        p_loader.AddBlock(std::move(*this));
+        p_loader.AddPulser(std::move(*this));
     }
 
     /// Set block type
@@ -520,7 +520,7 @@ public:
     template<class TLoader>
     void MoveToLoader(TLoader& p_loader)
     {
-        p_loader.AddBlock(std::move(*this));
+        p_loader.AddPulser(std::move(*this));
     }
 
 protected:

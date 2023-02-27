@@ -34,7 +34,7 @@ DataBlock TapLoader::LoadTapBlock(std::istream & p_stream)
 /// Load a tap file from given filename.
 /// p_zxfilename: the ZX Spectrum file name, eg used to filter / only load certain 
 /// program names.
-TapLoader& TapLoader::Load(fs::path p_filename, std::string p_zxfilename)
+TapLoader& TapLoader::Load(const fs::path &p_filename, std::string p_zxfilename)
 {
     std::ifstream fileread(p_filename, std::ios::binary);
     if (!fileread)
