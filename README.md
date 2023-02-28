@@ -13,6 +13,9 @@ To speed up even more data (can be) compressed before loading.
 
 The project code is portable and should be able to run under both Windows and Linux. (For Linux I briefly tried with WSL2/TODO)
 
+Obviously this project has lots in common with [otla](https://github.com/sweetlilmre/otla). Actually I was at 2/3 of developping this when I found out about otla....
+But otla seems barely maintained and uses CppBuilder - I think. Unlike Otla this project can also be compiled for Linux. And unlike otla it uses compression to speed up even more.
+
 Project
 ----
 There are two parts: 
@@ -63,7 +66,23 @@ Limitations/TODO's
 Building
 ---
 
-TODO
+You can use the file `zqloader.sln` with `zqloader.vcproj` to build the zqloader executable with Visual studio 2022 in Windows. Or - at Linux - use the `CMakeList.txt` file to build it with cmake eg:
+```
+mkdir buikd
+cd build
+cmake ..
+make
+```
+To assemble the z80 code use [sjasmplus](https://github.com/z00m128/sjasmplus). You can use Visual studio code with the provided `tasks.json` at `.vscode` directory.
+Or use a command like:
+```
+sjasmplus --fullpath     \
+   -ipath/to/sjasmplus/examples/TapLib \
+   -ipath/to/sjasmplus/examples/BasicLib \
+   --exp=path/to/zqloader/z80/zqloader.exp \
+   --lst --syntax=abf --color=on       \
+   path/to/zqloader/z80/zqloader\z80\zqloader.z80asm  
+```   
 
 Instructions
 ---
