@@ -3,9 +3,9 @@ ZQloader
 
 This is a turbo loader used to load machine code games into a **real** ZX Spectrum at high speed.  
 
-This loader is capable of loading a 48K game in about *25-30 seconds*. This time includes the time of loading the loader itself (which uses tradtional ROM loader/speed) plus a splash screen.  
+This loader is capable of loading a 48K game in about *25-30 seconds*. This time includes the time of loading the loader itself (which uses traditional ROM loader/speed) plus a splash screen.  
 
-The idea is that when using a computer to generate the loading-sounds a much higher speed can be achived as compared to the old tapes. After all the accuracy when generating loading sounds from a computer is much higher than those old wobbly tape recorders.   
+The idea is that when using a computer to generate the loading-sounds a much higher speed can be achieved as compared to the old tapes. After all the accuracy when generating loading sounds from a computer is much higher than those old wobbly tape recorders.   
 
 The loader is coded into a basic `REM` statement to have it loaded in one step, thus avoiding the need to load an additional machine code block (which would take extra time). At the ZX Spectrum all you have to type is `LOAD ""`.
 
@@ -13,8 +13,8 @@ To speed up even more data (can be) compressed before loading.
 
 The project code is portable and should be able to run under both Windows and Linux. (For Linux I briefly tried with WSL2/TODO)
 
-Obviously this project has lots in common with [otla](https://github.com/sweetlilmre/otla). Actually I was at 2/3 of developping this when I found out about otla....
-But otla seems barely maintained and uses CppBuilder - I think. Unlike Otla this project can also be compiled for Linux. And unlike otla it uses compression to speed up even more.
+Obviously this project has lots in common with [otla](https://github.com/sweetlilmre/otla). Actually I was at 2/3 of developing this when I found out about otla....
+Otla seems barely maintained and uses CppBuilder - I think. Unlike Otla this project can also be compiled for Linux. And unlike Otla it uses compression to speed up even more.
 
 Project
 ----
@@ -22,7 +22,7 @@ There are two parts:
 
 The Z80 assembled ZQloader.
 --
-This is the turbo loader running at the ZX spectrum, written in Z80 assemby. It is stored entirely into a BASIC `REM` statement, so it can be loaded in just one step, and all you have to type is `LOAD ""`.  
+This is the turbo loader running at the ZX spectrum, written in Z80 assembly. It is stored entirely into a BASIC `REM` statement, so it can be loaded in just one step, and all you have to type is `LOAD ""`.  
 
 Once loaded it copies itself to upper memory regions because lower RAM is [contended](https://en.wikipedia.org/wiki/Contended_memory) and not quick/stable enough for loading algortihms. Then it starts waiting for incoming turbo blocks.
 More about the [Z80 assembled ZQloader]
@@ -40,7 +40,7 @@ More about the [C++ ZQloader...]
 Compression
 ---
 It uses a simple RLE compression algorithm that only reduces size with 20-40% thereabout. This is not that much (eg [ZX0](https://github.com/einar-saukas/ZX0) should do much better). But essential is it can be decompressed at the ZX spectrum at he same memory block - so decompressed data will overwrite compressed data during decompression. ZX0 can do this also but seems to always need to have some minimal extra space at the end (see `delta` at [ZX0 readme](https://github.com/einar-saukas/ZX0#readme)). **TODO** I really want to try and use ZX0 at some point.  
-The RLE compression algortitm compresses the most used byte value (usually this is 0) by writing an escape code, then the number of 'most used value'-s. Further it compresses a sequence of 3 or more the same bytes (of any value) by writing another escape code, then that byte value, then the number of these bytes.
+The RLE compression algorithm compresses the most used byte value (usually this is 0) by writing an escape code, then the number of 'most used value'-s. Further it compresses a sequence of 3 or more the same bytes (of any value) by writing another escape code, then that byte value, then the number of these bytes.
 
 Limitations/TODO's
 ---
@@ -57,7 +57,7 @@ Limitations/TODO's
 *TODO* a possible solution might be to have our c++ program recognize this situation and then uses a Z80 ZQloader that only uses upper RAM area, not at the BASIC rem statement.
 
 * A program that does a CLEAR below XXXX is currently to big to load - would overwrite our loader at the REM statement.   
-*TODO* like described above the loader might use the (lower 3rd) of the screen.
+*TODO* like described above the loader now uses the (lower 3rd) of the screen.
 
 * Want to add code to load .SNA snapshots.
 
@@ -66,7 +66,7 @@ Limitations/TODO's
 Building
 ---
 
-You can use the file `zqloader.sln` with `zqloader.vcproj` to build the zqloader executable with Visual studio 2022 in Windows. Or - at Linux - use the `CMakeList.txt` file to build it with cmake eg:
+You can use the file `zqloader.sln` with `zqloader.vcproj` to build the ZQloader executable with Visual studio 2022 in Windows. Or - at Linux - use the `CMakeList.txt` file to build it with cmake eg:
 ```
 mkdir build
 cd build
