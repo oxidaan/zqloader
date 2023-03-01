@@ -4,8 +4,13 @@ cmake_minimum_required(VERSION 3.7)
 
 project(zqloader VERSION 0.1.0 LANGUAGES CXX)
 
-
-add_subdirectory(z80)
+find_program(HAVE_SJSASMPLUS sjasmplus)
+if(NOT HAVE_SJSASMPLUS)
+    message(FATAL_ERROR "sjasmplus not found! Skipping z80 assembly.")
+else()
+    message("sjasmplus found at ${HAVE_SJSASMPLUS}")
+    add_subdirectory(z80)
+endif()
 
 file(GLOB INCLUDE
     "zqloader/*.h"

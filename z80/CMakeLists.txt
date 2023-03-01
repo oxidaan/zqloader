@@ -7,7 +7,7 @@ set(PATH_TO_SJASMPLUS "" CACHE PATH "Location of sjasmplus (directory)")
 
 
 if (NOT IS_DIRECTORY ${PATH_TO_SJASMPLUS}/examples)
-    message(FATAL_ERROR "Please give directory of sjasmplus as parameter PATH_TO_SJASMPLUS; exampples must be there")
+    message(FATAL_ERROR "Please give directory of sjasmplus as parameter PATH_TO_SJASMPLUS; examples must be there")
 endif()
 
 add_custom_target(zqloader_z80
@@ -21,7 +21,7 @@ add_custom_command(
     COMMAND  "sjasmplus"
     ARGS 
     "--fullpath"
-    "-i${PATH_TO_SJASMPLUS}/examples/TapLib"
+#    "-i${PATH_TO_SJASMPLUS}/examples/TapLib"           // not (yet) used (anymore)
     "-i${PATH_TO_SJASMPLUS}/examples/BasicLib"
     "--exp=zqloader.exp"
     "--lst"
