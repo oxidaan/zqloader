@@ -8,7 +8,12 @@
 //==============================================================================
 
 // To be assembled with sjasmplus see https://github.com/z00m128/sjasmplus
-
+// sjasmplus --fullpath     \
+//    -ipath/to/sjasmplus/examples/TapLib \
+//    -ipath/to/sjasmplus/examples/BasicLib \
+//    --exp=path/to/zqloader/z80/zqloader.exp \
+//    --lst --syntax=abf --color=on       \
+//    path/to/zqloader/z80/zqloader\z80\zqloader.z80asm  
 
     DEVICE ZXSPECTRUM48
 
