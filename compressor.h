@@ -1,28 +1,56 @@
+// ==============================================================================
+// PROJECT:         zqloader
+// FILE:            compressor.h
+// DESCRIPTION:     Definition of class Compressor.
+//
+// Copyright (c) 2023 Daan Scherft [Oxidaan]
+// This project uses the MIT license. See LICENSE.txt for details.
+// ==============================================================================
+
+
 #pragma once
 
 
-#include <vector>
-#include <optional>     // std::optional
-#include "byte_tools.h"
-#include <iostream>
+#include <optional>         // std::optional
+#include <iostream>         // cout
 #include <algorithm>        // std::sort
+#include "byte_tools.h"
 
+
+///
+/// Compressor. Uses RLE compression:
+/// In block to compress find:
+/// most used (byte) value -> 'most'
+/// and the two least used byte values. -> 'code_for_most' and 'code_for_triples'.
+/// Then compress:
+/// 2 or more sequential of 'most' (typically zero) is compressed by prefixing
+/// 'code_for_most', then number of repeats (#repeats cannot be 'code_for_most')
+/// (A single byte value 'most' is left untouched).
+/// 3 or more sequential of any value are compressed by prefixing
+/// 'code_for_triples'; then that byte value; then number of repeats (#repeats cannot be 'code_for_triples')
+/// 'code_for_most' and 'code_for_triples' are stored 2x.
+/// Larger blocks (eg repeat more than max value for TData) are just created as two blocks.
+///
 template <class TDataBlock>
 class Compressor
 {
 public:
+
     using DataBlock      = TDataBlock;
-    using TData          = typename TDataBlock::value_type;
+    using TData          = typename TDataBlock::value_type;         // usually std::byte
     using iterator       = typename std::vector<TData>::iterator;
-    using const_iterator = typename  std::vector<TData>::const_iterator;
+    using const_iterator = typename std::vector<TData>::const_iterator;
     struct RLE_Meta
     {
-        TData most;     // the value that occurs most
-        TData code_for_most;     // the value that occurs least, will be used to trigger RLE for max1
-        TData code_for_triples;     // the value that occurs 2nd least, will be used to trigger RLE for triples
+        TData   most;             // the value that occurs most
+        TData   code_for_most;    // the value that occurs least, will be used to trigger RLE for max1
+        TData   code_for_triples; // the value that occurs 2nd least, will be used to trigger RLE for triples
     };
+
 private:
+
     using Hist = std::vector< std::pair<int, TData> >;
+
 public:
 
     /// Compress, RLE. Return compressed data.
@@ -31,11 +59,13 @@ public:
     {
         DataBlock compressed;
         auto max_min = DetermineCompressionRleValues(in_buf.begin(), in_buf.end());
-        auto it = compressed.begin();
+        auto it      = compressed.begin();
         WriteRleValues(compressed, it, max_min);
         Compress(in_buf.begin(), in_buf.end(), compressed, it, max_min);
         return compressed;
     }
+
+
 
     /// Compress, RLE. Return compressed data.
     /// Return RLE meta data as output parameter - not written to compressed data.
@@ -48,7 +78,10 @@ public:
         return compressed;
     }
 
-    /// Compress, RLE. Return compressed data as optional. 
+
+
+    /// Compress, RLE. Only succeeds when can be compressed inline, so at same memory block.
+    /// Return compressed data as optional.
     /// Tries multiple meta data values for min1, min2 to make sure it can be decompressed inline.
     /// Return RLE meta data as output parameter - not written to compressed data.
     std::optional<DataBlock> Compress(const DataBlock& in_buf, RLE_Meta& out_max_min, int p_max_tries)
@@ -70,11 +103,13 @@ public:
                 //                std::cout << "Compression attempt #" << (tr + 1) << " succeeded..." << std::endl;
                 return compressed;
             }
-            //std::cout << "Compression attempt #" << (tr + 1) << " Failed..." << std::endl;
+            // std::cout << "Compression attempt #" << (tr + 1) << " Failed..." << std::endl;
         }
         std::cout << "Inline compression failed" << std::endl;
         return {};  // failed...
     }
+
+
 
     /// Compress, RLE. Return compressed data.
     /// Use RLE on given fixed p_max1 value with here determined out_min1.
@@ -84,14 +119,11 @@ public:
         DataBlock compressed;
         auto max_min = DetermineCompressionRleValues(in_buf.begin(), in_buf.end());     // only for max_min.min1
         max_min.max1 = p_max1;
-        out_min1 = max_min.min1;
+        out_min1     = max_min.min1;
         auto it = compressed.begin();
         Compress(in_buf.begin(), in_buf.end(), compressed, it, max_min);
         return compressed;
     }
-
-
-
 
 
 
@@ -101,6 +133,8 @@ public:
     {
         return DeCompress(p_compressed.begin(), p_compressed.end());
     }
+
+
 
     /// Decompress between given iterators, return decompressed data
     /// RLE meta data is read from compressed buffer.
@@ -113,12 +147,15 @@ public:
     }
 
 
+
     /// Decompress given block, return decompressed data.
     /// RLE meta data is given as parameters here.
     DataBlock DeCompress(const DataBlock& p_compressed, const RLE_Meta& p_max_min)
     {
         return DeCompress(p_compressed.begin(), p_compressed.end(), p_max_min);
     }
+
+
 
     /// Decompress between given iterators, return decompressed data
     /// RLE meta data is given as parameters here.
@@ -128,27 +165,28 @@ public:
         DeCompress(p_begin, p_end, retval, retval.begin(), p_max_min);
         return retval;
     }
+
 private:
 
     /// Compress block between given iterators to given output iterator.
     /// RLE meta data given here as parameter.
     void Compress(const_iterator p_begin, const_iterator p_end, DataBlock& out_buf, iterator& out_it, const RLE_Meta& p_max_min)
     {
-        const auto& most = p_max_min.most;      // alias
-        const auto& code_for_most = p_max_min.code_for_most;
+        const auto& most             = p_max_min.most; // alias
+        const auto& code_for_most    = p_max_min.code_for_most;
         const auto& code_for_triples = p_max_min.code_for_triples;
 
 
         const_iterator it;
-        bool append_mode = (out_it == out_buf.end());
-        auto Read = [&]()
-        {
-            return Compressor::Read(it);
-        };
+        bool append_mode = ( out_it == out_buf.end());
+        auto Read        = [&]()
+                           {
+                               return Compressor::Read(it);
+                           };
         auto Write = [&](TData p_byte)
-        {
-            Compressor::Write(out_buf, out_it, p_byte, append_mode);
-        };
+                     {
+                         Compressor::Write(out_buf, out_it, p_byte, append_mode);
+                     };
 
         TData max_count{};
         TData prev_count{};
@@ -159,7 +197,7 @@ private:
         auto WriteMax = [&]()
         {
             // keep writing single max values as long as maxcount equals min1 or min2 or we have just one
-            while ((max_count == code_for_most || max_count == code_for_triples || max_count == TData(1)) && max_count > TData{ 0 })
+            while (( max_count == code_for_most || max_count == code_for_triples || max_count == TData(1)) && max_count > TData{ 0 })
             {
                 --max_count;
                 Write(most);
@@ -174,7 +212,7 @@ private:
         auto WriteTriples = [&]()
         {
             // keep writing single prev values as long as maxcount equals min1 or min2 or we have just one
-            while ((prev_count == code_for_most || prev_count == code_for_triples || prev_count <= TData(2)) && prev_count > TData{ 0 })
+            while (( prev_count == code_for_most || prev_count == code_for_triples || prev_count <= TData(2)) && prev_count > TData{ 0 })
             {
                 --prev_count;
                 Write(prev);
@@ -193,19 +231,19 @@ private:
             auto b = Read();
             if (b == most)
             {
-                WriteTriples();        // so flush 2nd max if there
-                if (max_count == GetMax<TData>())       // flush when overflow
+                WriteTriples();                   // so flush 2nd max if there
+                if (max_count == GetMax<TData>()) // flush when overflow
                 {
-                    WriteMax();        // max1count now 0
+                    WriteMax();                   // max1count now 0
                 }
                 ++max_count;
             }
-            else if (b == prev)
+            else if (b == prev && b != code_for_most && b != code_for_triples)
             {
-                WriteMax();        // so flush 1st max if there
+                WriteMax();         // so flush 1st max if there
                 if (prev_count == GetMax<TData>())
-                {                                           // flush when overflow
-                    WriteTriples();        // max2count now 0
+                {                   // flush when overflow
+                    WriteTriples(); // max2count now 0
                 }
                 ++prev_count;
             }
@@ -226,19 +264,20 @@ private:
     }
 
 
+
     /// Decompress block between given iterators to given output iterator.
     /// RLE meta data is given as parameters here.
     void DeCompress(const_iterator p_begin, const_iterator p_end, DataBlock& out_buf, iterator out_it, const RLE_Meta& p_max_min)
     {
-        const auto& most = p_max_min.most;      // alias
-        const auto& code_for_most = p_max_min.code_for_most;
+        const auto& most             = p_max_min.most; // alias
+        const auto& code_for_most    = p_max_min.code_for_most;
         const auto& code_for_triples = p_max_min.code_for_triples;
 
         const_iterator it;
-        bool at_end = false;
+        bool at_end      = false;
 
-        bool append_mode = (out_it == out_buf.end());
-        auto Read = [&]()
+        bool append_mode = ( out_it == out_buf.end());
+        auto Read        = [&]()
         {
             return Compressor::Read(it);
         };
@@ -250,11 +289,10 @@ private:
 
 
 
-
         auto WriteMax = [&]()
         {
             auto cnt = Read();
-            if (cnt == code_for_most)       // 2nd seen?
+            if (cnt == code_for_most) // 2nd seen?
             {
                 at_end = Write(code_for_most);
             }
@@ -269,7 +307,7 @@ private:
         auto WriteTriples = [&]()
         {
             auto val = Read();
-            if (val == code_for_triples)    // 2nd seen?
+            if (val == code_for_triples) // 2nd seen?
             {
                 at_end = Write(code_for_triples);
             }
@@ -324,7 +362,9 @@ private:
         auto ret = *p_it;
         p_it++;
         return ret;
-    };
+    }
+
+
 
     // Write one data to the output buffer at given iterator location.
     // when given iterator is end() append.
@@ -343,7 +383,9 @@ private:
             return false;
         }
         return true;
-    };
+    }
+
+
 
     // Determine RLE mata data from buffer defined by given iterators.
     RLE_Meta DetermineCompressionRleValues(const_iterator p_begin, const_iterator p_end)
@@ -351,11 +393,13 @@ private:
         return DetermineCompressionRleValues(GetSortedHistogram(p_begin, p_end), 0);
     }
 
+
+
     Hist GetSortedHistogram(const_iterator p_begin, const_iterator p_end)
     {
         Hist hist{};
         // Make entries for each byte freq zero
-        for (int n = 0; n < (1 << (8 * sizeof(TData))); n++)
+        for (int n = 0; n < ( 1 << ( 8 * sizeof( TData ))); n++)
         {
             hist.push_back({ 0, TData(n) });
         }
@@ -381,20 +425,21 @@ private:
     // Determine RLE mata data using suplied histogram.
     RLE_Meta DetermineCompressionRleValues(const Hist& p_hist, int p_try)
     {
-
-        TData max = p_hist.back().second;                    // value that occurs most, will be coded with min1
-        TData code_for_most = (p_hist.begin() + p_try)->second;       // value that occurs less, will be used to code most value
-        TData code_for_tripples = (p_hist.begin() + p_try + 1)->second;   // value that occurs 2nd less, will be used to code tripples
+        TData max               = p_hist.back().second;                   // value that occurs most, will be coded with min1
+        TData code_for_most     = ( p_hist.begin() + p_try )->second;     // value that occurs less, will be used to code most value
+        TData code_for_tripples = ( p_hist.begin() + p_try + 1 )->second; // value that occurs 2nd less, will be used to code tripples
 
         // There is even no max, dont code it - or skip
         if (max == code_for_most || max == code_for_tripples)
         {
-            max = TData{ 0 };
+            max           = TData{ 0 };
             code_for_most = TData{ 1 };
         }
         return { max, code_for_most, code_for_tripples };
 
     }
+
+
 
     // Write RLE meta data to the given iterator position, thus becoming part of the compressed data.
     void WriteRleValues(DataBlock& out_buf, iterator& out_it, const RLE_Meta& p_max_min)
@@ -403,6 +448,8 @@ private:
         Write(out_buf, out_it, p_max_min.min1);
         Write(out_buf, out_it, p_max_min.min2);
     }
+
+
 
     // Write RLE meta data from given iterator position
     RLE_Meta ReadRleValues(const_iterator& p_it)
@@ -413,6 +460,7 @@ private:
         retval.min2 = Read(p_it);
         return retval;
     }
-};
 
 
+
+}; // class Compressor

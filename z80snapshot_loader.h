@@ -100,6 +100,16 @@ public:
     ///  Load Z80 snapshot file from given stream.
     Z80SnapShotLoader& Load(std::istream& p_stream);
 
+    /// The given datablock should be a sjasmplus generated block with
+    /// some Z80 code to set all registers.
+    /// Typically would be snapshotregs.bin.
+    /// Together with Symbols will replace data there with actual snapshot register values.
+    Z80SnapShotLoader& SetRegBlock(DataBlock p_snapshot_regs_block)
+    {
+        m_reg_block = std::move(p_snapshot_regs_block);
+        return *this;
+    }
+
     /// Move data as loaded from Z80 snapshot file to given TurboBlocks.
     /// Will replace register data as read by this class (from z80 snapshot) in the block as 
     /// given in SetRegBlock, using the symbols as known by TurboBlocks.
@@ -119,15 +129,7 @@ public:
         return std::move(m_mem48k);
     }
 
-    /// The given datablock should be a sjasmplus generated block with
-    /// some Z80 code to set all registers.
-    /// Typically would be snapshotregs.bin.
-    /// Together with Symbols will replace data there with actual snapshot register values.
-    Z80SnapShotLoader& SetRegBlock(DataBlock p_snapshot_regs_block)
-    {
-        m_reg_block = std::move(p_snapshot_regs_block);
-        return *this;
-    }
+
 
 private:
     void Z80SnapShotHeaderToSnapShotRegs(const Symbols& p_symbols);

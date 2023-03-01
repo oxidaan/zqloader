@@ -119,27 +119,73 @@ public:
         return *this;
     }
 
-    ///  Set address as found in CLEAR (BASIC), qloader might use this to set Stack Pointer.
+    /// Set address as found in CLEAR (BASIC), qloader might use this to set Stack Pointer.
     TurboBlock& SetClearAddress(uint16_t p_address)
     {
         GetHeader().m_clear_address = p_address;
         return *this;
     }
 
-    ///  Set duration T state times for zero and one
-    TurboBlock& SetDurations(int p_zero_duration, int p_one_duration)
+
+
+    /// Set given data as payload at this TurboBlock. Try to compress.
+    /// At header sets:
+    /// m_length,
+    /// m_compression_type,
+    /// RLE meta data
+    TurboBlock& SetData(const DataBlock& p_data, CompressionType p_compression_type = CompressionType::automatic)
     {
-        m_zero_duration = p_zero_duration;
-        m_one_duration = p_one_duration;
-        std::cout << "Around " << (1000ms / m_tstate_dur) / ((m_zero_duration + m_one_duration) / 2) << " bps" << std::endl;
+        m_data_size = p_data.size();
+        Compressor<DataBlock>::RLE_Meta rle_meta;
+        // try inline decompression
+        bool try_inline = !m_overwrites_loader && GetHeader().m_load_address == 0 && GetHeader().m_dest_address != 0;
+        auto pair = TryCompress(p_data, p_compression_type, rle_meta, try_inline ? 5 : 0);
+        CompressionType compression_type = pair.first;
+        DataBlock&       compressed_data = pair.second;
+        // std::cout << "Compressed as: " << compression_type << " Uncompressed size: " << p_data.size() << "; Compressed size: " << compressed_data.size() << std::endl;
+        if (try_inline && compression_type == CompressionType::rle)
+        {
+            SetLoadAddress(uint16_t(GetHeader().m_dest_address + p_data.size() - compressed_data.size()));
+            //  std::cout << "Using inline decompression: Setting load address to " << GetHeader().m_load_address <<
+            //      " (Dest Address = " << GetHeader().m_dest_address <<
+            //      " Data size = " << p_data.size() <<
+            //      " Compressed size = " << compressed_data.size() << ")" << std::endl;
+        }
+        const DataBlock* data;
+        if (compression_type == CompressionType::rle)
+        {
+            GetHeader().m_rle_most = uint8_t(rle_meta.most);
+            GetHeader().m_rle_min1 = uint8_t(rle_meta.code_for_most);
+            GetHeader().m_rle_min2 = uint8_t(rle_meta.code_for_triples);
+            GetHeader().m_compression_type = compression_type;
+            data = &compressed_data;
+        }
+        else // none
+        {
+            GetHeader().m_compression_type = compression_type;
+            data = &p_data;
+        }
+
+
+        GetHeader().m_length = uint16_t(data->size());
+        // GetHeader().m_length = uint16_t(compressed_data.size() + 2);       // @DEBUG should give ERROR
+        // GetHeader().m_length = uint16_t(compressed_data.size() );       // @DEBUG should give CHECKSUM ERROR
+        m_data.insert(m_data.end(), data->begin(), data->end());          // append given data at m_data (after header)
+
+
+
+
+        if (!m_overwrites_loader && GetHeader().m_load_address == 0 && GetHeader().m_dest_address != 0)
+        {
+            // When only dest address given:
+            // set load address to dest address, and dest address to 0 thus
+            // loading immidiately at the correct location.
+            SetLoadAddress(GetHeader().m_dest_address);
+            SetDestAddress(0);
+        }
+
         return *this;
     }
-
-    /// Set given data as payload at this TurboBlock.
-    /// Also sets:
-    /// m_length,           
-    /// m_compression_type.
-    TurboBlock& SetData(const DataBlock& p_data, CompressionType p_compression_type = CompressionType::automatic);
 
     bool IsEmpty() const
     {
@@ -154,7 +200,7 @@ public:
     /// p_pause_before this is important when ZX Spectrum needs some time to decompress.
     /// Give this an estimate how long it takes to handle previous block.
     template<class TLoader>
-    void MoveToLoader(TLoader& p_loader, std::chrono::milliseconds p_pause_before)
+    void MoveToLoader(TLoader& p_loader, std::chrono::milliseconds p_pause_before, int p_zero_duration, int p_one_duration)
     {
         std::cout << "Pause before = " << p_pause_before.count() << "ms" << std::endl;
 
@@ -166,10 +212,10 @@ public:
         DataBlock header(data.begin(), data.begin() + sizeof(Header));      // split
         DataBlock payload(data.begin() + sizeof(Header), data.end());
 
-        MoveToLoader(p_loader, std::move(header));
+        MoveToLoader(p_loader, std::move(header), p_zero_duration, p_one_duration);
         if (payload.size() != 0)
         {
-            MoveToLoader(p_loader, std::move(payload));
+            MoveToLoader(p_loader, std::move(payload), p_zero_duration, p_one_duration);
         }
     }
 
@@ -209,15 +255,15 @@ private:
     //  Move given DataBlock to loader (eg SpectrumLoader)
     //  PausePulser(minisync) + DataPulser
     template<class TLoader>
-    void MoveToLoader(TLoader& p_loader, DataBlock p_block)
+    void MoveToLoader(TLoader& p_loader, DataBlock p_block, int p_zero_duration, int p_one_duration)
     {
         PausePulser().SetLength(500).SetEdge(Edge::toggle).MoveToLoader(p_loader);      // extra mini sync before
 
         DataPulser()        // data
             .SetBlockType(ZxBlockType::raw)
             //            .SetStartBitDuration(380)
-            .SetZeroPattern(m_zero_duration)          // works with ONE_MAX 12 ONE_MIN 4
-            .SetOnePattern(m_one_duration)
+            .SetZeroPattern(p_zero_duration)          // works with ONE_MAX 12 ONE_MIN 4
+            .SetOnePattern(p_one_duration)
             .SetData(std::move(p_block))
             .MoveToLoader(p_loader);
     }
@@ -304,7 +350,54 @@ private:
     // p_tries: when > 0 indicates must be able to use inline decompression.
     // This not always succeeds depending on choosen RLE paramters. The retry max this time.
     std::pair<CompressionType, DataBlock >
-        TryCompress(const DataBlock& p_data, CompressionType p_compression_type, Compressor<DataBlock>::RLE_Meta& out_rle_meta, int p_tries);
+    TryCompress(const DataBlock& p_data, CompressionType p_compression_type, Compressor<DataBlock>::RLE_Meta& out_rle_meta, int p_tries)
+    {
+        if (p_compression_type == CompressionType::automatic)
+        {
+            // no compression when small
+            // also no compression when m_dest_address is zero: will not run decompression.
+            if (p_data.size() < 256 || GetHeader().m_dest_address == 0)
+            {
+                return { CompressionType::none, p_data.Clone() };       // done
+            }
+        }
+        if (p_compression_type == CompressionType::rle ||
+                p_compression_type == CompressionType::automatic)
+        {
+            DataBlock compressed_data;
+            Compressor<DataBlock> compressor;
+
+
+            // Compress. Also to check size
+            auto try_compressed_data = compressor.Compress(p_data, out_rle_meta, p_tries);
+            if (!try_compressed_data)
+            {
+                return { CompressionType::none, p_data.Clone() };
+            }
+            compressed_data = std::move(*try_compressed_data);
+            // When automatic and it is bigger after compression... Then dont.
+            if ((p_compression_type == CompressionType::automatic || p_tries != 0) && compressed_data.size() >= p_data.size())
+            {
+                return { CompressionType::none, p_data.Clone() };
+            }
+
+
+            // @DEBUG
+            {
+                Compressor<DataBlock> compressor;
+                DataBlock decompressed_data = compressor.DeCompress(compressed_data, out_rle_meta);
+                if (decompressed_data != p_data)
+                {
+                    throw std::runtime_error("Compression algorithm error!");
+                }
+            }
+            // @DEBUG
+
+
+            return { CompressionType::rle , std::move(compressed_data) };
+        }
+        return { p_compression_type, p_data.Clone() };
+    }
 
     // Calculate a simple one-byte checksum over data.
     // including header and the length fields.
@@ -323,126 +416,14 @@ private:
     size_t m_data_size;     // size of (uncompressed/final) data. Note: Spectrum does not need this.
     bool m_overwrites_loader = false;       // will this block overwrite our loader itself?
     DataBlock m_data;       // the data as send to Spectrum, starts with header
-    //    int m_zero_duration = 80;
-    //    int m_one_duration = 280;
-    int m_zero_duration = 118;      // @@ see qloader.asm
-    int m_one_duration = 293;     // @@ 175 more (3.5 cycle)
 };
 
 
 
-// TurboBlock
-/// Set given data as payload at this TurboBlock.
-/// Also sets:
-/// m_length,           
-/// m_compression_type.
-TurboBlock& TurboBlock::SetData(const DataBlock& p_data, CompressionType p_compression_type)
-{
-    m_data_size = p_data.size();
-    Compressor<DataBlock>::RLE_Meta rle_meta;
-    // try inline decompression
-    bool try_inline = !m_overwrites_loader && GetHeader().m_load_address == 0 && GetHeader().m_dest_address != 0;
-    auto pair = TryCompress(p_data, p_compression_type, rle_meta, try_inline ? 5 : 0);
-    CompressionType compression_type = pair.first;
-    DataBlock& compressed_data = pair.second;
-    // std::cout << "Compressed as: " << compression_type << " Uncompressed size: " << p_data.size() << "; Compressed size: " << compressed_data.size() << std::endl;
-    if (try_inline && compression_type == CompressionType::rle)
-    {
-        SetLoadAddress(uint16_t(GetHeader().m_dest_address + p_data.size() - compressed_data.size()));
-        //  std::cout << "Using inline decompression: Setting load address to " << GetHeader().m_load_address <<
-        //      " (Dest Address = " << GetHeader().m_dest_address <<
-        //      " Data size = " << p_data.size() <<
-        //      " Compressed size = " << compressed_data.size() << ")" << std::endl;
-    }
-    const DataBlock* data;
-    if (compression_type == CompressionType::rle)
-    {
-        GetHeader().m_rle_most = uint8_t(rle_meta.most);
-        GetHeader().m_rle_min1 = uint8_t(rle_meta.code_for_most);
-        GetHeader().m_rle_min2 = uint8_t(rle_meta.code_for_triples);
-        GetHeader().m_compression_type = compression_type;
-        data = &compressed_data;
-    }
-    else // none
-    {
-        GetHeader().m_compression_type = compression_type;
-        data = &p_data;
-    }
-
-
-    GetHeader().m_length = uint16_t(data->size());
-    // GetHeader().m_length = uint16_t(compressed_data.size() + 2);       // @DEBUG should give ERROR
-    // GetHeader().m_length = uint16_t(compressed_data.size() );       // @DEBUG should give CHECKSUM ERROR
-    m_data.insert(m_data.end(), data->begin(), data->end());          // append given data at m_data (after header)
 
 
 
 
-    if (!m_overwrites_loader && GetHeader().m_load_address == 0 && GetHeader().m_dest_address != 0)
-    {
-        // When only dest address given:
-        // set load address to dest address, and dest address to 0 thus
-        // loading immidiately at the correct location.
-        SetLoadAddress(GetHeader().m_dest_address);
-        SetDestAddress(0);
-    }
-
-    return *this;
-}
-
-// Determine best compression, and return given data compressed  
-// using that algorithm.
-// TODO now only CompressionType::rle remains. Function not really usefull.
-// p_tries: when > 0 indicates must be able to use inline decompression.
-// This not always succeeds depending on choosen RLE paramters. The retry max this time.
-std::pair<CompressionType, DataBlock> TurboBlock::TryCompress(const DataBlock& p_data, CompressionType p_compression_type, Compressor<DataBlock>::RLE_Meta& out_rle_meta, int p_tries)
-{
-    if (p_compression_type == CompressionType::automatic)
-    {
-        // no compression when small
-        // also no compression when m_dest_address is zero: will not run decompression.
-        if (p_data.size() < 256 || GetHeader().m_dest_address == 0)
-        {
-            return { CompressionType::none, p_data.Clone() };       // done
-        }
-    }
-    if (p_compression_type == CompressionType::rle ||
-        p_compression_type == CompressionType::automatic)
-    {
-        DataBlock compressed_data;
-        Compressor<DataBlock> compressor;
-
-
-        // Compress. Also to check size
-        auto try_compressed_data = compressor.Compress(p_data, out_rle_meta, p_tries);
-        if (!try_compressed_data)
-        {
-            return { CompressionType::none, p_data.Clone() };
-        }
-        compressed_data = std::move(*try_compressed_data);
-        // When automatic and it is bigger after compression... Then dont.
-        if ((p_compression_type == CompressionType::automatic || p_tries != 0) && compressed_data.size() >= p_data.size())
-        {
-            return { CompressionType::none, p_data.Clone() };
-        }
-
-
-        // @DEBUG
-        {
-            Compressor<DataBlock> compressor;
-            DataBlock decompressed_data = compressor.DeCompress(compressed_data, out_rle_meta);
-            if (decompressed_data != p_data)
-            {
-                throw std::runtime_error("Compression algorithm error!");
-            }
-        }
-        // @DEBUG
-
-
-        return { CompressionType::rle , std::move(compressed_data) };
-    }
-    return { p_compression_type, p_data.Clone() };
-}
 
 template<>
 TurboBlocks::TurboBlocks(const fs::path &p_symbol_file_name) :
@@ -454,10 +435,9 @@ TurboBlocks::TurboBlocks(const fs::path &p_symbol_file_name) :
 TurboBlocks::~TurboBlocks() = default;
 
 
-/// Add given Datablock as Turboblock at given address. 
+/// Add given Datablock as TurboBlock at given address.
 /// Check if qloader (upper) is overlapped.
 /// Check if qloader (lower, at basic) is overlapped.
-
 TurboBlocks& TurboBlocks::AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr)
 {
     auto end_adr = p_start_adr + p_block.size();
@@ -572,8 +552,17 @@ void TurboBlocks::MoveToLoader(SpectrumLoader& p_loader, uint16_t p_usr_address,
     for (auto& tblock : m_turbo_blocks)
     {
         auto next_pause = tblock.EstimateHowLongSpectrumWillTakeToDecompress(); // b4 because moved
-        std::move(tblock).MoveToLoader(p_loader, pause_before);
+        std::move(tblock).MoveToLoader(p_loader, pause_before, m_zero_duration, m_one_duration);
         pause_before = next_pause;
     }
     m_turbo_blocks.clear();
+}
+
+
+TurboBlocks &TurboBlocks::SetDurations(int p_zero_duration, int p_one_duration)
+{
+    m_zero_duration = p_zero_duration;
+    m_one_duration = p_one_duration;
+    std::cout << "Around " << (1000ms / m_tstate_dur) / ((m_zero_duration + m_one_duration) / 2) << " bps" << std::endl;
+    return *this;
 }

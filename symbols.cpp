@@ -18,7 +18,8 @@ namespace fs = std::filesystem;
 
 
 
-/// Get 16bit symbol value by name.
+/// Get 16 bit symbol value by name.
+/// Throws when symbol not found.
 uint16_t Symbols::GetSymbol(const std::string& p_name) const
 {
     if (m_symbols.find(p_name) != m_symbols.end())
@@ -31,6 +32,7 @@ uint16_t Symbols::GetSymbol(const std::string& p_name) const
 
 /// Read/append symbols from given export file.
 /// Existing symbols with same name will be overwritten.
+/// Throws when error loading.
 void Symbols::ReadSymbols(const fs::path &p_filename)
 {
     std::ifstream fileread(p_filename);

@@ -1,3 +1,12 @@
+// ==============================================================================
+// PROJECT:         zqloader
+// FILE:            datablock.h
+// DESCRIPTION:     Definition struct DataBlock
+//
+// Copyright (c) 2023 Daan Scherft [Oxidaan]
+// This project uses the MIT license. See LICENSE.txt for details.
+// ==============================================================================
+
 #pragma once
 
 
@@ -12,17 +21,21 @@
 struct DataBlock : public std::vector<std::byte>
 {
     using Base = std::vector<std::byte>;
+
 private:
+
     // Copy CTOR only accessable by CLone
     DataBlock(const DataBlock& p_other) = default;
+
 public:
+
     using Base::Base;
 
     ///  Move CTOR
     DataBlock(DataBlock&& p_other) = default;
 
     ///  Move assign
-    DataBlock& operator = (DataBlock&& p_other) = default;
+    DataBlock& operator =(DataBlock&& p_other) = default;
 
     ///  No CTOR copy from std::vector
     DataBlock(const Base& p_other) = delete;
@@ -43,7 +56,3 @@ public:
     template <class TPath>
     DataBlock& LoadFromFile(const TPath &p_filename);
 };
-
-
-
-

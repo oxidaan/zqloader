@@ -22,7 +22,7 @@ class TzxLoader
 {
 
 public:
-    /// CTOR taks a Taploader. Bbecause TXX file often 'load data as in tap file'
+    /// CTOR taks a Taploader. Because TZX file often 'load data as in tap file'.
     /// Taploader has a virtual function that handles the thus loaded tap blocks.
     TzxLoader(TapLoader& p_taploader) :
         m_taploader(p_taploader)
@@ -40,7 +40,6 @@ private:
     bool LoadDataAsInTapFile(std::istream& p_stream, std::string p_zxfilename, size_t p_ignore);
 private:
     TapLoader& m_taploader;
-    std::byte m_eof_marker;
 };
 
 

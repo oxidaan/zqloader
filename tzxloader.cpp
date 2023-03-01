@@ -14,7 +14,7 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
-
+/// TZX block types
 enum class TzxBlockType : uint8_t
 {
     StandardSpeedDataBlock = 0x10,
@@ -56,9 +56,17 @@ TzxLoader& TzxLoader::Load(const fs::path &p_filename, std::string p_zxfilename)
     {
         throw std::runtime_error("File " + p_filename.string() + " not found.");
     }
-    std::cout << "Loading file " << p_filename << std::endl;
-    Load(fileread, p_zxfilename);
-    //   MoveToLoader(p_loader);
+    try
+    {
+        std::cout << "Loading file " << p_filename << std::endl;
+        Load(fileread, p_zxfilename);
+        //   MoveToLoader(p_loader);
+    }
+    catch(const std::exception &e)
+    {
+       // clarify
+       throw std::runtime_error("Reading file: " + p_filename.string() + ": " + e.what());
+    }
     return *this;
 }
 
@@ -73,7 +81,7 @@ TzxLoader& TzxLoader::Load(std::istream& p_stream, std::string p_zxfilename)
     {
         throw std::runtime_error("Not a tzx file");
     }
-    m_eof_marker = LoadBinary<std::byte>(p_stream);
+    auto eof_marker = LoadBinary<std::byte>(p_stream);
     auto version1 = LoadBinary<char>(p_stream);
     auto version2 = LoadBinary<char>(p_stream);
     std::cout << "TZX file version: " << int(version1) << '.' << int(version2) << std::endl;
@@ -81,7 +89,7 @@ TzxLoader& TzxLoader::Load(std::istream& p_stream, std::string p_zxfilename)
     while (p_stream.peek() && p_stream.good() && !done)
     {
         TzxBlockType id = LoadBinary<TzxBlockType>(p_stream);
-        if (std::byte(id) == m_eof_marker)
+        if (std::byte(id) == eof_marker)
         {
             break;
         }
@@ -123,7 +131,7 @@ TzxLoader& TzxLoader::Load(std::istream& p_stream, std::string p_zxfilename)
             p_stream.ignore(2);
             break;
         default:
-            std::cout << "TODO: TZX:" << id << std::endl;
+            std::cout << "TODO: TZX:" << id << std::endl;       // TODO!
 
         }
     }

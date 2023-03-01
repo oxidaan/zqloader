@@ -7,7 +7,6 @@
 // This project uses the MIT license. See LICENSE.txt for details.
 //==============================================================================
 
-
 #pragma once
 
 

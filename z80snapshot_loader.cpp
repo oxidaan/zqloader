@@ -28,8 +28,16 @@ Z80SnapShotLoader& Z80SnapShotLoader::Load(const fs::path &p_filename)
     {
         throw std::runtime_error("File " + p_filename.string() + " not found.");
     }
-    std::cout << "Loading file " << p_filename << std::endl;
-    Load(fileread);
+    try
+    {
+        std::cout << "Loading file " << p_filename << std::endl;
+        Load(fileread);
+    }
+    catch(const std::exception &e)
+    {
+       // clarify
+       throw std::runtime_error("Reading file: " + p_filename.string() + ": " + e.what());
+    }
     //   MoveToLoader(p_loader);
     return *this;
 }
@@ -104,9 +112,12 @@ Z80SnapShotLoader& Z80SnapShotLoader::Load(std::istream& p_stream)
     else
     {
         std::cout << "Z80 version1 file" << std::endl;
-        p_stream.read(reinterpret_cast<char*>(m_mem48k.data()), 48 * 1024);       // will normally read less tahn 48k
+        p_stream.read(reinterpret_cast<char*>(m_mem48k.data()), 48 * 1024);       // will normally read less than 48k
         m_mem48k = DeCompress(m_mem48k);
-        std::cout << "Size of uncompressed 48k block: " << m_mem48k.size();      // TODO throw otherwise
+        if(m_mem48k.size() != 48 * 1024)
+        {
+            throw std::runtime_error("Size of uncompressed Z80 block should be 48K but is: " + std::to_string(m_mem48k.size())) ;
+        }
     }
     m_z80_snapshot_header = std::move(header);
     // m_snapshot_regs = Z80SnapShotHeaderToSnapShotRegs(header);
@@ -122,6 +133,7 @@ void Z80SnapShotLoader::MoveToTurboBlocks(TurboBlocks& p_turbo_blocks)
     m_usr = p_turbo_blocks.GetSymbols().GetSymbol("LOAD_SNAPSHOT");
 }
 
+// Fill in data to register block (eg snapshotregs.bin)
 inline void Z80SnapShotLoader::Z80SnapShotHeaderToSnapShotRegs(const Symbols& p_symbols)
 {
     p_symbols.SetByte(m_reg_block, "flags_and_border", (m_z80_snapshot_header.flags_and_border >> 1) & 0xb00000111);
@@ -152,7 +164,7 @@ inline void Z80SnapShotLoader::Z80SnapShotHeaderToSnapShotRegs(const Symbols& p_
 
 // Z80 decompress 
 // see https://worldofspectrum.org/faq/reference/z80format.htm
-DataBlock Z80SnapShotLoader::DeCompress(const DataBlock& p_block)
+inline DataBlock Z80SnapShotLoader::DeCompress(const DataBlock& p_block)
 {
     DataBlock retval;
     auto len = p_block.size();

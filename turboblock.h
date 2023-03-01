@@ -58,6 +58,9 @@ public:
     /// DTOR
     ~TurboBlocks();
 
+    /// Set duration T state times for zero and one
+    TurboBlocks& SetDurations(int p_zero_duration, int p_one_duration);
+
     /// Set compression type.
     TurboBlocks& SetCompressionType(CompressionType p_compression_type)
     {
@@ -72,11 +75,12 @@ public:
     TurboBlocks& AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr);
 
 
-    /// Add a Datablock as Turboblock at given symbol name address (see class Symbols).
+    /// Convenience. Add a Datablock as Turboblock at given symbol name address (see class Symbols).
     TurboBlocks& AddDataBlock(DataBlock&& p_block, const std::string& p_symbol)
     {
         return AddDataBlock(std::move(p_block), m_symbols.GetSymbol(p_symbol));
     }
+
 
 
     /// Add just a header with a 'copy to screen' command.
@@ -102,6 +106,7 @@ public:
         return m_symbols;
     }
 
+
 private:
     template <class T1, class T2, class T3, class T4>
     static bool Overlaps(T1 p_start, T2 p_end, T3 p_start2, T4 p_end2)
@@ -120,10 +125,15 @@ private:
 
 private:
     std::vector<TurboBlock> m_turbo_blocks;
-    std::unique_ptr<TurboBlock> m_upper_block;           // when a block is found that overlaps our loader (empty when not)
-    bool m_loader_at_screen = false;    // when true the first block will have a 'copy loader to screen' command          
+    std::unique_ptr<TurboBlock> m_upper_block;          // when a block is found that overlaps our loader (nullptr when not)
+    bool m_loader_at_screen = false;                    // when true the first block will have a 'copy loader to screen' command
     CompressionType m_compression_type = CompressionType::none;
-    Symbols m_symbols;
+    Symbols m_symbols;                                  // named symbols as read from EXP file
+    //    int m_zero_duration = 80;
+    //    int m_one_duration = 280;
+    int m_zero_duration = 118;      // @@ see qloader.asm
+    int m_one_duration = 293;       // @@ 175 more (3.5 cycle)
+
 };
 
 

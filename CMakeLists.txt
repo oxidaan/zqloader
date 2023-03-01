@@ -5,8 +5,8 @@ cmake_minimum_required(VERSION 3.7)
 project(zqloader VERSION 0.1.0 LANGUAGES CXX)
 
 
+add_subdirectory(z80)
 
-# For include files I dont really care using GLOB.
 file(GLOB INCLUDE
     "zqloader/*.h"
     "*.h"
@@ -39,7 +39,7 @@ add_executable(${PROJECT_NAME}  ${SOURCE} ${INCLUDE} ${DOCUMENTATION} )
 # We need c++17
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 
-# Here lives miniaduo.h
+# Here lives miniadio.h
 target_include_directories(${PROJECT_NAME} PRIVATE miniaudio)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
@@ -48,6 +48,11 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     "UNICODE;"
     "_UNICODE"
 )
+
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(GCC true)
+endif()
 
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE
@@ -69,7 +74,7 @@ if(MSVC)
     )
 endif()
 
-if(UNIX)
+if (GCC) 
     target_compile_options(${PROJECT_NAME} PRIVATE 
         -Wall 
         -pedantic
@@ -88,7 +93,7 @@ endif()
 if(UNIX)
     target_link_libraries(${PROJECT_NAME} PRIVATE dl pthread)
 endif()
-if(MSVC)
+if(WIN32)
     target_link_libraries(${PROJECT_NAME} PRIVATE ws2_32 DbgHelp psapi)
 endif()
 
@@ -102,3 +107,7 @@ if(MSVC)
 endif()
 
 
+install(TARGETS ${PROJECT_NAME} 
+RUNTIME DESTINATION bin
+LIBRARY DESTINATION lib
+       )

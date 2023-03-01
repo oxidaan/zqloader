@@ -13,12 +13,13 @@
 #include <string>
 #include <filesystem>       //  std::filesystem::path 
 
-/// Loads and maintains z80 symbols as saved by sjasmplus to an export file.
+/// Loads and maintains named z80 symbols as saved by sjasmplus to an export file.
 /// eg zqloader.exp.
 class Symbols
 {
 public:
     /// CTOR, loads symbols from given export file. Typical 'zqloader.exp'
+    /// Throws when error loading.
     Symbols(const std::filesystem::path &p_filename)
     {
         ReadSymbols(p_filename);
@@ -26,13 +27,16 @@ public:
 
     /// Read/append symbols from given export file.
     /// Existing symbols with same name will be overwritten.
+    /// Throws when error loading.
     void ReadSymbols(const std::filesystem::path& p_filename);
 
     /// Get 16bit symbol value by name.
+    /// Throws when not found.
     uint16_t GetSymbol(const std::string& p_name) const;
 
     /// Convenience; set a byte value at given block at address with give symbol name.
     /// (this is used to modify a z80 snapshot register block)
+    /// Throws when symbol not found.
     template <class TDataBlock>
     void SetByte(TDataBlock& p_block, const char* p_name, uint8_t val) const
     {
@@ -41,6 +45,7 @@ public:
 
     /// Convenience; set a 16bit word value at given block at address with give symbol name.
     /// (this is used to modify a z80 snapshot register block)
+    /// Throws when symbol not found.
     template <class TDataBlock>
     void SetWord(TDataBlock& p_block, const char* p_name, uint16_t val) const
     {

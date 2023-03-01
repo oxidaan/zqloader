@@ -41,16 +41,21 @@ TapLoader& TapLoader::Load(const fs::path &p_filename, std::string p_zxfilename)
     {
         throw std::runtime_error("File " + p_filename.string() + " not found.");
     }
-    else
+    try
     {
         std::cout << "Loading file " << p_filename << std::endl;
         Load(fileread, p_zxfilename);
+    }
+    catch(const std::exception &e)
+    {
+       // clarify
+       throw std::runtime_error("Reading file: " + p_filename.string() + ": " + e.what());
     }
     return *this;
 }
 
 
-/// Load a tap file from given stream.
+/// Load a tap file from given stream. Stops when tap block was handled.
 /// p_zxfilename: the ZX Spectrum file name, eg used to filter / only load certain 
 /// program names.
 inline TapLoader& TapLoader::Load(std::istream& p_stream, std::string p_zxfilename)

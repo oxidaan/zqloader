@@ -1,5 +1,15 @@
+//==============================================================================
+// PROJECT:         zqloader
+// FILE:            byte_tools.h
+// DESCRIPTION:     Definition of some functions to enhance std::byte.
+//
+// Copyright (c) 2023 Daan Scherft [Oxidaan]
+// This project uses the MIT license. See LICENSE.txt for details.
+//==============================================================================
+
 #pragma once
 #include <cstddef>      // std::byte
+#include <limits>       // std::numeric_limits
 
 /// Define literal for std::byte
 /// eg 123_byte
@@ -22,7 +32,6 @@ inline std::byte& operator --(std::byte& p_byte)
     return p_byte;
 }
 
-/// Make std::byte 'usable' for comression algorithms.
 /// Get maximum value for given TData including...
 template <class TData>
 TData GetMax()
@@ -31,7 +40,7 @@ TData GetMax()
 }
 
 /// ... maximum value for std::byte
-/// Make std::byte 'usable' for comression algorithms.
+/// This make std::byte 'usable' for comression algorithms.
 template <>
 inline std::byte GetMax<std::byte>()
 {

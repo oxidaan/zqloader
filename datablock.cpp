@@ -1,3 +1,13 @@
+//==============================================================================
+// PROJECT:         zqloader
+// FILE:            datablock.cpp
+// DESCRIPTION:     Implementation of class DataBlock.
+//
+// Copyright (c) 2023 Daan Scherft [Oxidaan]
+// This project uses the MIT license. See LICENSE.txt for details.
+//==============================================================================
+
+
 #include "datablock.h"
 #include <fstream>
 #include <filesystem>

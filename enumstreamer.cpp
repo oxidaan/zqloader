@@ -1,3 +1,12 @@
+//==============================================================================
+// PROJECT:         zqloader
+// FILE:            enumstreamer.cpp
+// DESCRIPTION:     Definition of some functions to stream enum tags
+//
+// Copyright (c) 2023 Daan Scherft [Oxidaan]
+// This project uses the MIT license. See LICENSE.txt for details.
+//==============================================================================
+
 
 
 

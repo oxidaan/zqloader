@@ -23,7 +23,6 @@ struct DataBlock;
 class TapLoader
 {
 public:
-    /// TPath must be std::filesystem::path
     TapLoader& Load(const std::filesystem::path &p_filename, std::string p_zxfilename);
     
     TapLoader& Load(std::istream& p_stream, std::string p_zxfilename);

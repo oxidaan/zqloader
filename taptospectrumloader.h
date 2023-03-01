@@ -7,8 +7,8 @@
 // This project uses the MIT license. See LICENSE.txt for details.
 //==============================================================================
 
-
 #pragma once
+
 
 #include "taploader.h"
 #include "spectrum_loader.h"

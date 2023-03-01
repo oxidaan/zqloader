@@ -1,4 +1,4 @@
-# file opened: C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.z80asm
+# file opened: /home/daan/Projects/Test/zqloader/zqloader/z80/zqloader.z80asm
   1   0000              //==============================================================================
   2   0000              // PROJECT:         zqloader
   3   0000              // FILE:            turboblock.z80asm
@@ -78,7 +78,7 @@
  77   0000              BASIC_START:
  78   0000                  MODULE basic1
  79   0000                      INCLUDE	"BasicLib.asm"
-# file opened: C:/Tools/sjasmplus/examples/BasicLib/BasicLib.asm
+# file opened: /home/daan/Projects/Test/sjasmplus/sjasmplus/examples/BasicLib/BasicLib.asm
   1+  0000              ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   2+  0000              ;; Basic writing library ;; Busy soft ;; 14.04.2022 ;;
   3+  0000              ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -298,21 +298,20 @@
 217+  0000 ~            	  db	val,'"'
 218+  0000 ~            	ENDIF
 219+  0000 ~            	  LUA ALLPASS
-220+  0000 ~            --	  sj.parse_code('db	"' .. tostring(sj.calc("value")) .. '"')
-221+  0000 ~            	  sj.parse_code('db	"' .. string.format("%05d", sj.calc("value")) .. '"')		-- DJS fill with zero's
-222+  0000 ~            	  ENDLUA
-223+  0000 ~            	IF line_useval
-224+  0000 ~            	  db	'"'
-225+  0000 ~            	ELSE
-226+  0000 ~            	  db	#0E,0,0
-227+  0000 ~            	  dw	value
-228+  0000 ~            	  db	#00
-229+  0000 ~            	ENDIF
-230+  0000                    ENDM
-231+  0000
-232+  0000              ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-233+  0000
-# file closed: C:/Tools/sjasmplus/examples/BasicLib/BasicLib.asm
+220+  0000 ~            	  sj.parse_code('db	"' .. tostring(sj.calc("value")) .. '"')
+221+  0000 ~            	  ENDLUA
+222+  0000 ~            	IF line_useval
+223+  0000 ~            	  db	'"'
+224+  0000 ~            	ELSE
+225+  0000 ~            	  db	#0E,0,0
+226+  0000 ~            	  dw	value
+227+  0000 ~            	  db	#00
+228+  0000 ~            	ENDIF
+229+  0000                    ENDM
+230+  0000
+231+  0000              ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+232+  0000
+# file closed: /home/daan/Projects/Test/sjasmplus/sjasmplus/examples/BasicLib/BasicLib.asm
  80   0000              line_useval = 1   ;; Use VAL for numbers
  81   0000
  82   0000                          LINE
@@ -1356,4 +1355,4 @@
 947   003C               EXPORT F_reg
 948   003C
 949   003C               // ===========================================================================
-# file closed: C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.z80asm
+# file closed: /home/daan/Projects/Test/zqloader/zqloader/z80/zqloader.z80asm
