@@ -73,7 +73,9 @@ cd build
 cmake ..
 make
 ```
-To assemble the z80 code use [sjasmplus](https://github.com/z00m128/sjasmplus). You can use Visual studio code with the provided `tasks.json` at `.vscode` directory.
+This will also build the z80 assembly code - but only if sjasmplus is present. 
+
+To assemble the z80 assembly code manually use [sjasmplus](https://github.com/z00m128/sjasmplus). You can use Visual studio code with the provided `tasks.json` at `.vscode` directory.
 Or use a command like:
 ```
 sjasmplus --fullpath     \
