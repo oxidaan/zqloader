@@ -68,7 +68,7 @@ Building
 
 You can use the file `zqloader.sln` with `zqloader.vcproj` to build the zqloader executable with Visual studio 2022 in Windows. Or - at Linux - use the `CMakeList.txt` file to build it with cmake eg:
 ```
-mkdir buikd
+mkdir build
 cd build
 cmake ..
 make
