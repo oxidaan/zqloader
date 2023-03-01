@@ -84,7 +84,7 @@ This loader generates the sound pulses, that the ZX Spectrum can load as data.
 
 
 syntax:
-qloader.exe
+zqloader.exe
     path/to/filename        First file: can be a tap or tzx file and will be
                             loaded at normal speed into a real ZX spectrum.
                             Only when the file here is 'zqloader.tap' it can
@@ -145,7 +145,7 @@ int main(int argc, char** argv)
         if (argc > 2)
         {
             fs::path filename_exp = argv[1];
-            filename_exp.replace_extension("exp");      // qloader.exp (symbols)
+            filename_exp.replace_extension("exp");      // zqloader.exp (symbols)
             fs::path filename = argv[2];
             TurboBlocks tblocks(filename_exp);
             tblocks.SetCompressionType(CompressionType::automatic);

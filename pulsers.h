@@ -498,7 +498,7 @@ private:
     int m_start_duration = 0;       // default s/a m_puls_duration
     int m_stop_duration = 0;        // default s/a m_puls_duration
     bool m_start_bit = true;        // value for start bit. Stopbit is always !m_start_bit
-    // and m_start_bit should also be true, see table at qloader.asm.
+    // and m_start_bit should also be true, see table at zqloader.asm.
     // this means sync should end with 0!
 };
 

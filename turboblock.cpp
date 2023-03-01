@@ -21,7 +21,7 @@ namespace fs = std::filesystem;
 
 
 ///
-/// Our turbo block as used with qloader.z80asm.
+/// Our turbo block as used with zqloader.z80asm.
 /// 
 class TurboBlock
 {
@@ -119,7 +119,7 @@ public:
         return *this;
     }
 
-    /// Set address as found in CLEAR (BASIC), qloader might use this to set Stack Pointer.
+    /// Set address as found in CLEAR (BASIC), zqloader might use this to set Stack Pointer.
     TurboBlock& SetClearAddress(uint16_t p_address)
     {
         GetHeader().m_clear_address = p_address;
@@ -195,7 +195,7 @@ public:
 
 
     /// Move this TurboBlock to given loader (eg SpectrumLoader).
-    /// Give it leader+sync as used by qloader.z80asm.
+    /// Give it leader+sync as used by zqloader.z80asm.
     /// Move all to given loader eg SpectrumLoader.
     /// p_pause_before this is important when ZX Spectrum needs some time to decompress.
     /// Give this an estimate how long it takes to handle previous block.
@@ -278,7 +278,7 @@ private:
     }
 
     // After loading a compressed block ZX spectrum needs some time to 
-    // decompress before it can accept next block. WIll wait this long after sending block.
+    // decompress before it can accept next block. Will wait this long after sending block.
     std::chrono::milliseconds EstimateHowLongSpectrumWillTakeToDecompress() const
     {
         if (GetHeader().m_dest_address == 0)
@@ -292,13 +292,13 @@ private:
         return (m_data_size * 100ms / 20000);      // LDIR eg 0.05 sec/10kb? whatever.
     }
 
-    // Set a flag indicating this block overwrites our qloader code at upper memory.
+    // Set a flag indicating this block overwrites our zqloader code at upper memory.
     // Need to load it elsewhere first, then copy to final location. Cannot load anything after that.
     // Adjusts loadaddress and dest address accordingly.
     TurboBlock& SetOverwritesLoader(uint16_t p_loader_upper_length)
     {
         m_overwrites_loader = true;
-        SetLoadAddress(0);     // qloader.asm will put it at BASIC buffer
+        SetLoadAddress(0);     // zqloader.asm will put it at BASIC buffer
         SetDestAddress(0xffff - (p_loader_upper_length - 1));
         return *this;
     }
@@ -436,8 +436,8 @@ TurboBlocks::~TurboBlocks() = default;
 
 
 /// Add given Datablock as TurboBlock at given address.
-/// Check if qloader (upper) is overlapped.
-/// Check if qloader (lower, at basic) is overlapped.
+/// Check if zqloader (upper) is overlapped.
+/// Check if zqloader (lower, at basic) is overlapped.
 TurboBlocks& TurboBlocks::AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr)
 {
     auto end_adr = p_start_adr + p_block.size();
@@ -465,7 +465,6 @@ TurboBlocks& TurboBlocks::AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr
         // So keep, then append as last.
         m_upper_block = std::make_unique<TurboBlock>();
         m_upper_block->SetOverwritesLoader(loader_upper_len);        // puts it at BASIC buffer
-
         m_upper_block->SetData(block_upper, m_compression_type);
     }
     else

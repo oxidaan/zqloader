@@ -74,7 +74,7 @@ TInt1 Random(TInt1 p_min, TInt2 p_max)
 uint16_t Test(TurboBlocks& p_blocks, fs::path p_filename)
 {
 #if 1
-    // "C:\Projects\Visual Studio\Projects\qloader\vscode\qloader_test.bin"
+    // "C:\Projects\Visual Studio\Projects\zqloader\vscode\qloader_test.bin"
     std::cout << "Reading binary file " << p_filename << std::endl;
     DataBlock block;
     block.LoadFromFile(p_filename);
