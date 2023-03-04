@@ -6,7 +6,7 @@ project(zqloader VERSION 0.1.0 LANGUAGES CXX)
 
 find_program(HAVE_SJSASMPLUS sjasmplus)
 if(NOT HAVE_SJSASMPLUS)
-    message(FATAL_ERROR "sjasmplus not found! Skipping z80 assembly.")
+    message("sjasmplus not found! Make sure it is in the PATH. Skipping z80 assembly.")
 else()
     message("sjasmplus found at ${HAVE_SJSASMPLUS}")
     add_subdirectory(z80)

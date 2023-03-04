@@ -20,11 +20,7 @@
     DEFINE tape_file_name    "zqloader.tap"
     DEFINE basic_name        "zqloader"
 
-//----------------------------------------------------------------------------
 
-// define DEBUG           // enable/add debug code
- define TO_SCREEN       // add code to copy lower part to screen and run from there
- define COMPRESS2
 //----------------------------------------------------------------------------
 
 CHAN_OPEN               EQU 0x1601         
@@ -35,11 +31,7 @@ SCREEN_23RD             EQU 16384+4*1024
 
 
 //----------------------------------------------------------------------------
- ifdef DEBUG
-CLEAR                  equ 25500       // CLEAR
- else
 CLEAR                  equ 24500       // CLEAR eg horace (H.spiders: 24575)   min:24290
- endif
 
 //----------------------------------------------------------------------------
 LEADER_MIN_EDGES        EQU 200         // Minimum edges a leader beed to have tobe accepted
@@ -50,13 +42,9 @@ LEADER_MIN              EQU 8           //
 SYNC_MAX                EQU LEADER_MIN-1//  a sync is between SYNC_MIN and SYNC_MAX
 SYNC_MIN                EQU 4           //
 
-ONE_MAX                 EQU 12          // Took > 60 cycle:  timeout. B = 0:
-//ONE_MIN                 EQU 5           // Took 40-60 cycle: "1"  B=1--20   / 1 -- ONE_MAX-ONE_MIN
-//ONE_MIN                 EQU 4           // Took 40-60 cycle: "1"  B=1--20   / 1 -- ONE_MAX-ONE_MIN
-ONE_MIN                 EQU 4           // @@ Took 40-60 cycle: "1"  B=1--20   / 1 -- ONE_MAX-ONE_MIN
+ONE_MAX                 EQU 12          // 
+ONE_MIN                 EQU 4           // 
 
-ZERO_MAX                EQU ONE_MIN-1   // not used Took 20-40 cycle: "0"" B=21--40 / ONE_MAX-ONE_MIN  -- ONE_MAX-ZERO_MIN
-ZERO_MIN                EQU 0           // not used
 
 
 //----------------------------------------------------------------------------
@@ -85,18 +73,9 @@ BASIC_START:
 line_useval = 1   ;; Use VAL for numbers
 
             LINE : db	clear : NUM2(CLEAR) :LEND       // 10 CLEAR 24000
-        //    LINE :       db	print, peek : NUM(PROG) : db '+' : NUM(256) : db '*',  peek : NUM(PROG + 1) : db '+' : NUM(ASM_START) :LEND   // 20 PRINT PEEK VAL"XXXX"
-        //    LINE : db for, "n=" :NUM(0): db to :NUM(10): LEND
-        //    LINE : db print, "n,",    peek, "(", peek : NUM(PROG) : db '+' : NUM(256) : db '*',  peek : NUM(PROG + 1) : db '+' : NUM(ASM_START) : db "+n)" : LEND   // 20 PRINT PEEK VAL"XXXX"
-        //    LINE : db next, "n": LEND
             LINE : db	print, usr, '(', peek : NUM2(PROG) : db '+' : NUM2(256) : db '*',  peek : NUM2(PROG + 1) : db '+' : NUM2(ASM_START) : db ')' : LEND   // 30 RANDOMIZE USR VAL"XXXX"
 
- ifdef DEBUG
-            LINE : db for, "n=" :NUM2(header): db to :NUM2(65535): LEND
-            LINE : db print, "n,",  peek, "(" : db "n);\" \"" : LEND   // 20 PRINT PEEK VAL"XXXX"
-            LINE : db next, "n": LEND
- endif            
-            LINE : db load, '"','"' : LEND
+ //           LINE : db load, '"','"' : LEND
  
  
 	        LINE : db	rem                             // 40 REM
@@ -423,106 +402,10 @@ ASM_UPPER_BEGIN:
 
 
 //============================================================================
-//============================================================================
-//============================================================================
+
+
 
 ASM_UPPER_START:
-
- ifdef DEBUG
-
-edge_sometimes_show_error:
-    // debug code! Print B as hex every 256 cycles
-.debug_cnt+*:   ld A, 0
-    dec A
-    ld (.debug_cnt), A
-    or A
-    jp nz, wait_for_first_edge
-edge_show_error:    
-    call PRINT_HEX_B
-    jp wait_for_first_edge
-
-
-// ---------------------------------------------------------------------------
-
-// print a "*"
-PRINT_DEBUG
-    push AF
-    push DE
-    ld DE, TEXT_DEBUG
-    call PRINT
-    pop AF
-    pop DE
-    ret
-//----------------------------------------------------------------------------
-
-// eg F3/F4 at lead tone 700/700
-// eg 230/239 at lead tone 1400/1400
-DEBUGSTOREEDGES:
-    DI
-    LD B, 0
-    call WAIT_FOR_EDGE
-    call WAIT_FOR_EDGE          // 17 -> 7+ 17+20 + 111 = 155T=>edge-IN . Wait for stop-bit->start bit edge this is the only guaranteed edge. 
-    call SOMETIMES_PRINT_B
-    jr DEBUGSTOREEDGES
-
-//----------------------------------------------------------------------------
-
-
-// debug code! Print B as hex every 256 cycles
-SOMETIMES_PRINT_B:
-.debug_cnt+*:   ld A, 0
-    dec A
-    ld (.debug_cnt), A
-    or A
-    ret nz
-    jr PRINT_HEX_B
-
-
-
-//----------------------------------------------------------------------------
-PRINT_HEX_BC
-    ld A,B
-    call PRINT_HEX_A
-    ld A,C
-    jp PRINT_HEX_A
-
-// print B as hex
-PRINT_HEX_B
-    ld A,B
-
-// print A as hex
-PRINT_HEX_A:
-    push DE
-    push AF
-    ld d, a
-    rra
-    rra
-    rra
-    rra
-    call .print_hex_nibble_A
-    ld a, d
-    call .print_hex_nibble_A
-    pop AF
-    pop DE
-    ret
-.print_hex_nibble_A
-    and 0b00001111
-    add '0'
-    cp '9' + 1
-    jr c, .ok
-    add 'A' - ('9' + 1)
-.ok
-    ld (SCR_CT),a               // avoid Scroll?
-    rst 0x10
-    ret
-//----------------------------------------------------------------------------
-
-
-
-
- endif      // DEBUG   
-
-//===========================================================================
 
 
 // Print bit7-terminated string
@@ -693,7 +576,7 @@ wait_for_first_edge:
 // E: ONE_MAX+2-ONE_MIN, used to to quickly compare to B
 // A: temporary storage
 //
-// eg ONE_MAX (12#), ONE_MIN(6#)/ZERO_MAX(5), ZERO_MIN(0)
+// eg ONE_MAX (12#), ONE_MIN(6#)
 // B out-> 12#11 10 09 08 07 06 05 04 03 02 01  00    # ->B out
 //          1  2  3  4  5  6# 7  8  9 10 11 12  (12)  # cycles (#INs done)
 //          0  0  0  0  0  1  1  1  1  1  1  1  t/o     (- = to soon)
@@ -803,11 +686,6 @@ TEXT_CHECKSUM_ERROR:
     DC "CHECKSUM "      
 TEXT_ERROR:    
     DC "ERROR\r"
-
- ifdef DEBUG
-TEXT_DEBUG:
-    DC "*"
- endif    
 
 //============================================================================
 // s/a struct TurboBlock::Header
