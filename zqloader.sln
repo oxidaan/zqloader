@@ -5,16 +5,20 @@ VisualStudioVersion = 17.3.32811.315
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zqloader", "zqloader.vcxproj", "{03FF5471-A305-447A-9895-DF7A14D7775F}"
 EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "zqloader_installer", "zqloader_installer\zqloader_installer.vdproj", "{1D0D7894-9DF4-465D-9870-FD30CBC5AFE8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
 		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{03FF5471-A305-447A-9895-DF7A14D7775F}.Debug|x64.ActiveCfg = Release|x64
-		{03FF5471-A305-447A-9895-DF7A14D7775F}.Debug|x64.Build.0 = Release|x64
+		{03FF5471-A305-447A-9895-DF7A14D7775F}.Debug|x64.ActiveCfg = Debug|x64
+		{03FF5471-A305-447A-9895-DF7A14D7775F}.Debug|x64.Build.0 = Debug|x64
 		{03FF5471-A305-447A-9895-DF7A14D7775F}.Release|x64.ActiveCfg = Release|x64
 		{03FF5471-A305-447A-9895-DF7A14D7775F}.Release|x64.Build.0 = Release|x64
+		{1D0D7894-9DF4-465D-9870-FD30CBC5AFE8}.Debug|x64.ActiveCfg = Debug
+		{1D0D7894-9DF4-465D-9870-FD30CBC5AFE8}.Release|x64.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -15,6 +15,7 @@
 //    --lst --syntax=abf --color=on       \
 //    path/to/zqloader/z80/zqloader\z80\zqloader.z80asm  
 
+
     DEVICE ZXSPECTRUM48
 
     DEFINE tape_file_name    "zqloader.tap"
@@ -828,5 +829,6 @@ SNAPSHOT_CODE_LEN EQU SNAPSHOT_CODE_END-SNAPSHOT_CODE_BEGIN
  EXPORT Aa_reg 
  EXPORT A_reg 
  EXPORT F_reg 
+
 
  // ===========================================================================

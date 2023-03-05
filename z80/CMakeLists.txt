@@ -2,12 +2,13 @@ cmake_minimum_required(VERSION 3.7)
 
 project(zqloader_z80)
 
-
-set(PATH_TO_SJASMPLUS "" CACHE PATH "Location of sjasmplus (directory)")
+find_program(HAVE_SJASMPLUS sjasmplus)
+cmake_path(GET HAVE_SJASMPLUS PARENT_PATH SJASMPLUS_PATH)       # default for PATH_TO_SJASMPLUS
+set(PATH_TO_SJASMPLUS ${SJASMPLUS_PATH} CACHE PATH "Location of sjasmplus (directory)")
 
 
 if (NOT IS_DIRECTORY ${PATH_TO_SJASMPLUS}/examples)
-    message(FATAL_ERROR "Please give directory of sjasmplus as parameter PATH_TO_SJASMPLUS; examples must be there")
+    message("Please give directory of sjasmplus as parameter PATH_TO_SJASMPLUS; examples must be there (now: ${PATH_TO_SJASMPLUS})")
 endif()
 
 add_custom_target(zqloader_z80
