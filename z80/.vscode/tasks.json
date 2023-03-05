@@ -9,15 +9,15 @@
             "command": "C:\\Tools\\sjasmplus\\sjasmplus",
             "args": [
                 "--fullpath",
-//                "--sld=${fileDirname}/${fileBasenameNoExtension}.sld",
-                "-iC:/Tools/sjasmplus/examples/TapLib",
-                "-iC:/Tools/sjasmplus/examples/BasicLib",
-                "--exp=${fileDirname}/${fileBasenameNoExtension}.exp",
-                "--lst",
-//                "--raw=${fileDirname}/${fileBasenameNoExtension}.raw",
+//                "--sld=${fileDirname}/${fileBasenameNoExtension}.sld",        // debug file for dezog
+//                "-iC:/Tools/sjasmplus/examples/TapLib",                       // TapLib, not needed 
+                "-iC:/Tools/sjasmplus/examples/BasicLib",                       // BasicLib, needed for BASIC cmds
+                "--exp=${fileDirname}/${fileBasenameNoExtension}.exp",          // export file (symbols)
+                "--lst",                                                        // list file (source.lst), not really needed
+//                "--raw=${fileDirname}/${fileBasenameNoExtension}.raw",        // raw output, not needed
                 "--syntax=abf",
                 "--color=on",
-                "${file}",
+                "${file}",                                                      // source/input file
                 ""
             ],
             "group": {

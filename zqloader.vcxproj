@@ -71,6 +71,12 @@
     <CustomBuild />
     <CustomBuild />
     <CustomBuild />
+    <CustomBuild>
+      <Command>cmd /c "for /F %%i in ('where sjasmplus') do cd "$(OutDir)" &amp; sjasmplus --fullpath -i%%i/../examples/BasicLib --exp="$(OutDir)%(Filename).exp" --syntax=abf --color=on "%(FullPath)" "</Command>
+      <Message>Performing Z80 assembly with sjasmplus</Message>
+      <Outputs>$(OutDir)%(Filename).tap;$(OutDir)%(Filename).exp;$(OutDir)snapshotregs.bin</Outputs>
+      <VerifyInputsAndOutputsExist>false</VerifyInputsAndOutputsExist>
+    </CustomBuild>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -92,6 +98,12 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <CustomBuild>
+      <Command>cmd /c "for /F %%i in ('where sjasmplus') do cd "$(OutDir)" &amp; sjasmplus --fullpath -i%%i/../examples/BasicLib --exp="$(OutDir)%(Filename).exp" --syntax=abf --color=on "%(FullPath)" "</Command>
+      <Message>Performing Z80 assembly with sjasmplus</Message>
+      <Outputs>$(OutDir)%(Filename).tap;$(OutDir)%(Filename).exp;$(OutDir)snapshotregs.bin</Outputs>
+      <VerifyInputsAndOutputsExist>false</VerifyInputsAndOutputsExist>
+    </CustomBuild>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="datablock.cpp" />
@@ -116,33 +128,19 @@
     <CustomBuild Include="z80\zqloader.z80asm">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DeploymentContent>
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">sjasmplus --fullpath -iC:/Tools/sjasmplus/examples/BasicLib --exp="$(OutputPath)%(Filename).exp" --syntax=abf --color=on "%(FullPath)"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Performing Z80 assembly with sjasmplus</Message>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Filename).tap</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)%(Filename).tap;$(OutDir)%(Filename).exp;$(OutDir)snapshotregs.bin</Outputs>
       <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</VerifyInputsAndOutputsExist>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">sjasmplus --fullpath -iC:/Tools/sjasmplus/examples/BasicLib --exp="$(OutputPath)%(Filename).exp" --syntax=abf --color=on "%(FullPath)"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Performing Z80 assembly with sjasmplus</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Filename).tap</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)%(Filename).tap;$(OutDir)%(Filename).exp;$(OutDir)snapshotregs.bin</Outputs>
       <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</VerifyInputsAndOutputsExist>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</TreatOutputAsContent>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</TreatOutputAsContent>
     </CustomBuild>
     <CustomBuild Include="z80\zqloader_test.z80asm">
       <FileType>Document</FileType>
     </CustomBuild>
-    <None Include="z80\snapshotregs.bin">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-    </None>
-    <None Include="z80\zqloader.exp">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-    </None>
-    <None Include="z80\zqloader.tap">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="byte_tools.h" />

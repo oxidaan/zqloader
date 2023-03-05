@@ -22,10 +22,10 @@ add_custom_command(
     COMMAND  "sjasmplus"
     ARGS 
     "--fullpath"
-#    "-i${PATH_TO_SJASMPLUS}/examples/TapLib"           // not (yet) used (anymore)
-    "-i${PATH_TO_SJASMPLUS}/examples/BasicLib"
-    "--exp=zqloader.exp"
-    "--lst"
+#    "-i${PATH_TO_SJASMPLUS}/examples/TapLib"           # TapLib not (yet) used (anymore)
+    "-i${PATH_TO_SJASMPLUS}/examples/BasicLib"          # BasicLib, needed to generate BASIC
+    "--exp=zqloader.exp"                                # export file, has symbols
+    "--lst"                                             # lst file, not really needed
     "--syntax=abf"
     "--color=on"
     "${CMAKE_CURRENT_SOURCE_DIR}/zqloader.z80asm"

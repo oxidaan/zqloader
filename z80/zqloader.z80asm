@@ -7,6 +7,7 @@
 // This project uses the MIT license. See LICENSE.txt for details.
 //==============================================================================
 
+
 // To be assembled with sjasmplus see https://github.com/z00m128/sjasmplus
 // sjasmplus --fullpath     \
 //    -ipath/to/sjasmplus/examples/TapLib \
@@ -15,11 +16,10 @@
 //    --lst --syntax=abf --color=on       \
 //    path/to/zqloader/z80/zqloader\z80\zqloader.z80asm  
 
-
     DEVICE ZXSPECTRUM48
 
-    DEFINE tape_file_name    "zqloader.tap"
-    DEFINE basic_name        "zqloader"
+    DEFINE tape_file_name    "zqloader.tap"         // main output is a TAP file
+    DEFINE basic_name        "zqloader"             // name for tap file ZX spectrum will see
 
 
 //----------------------------------------------------------------------------
@@ -47,13 +47,10 @@ ONE_MAX                 EQU 12          //
 ONE_MIN                 EQU 4           // 
 
 
-
 //----------------------------------------------------------------------------
 
 ASM_UPPER_LEN   EQU ASM_END - ASM_UPPER_BEGIN           // length of code to be moved to upper for org/disp 0xffff - ASM_UPPER_LEN
 ASM_LOWER_LEN   EQU ASM_LOWER_END - ASM_LOWER_OFFSET    // length of code to be moved to upper for org/disp 0xffff - ASM_UPPER_LEN
-
-
 
 // ===========================================================================
 // ===========================================================================
@@ -73,12 +70,9 @@ BASIC_START:
         INCLUDE	"BasicLib.asm" 
 line_useval = 1   ;; Use VAL for numbers
 
-            LINE : db	clear : NUM2(CLEAR) :LEND       // 10 CLEAR 24000
-            LINE : db	print, usr, '(', peek : NUM2(PROG) : db '+' : NUM2(256) : db '*',  peek : NUM2(PROG + 1) : db '+' : NUM2(ASM_START) : db ')' : LEND   // 30 RANDOMIZE USR VAL"XXXX"
-
+            LINE : db	clear : NUM2(CLEAR) :LEND       
+            LINE : db	print, usr, '(', peek : NUM2(PROG) : db '+' : NUM2(256) : db '*',  peek : NUM2(PROG + 1) : db '+' : NUM2(ASM_START) : db ')' : LEND   
  //           LINE : db load, '"','"' : LEND
- 
- 
 	        LINE : db	rem                             // 40 REM
     ENDMODULE
 
@@ -109,9 +103,6 @@ ASM_START:
     ld BC, ASM_UPPER_LEN - 2    // -2 do NOT overwrite load_address_at_basic just written
     ldir
  
-//    ld BC, (load_address_at_basic)    //  @DEBUG eg 24032 (23755 + ASM_UPPER_OFFSET)
-//    ret                               //  @DEBUG
- 
 
 
 // ===========================================================================
@@ -133,10 +124,7 @@ start:
     exx
 next_block:
 LOAD:    
-  //  LD A, (ASM_UPPER_START)       //  @DEBUG
-  //  CP 123                        //  @DEBUG
-  //  JR NZ, error                  //  @DEBUG
-
+  
 
 //============================================================================
 // Load Header, then data.
@@ -159,7 +147,7 @@ LOAD:
 
     // intialize edge plus border color -> c
 
-    // Get intial value from port->C
+// Get intial value from port->C
     
     // E=ear, M=mic, K-keyboard, B = bordercolor
     //            7  6  5  4  3  2  1  0
@@ -167,7 +155,6 @@ LOAD:
     // out(0xfe): d  d  d  E !M  B  B  B  
     ld A,$7F 	                // Read from port 7FFE eg !BREAK is bit 0.
     in A,($FE)                  // Get initial value; bit 0 is space, bit 6 is ear
-//    call PRINT_HEX_A            // @DEBUG
     and   0b01000000            // mask ear
     or    0b00001010            // ear zero border red 010 <-> 101 cyan + also set mic and/or ear
 //    ld b, 0b00001010            // ear zero border red 010 <-> 101 cyan + also set mic and/or ear
@@ -187,7 +174,6 @@ LOAD:
         ld C, sizeof_header     // checksum
     exx
 
-  //  cp A                        // set zero flag
     call LOAD_HEADER_PLUS_DATA  // upper, call is ok
     jr z, error                 // error  
 
@@ -195,14 +181,10 @@ LOAD:
     exx
     ld A, C                     // this is LD A, C' check checksum C' should be zero
     exx
-   // call PRINT_HEX_A            // @DEBUG
     sub 1                       // carry only when zero so ok (note: dec A does not affect c!)
     jr nc, checksum_error
 
-    // Once here here a turbo block was correctly loaded 
-   // LD A, (ASM_UPPER_START)     //  @DEBUG
-   // CP 123                      //  @DEBUG
-   // JR NZ, error                //  @DEBUG
+    // -- Once here here a turbo block was correctly loaded --
 
     ld A, (m_copy_to_screen)
     dec A
@@ -219,12 +201,6 @@ load_ok:
     or E
     jr z, copy_done             // dest zero then skip copy or decompressing
     
-    // pop bc                     // @DEBUG (dummy pop PP4)
-    // pop bc                     // @DEBUG (dummy pop PP3)
-    // ld b, d                    // @DEBUG
-    // ld c, e                    // @DEBUG
-    // jr end_to_basic            // @DEBUG       eg 65252: ASM_UPPER_START
-
     // -- Now DE is copy destination address --
 
     ld HL, (m_load_address)     // where data was received at load, when 0 take load_address_at_basic
@@ -235,15 +211,7 @@ load_ok:
     ld HL, (load_address_at_basic)               
 
 .hl_is_load_address
-    // LD B, H                    // @DEBUG
-    // LD C, L                    // @DEBUG
-    // POP DE                     // @DEBUG PP4
-    // POP DE                     // @DEBUG PP3
-    // jr end_to_basic            // @DEBUG       // eg 24031 when at basic
     ld BC, (m_length)           // payload size
-    // POP DE                     // @DEBUG  PP4  
-    // POP DE                     // @DEBUG PP3
-    // jr end_to_basic            // @DEBUG       // eg 262 (is compressed) and loading at basic
 
     // -- Now DE is m_dest_address;  HL is m_load_address (or load_address_at_basic), BC is m_length --
 
@@ -278,7 +246,6 @@ copy_done:
     ld A, L
     dec A
     or H
-//    call PRINT_DEBUG            // @DEBUG
     jr z, end_to_basic          // HL = 1 so last block but do not start MC, return to BASIC.
 
     // -- When here: --
@@ -288,13 +255,7 @@ call_usr:
     ex DE, HL                   // This is ld SP, DE
     ld SP, HL                   // put SP at CLEAR address.
     ex DE, HL
-//    exx                         //  @DEBUG 
-//        pop BC                  // #PP5      @DEBUG 
-//        pop HL                  // #PP2      @DEBUG 
-//        pop DE                  // #PP1      @DEBUG 
-//    exx                         // @DEBUG 
-//    ei                          // #di1 TODO @DEBUG 
-    jp HL                       // note: this also means HL is PC once there
+    jp HL                       // go-go-go! note: this also means HL is PC once there
 
 copy_me_to_screen:
     ld HL, (PROG)               // PROG variable contains start of BASIC typically 23755
@@ -465,7 +426,6 @@ wait_for_first_edge:
 .leader_loop1:    
     ld B, LEADER_MAX            // # counts = max acceptable time between edges
     call WAIT_FOR_EDGE
-///    jr nc,edge_sometimes_show_error          //  @DEBUG
   	jr z, wait_for_first_edge   // T/O no edge (note B is 0 when T/O)
 
     ld A, B
@@ -519,7 +479,6 @@ wait_for_first_edge:
     exx
         ld DE, (m_length)       // now has length of data to be received 
         ld HL, (m_load_address) // m_load_address
-//        ld HL, 16384            //  @DEBUG
         ld A, H
         or A
         jp nz, .not_basic       // LOAD data, normal
@@ -749,9 +708,6 @@ LOAD_SNAPSHOT EQU SCREEN_23RD + BASIC_LEN - ASM_LOWER_OFFSET
 
  ORG 0
 SNAPSHOT_CODE_BEGIN
-//    ld (LOAD_SNAPSHOT + DebugSp), SP        //  @DEBUG
-//    ld SP, (LOAD_SNAPSHOT + DebugSp)        //  @DEBUG
-//    ret
                     ld SP, LOAD_SNAPSHOT +  SnapShotStack   
 flags_and_border+1: ld A, 0     
                     out ($FE),a // border color 0xD3 0xFE
@@ -782,7 +738,6 @@ Fa_reg:  DEFS 1
 Aa_reg:  DEFS 1
 F_reg:   DEFS 1
 A_reg:   DEFS 1
-//DebugSp: DEFS 2     //  @DEBUG
 
 
 
