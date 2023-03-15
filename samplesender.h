@@ -84,15 +84,21 @@ public:
     }
 
     /// Set volume. When negative basically inverts.
-    SampleSender& SetVolume(float p_volume_left, float p_volume_right)
+    SampleSender& SetVolume(int p_volume_left, int p_volume_right)
     {
-        if (p_volume_left  > 1.0f || p_volume_left  < 0.0f ||
-            p_volume_right > 1.0f || p_volume_right < 0.0f)
+        if (p_volume_left  > 100 || p_volume_left  < -100 ||
+            p_volume_right > 100 || p_volume_right < -100)
         {
-            throw std::runtime_error("Volume must be between 0.0 and 1.0");
+            throw std::runtime_error("Volume must be between -100 and 100");
         }
-        m_volume_left = p_volume_left;
-        m_volume_right = p_volume_right;
+        m_volume_left  = float(p_volume_left)  / 100.0f;
+        m_volume_right = float(p_volume_right) / 100.0f;
+        return *this;
+    }
+
+    SampleSender& SetSampleRate(uint32_t p_sample_rate)
+    {
+        m_sample_rate = p_sample_rate;
         return *this;
     }
 
@@ -185,14 +191,15 @@ private:
     bool m_done = false;
     bool m_is_running = false;
     std::unique_ptr<ma_device> m_device;
-//    Wtf wtf;
-    NextSampleFun m_OnNextSample;
+    NextSampleFun  m_OnNextSample;
     GetDurationFun m_OnGetDurationWait;
-    GetEdgeFun m_OnGetEdge;
+    GetEdgeFun     m_OnGetEdge;
     bool m_edge = false;                                    // output value toggles between 1/0
-    float m_volume_left = 1.0f;                                  // -1.0 .. 1.0
-    float m_volume_right = 1.0f;                                  // -1.0 .. 1.0
     Doublesec m_sample_time = 0ms;                          // time since last edge change
+
+    float m_volume_left = 1.0f;                             // -1.0 .. 1.0
+    float m_volume_right = 1.0f;                            // -1.0 .. 1.0
+    uint32_t m_sample_rate = 0;                             // Set to 0 to use the device's native sample rate.
 
 };
 

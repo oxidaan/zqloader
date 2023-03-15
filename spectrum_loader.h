@@ -52,17 +52,15 @@ public:
     SpectrumLoader& SetSampleSender(SampleSender&& p_sample_sender)
     {
         m_sample_sender = std::move(p_sample_sender);
-        return Init();
+        return Init(m_sample_sender);
     }
 
     SpectrumLoader& Init()
     {
-        m_sample_sender.Init().
-            SetOnGetDurationWait(std::bind(&SpectrumLoader::GetDurationWait, this)).
-            SetOnGetEdge(std::bind(&SpectrumLoader::GetEdge, this)).
-            SetOnNextSample(std::bind(&SpectrumLoader::Next, this));
-        return *this;
+        m_sample_sender = SampleSender() ;
+        return Init(m_sample_sender);
     }
+
 
     /// Reset SpectrumLoader.
     SpectrumLoader& Reset()
@@ -135,6 +133,15 @@ private:
     Pulser& GetCurrentBlock() const
     {
         return *(m_pulsers[m_current_pulser]);
+    }
+
+    SpectrumLoader& Init(SampleSender& p_sample_sender)
+    {
+        p_sample_sender.Init().
+            SetOnGetDurationWait(std::bind(&SpectrumLoader::GetDurationWait, this)).
+            SetOnGetEdge(std::bind(&SpectrumLoader::GetEdge, this)).
+            SetOnNextSample(std::bind(&SpectrumLoader::Next, this));
+        return *this;
     }
 
 private:

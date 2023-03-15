@@ -560,8 +560,14 @@ void TurboBlocks::MoveToLoader(SpectrumLoader& p_loader, uint16_t p_usr_address,
 
 TurboBlocks &TurboBlocks::SetDurations(int p_zero_duration, int p_one_duration)
 {
-    m_zero_duration = p_zero_duration;
-    m_one_duration = p_one_duration;
+    if(p_zero_duration != 0)
+    { 
+        m_zero_duration = p_zero_duration;
+    }
+    if (p_one_duration != 0)
+    {
+        m_one_duration = p_one_duration;
+    }
     std::cout << "Around " << (1000ms / m_tstate_dur) / ((m_zero_duration + m_one_duration) / 2) << " bps" << std::endl;
     return *this;
 }

@@ -10,7 +10,6 @@
 
 // To be assembled with sjasmplus see https://github.com/z00m128/sjasmplus
 // sjasmplus --fullpath     \
-//    -ipath/to/sjasmplus/examples/TapLib \
 //    -ipath/to/sjasmplus/examples/BasicLib \
 //    --exp=path/to/zqloader/z80/zqloader.exp \
 //    --lst --syntax=abf --color=on       \
@@ -32,7 +31,7 @@ SCREEN_23RD             EQU 16384+4*1024
 
 
 //----------------------------------------------------------------------------
-CLEAR                  equ 24500       // CLEAR eg horace (H.spiders: 24575)   min:24290
+CLEAR                   EQU 24500       // CLEAR eg horace (H.spiders: 24575)   min:24290
 
 //----------------------------------------------------------------------------
 LEADER_MIN_EDGES        EQU 200         // Minimum edges a leader beed to have tobe accepted
@@ -73,7 +72,7 @@ line_useval = 1   ;; Use VAL for numbers
             LINE : db	clear : NUM2(CLEAR) :LEND       
             LINE : db	print, usr, '(', peek : NUM2(PROG) : db '+' : NUM2(256) : db '*',  peek : NUM2(PROG + 1) : db '+' : NUM2(ASM_START) : db ')' : LEND   
  //           LINE : db load, '"','"' : LEND
-	        LINE : db	rem                             // 40 REM
+	        LINE : db	rem                             
     ENDMODULE
 
 // ===========================================================================
@@ -371,6 +370,7 @@ ASM_UPPER_START:
 
 
 // Print bit7-terminated string
+// Note: needs to be at upper to have a fixed addres to be used by call.
 // DE: address of string
 PRINT:
 .loop    

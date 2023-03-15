@@ -107,6 +107,7 @@ public:
     }
 
 
+
 private:
     template <class T1, class T2, class T3, class T4>
     static bool Overlaps(T1 p_start, T2 p_end, T3 p_start2, T4 p_end2)
