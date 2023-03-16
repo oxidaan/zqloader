@@ -18,7 +18,7 @@
 #include "spectrum_types.h"         // TODO doesn't belong here ZxBlockType
 #include "spectrum_loader.h"
 
-/// A pulser is used by miniadio te create an audio stream.
+/// A pulser is used by miniaudio te create an audio stream.
 /// Encodes binary data to a series of (audio) pulses that can be loaded by
 /// ancient computers like the ZX spectrum.
 /// Can also create leader tones  / pauses etc.
@@ -58,7 +58,6 @@ public:
     }
 
     /// Set length of pause in T-states.
-    /// Note: waits first, then calls GetEdge.
     PausePulser& SetLength(int p_states)
     {
         m_duration_in_tstates = p_states;
@@ -68,6 +67,7 @@ public:
     /// Set edge value (so sound wave on/off) during pause. 
     /// Can be used to force it to a predefined value for blocks to follow.
     /// Egde::toggle will toggle once at first call.
+    /// Note: Pauses first, then sets edge to value as given here.
     PausePulser& SetEdge(Edge p_edge)
     {
         m_edge = p_edge;
@@ -129,6 +129,8 @@ public:
     TonePulser() = default;
     TonePulser(TonePulser&&) = default;
 
+    /// Set tone pattern using one ore more given T-state durations.
+    /// These form one pattern.
     template<typename ... TParams>
     TonePulser& SetPattern(int p_first, TParams ... p_rest)
     {
@@ -137,7 +139,7 @@ public:
         return *this;
     }
 
-    // Set length in # of pulses that is # complete patterns.
+    /// Set length in # of pulses that is # complete patterns.
     TonePulser& SetLength(unsigned p_max_pulses)
     {
         unsigned pattsize = unsigned(m_pattern.size());
@@ -152,7 +154,7 @@ public:
         return *this;
     }
 
-    // Set length in milliseconds, rounds up to complete patterns.
+    /// Set length in milliseconds, rounds up to complete patterns.
     TonePulser& SetLength(std::chrono::milliseconds p_duration)
     {
         auto pat_dur = GetPatternDuration();
@@ -168,6 +170,8 @@ public:
         }
         return *this;
     }
+    
+    /// Convenience, move me to given loader.
     template<class TLoader>
     void MoveToLoader(TLoader& p_loader)
     {
