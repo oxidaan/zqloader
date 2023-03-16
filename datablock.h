@@ -16,8 +16,8 @@
 /// Used for all data block storages.
 /// This is just a std::vector<std::byte> but I dont want copying made too easy.
 /// So copying can only be done through Clone.
-/// Also added a LoadFromFile.
 /// Moving is OK though.
+/// Also added a LoadFromFile.
 struct DataBlock : public std::vector<std::byte>
 {
     using Base = std::vector<std::byte>;
