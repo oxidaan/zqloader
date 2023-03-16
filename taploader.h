@@ -19,6 +19,7 @@ struct DataBlock;
 
 
 /// Loads tap files.
+/// For each tab block found calls virtual HandleTapBlock.
 /// See https://sinclair.wiki.zxnet.co.uk/wiki/TAP_format
 class TapLoader
 {
