@@ -544,11 +544,11 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:ZQLoader"
         "ProductCode" = "8:{F2F9BD1B-CB84-42CC-8E85-C36F72695BFE}"
-        "PackageCode" = "8:{9542D629-AF8A-4BEB-868A-2574B275140C}"
+        "PackageCode" = "8:{E8B065C6-11F1-47EB-823D-A1590DBC0302}"
         "UpgradeCode" = "8:{2B674A83-1BC1-4D53-ABD1-3A75DC4C7100}"
         "AspNetVersion" = "8:2.0.50727.0"
         "RestartWWWService" = "11:FALSE"
-        "RemovePreviousVersions" = "11:FALSE"
+        "RemovePreviousVersions" = "11:TRUE"
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:FALSE"
         "ProductVersion" = "8:1.0.0"
@@ -761,7 +761,7 @@
                             "ContextData" = "8:"
                             "Attributes" = "3:0"
                             "Setting" = "3:2"
-                            "Value" = "8:Hello!"
+                            "Value" = "8:"
                             "DefaultValue" = "8:#1202"
                             "UsePlugInResources" = "11:TRUE"
                             }
@@ -868,9 +868,9 @@
                             }
                         }
                     }
-                    "{688940B3-5CA9-4162-8DEE-2993FA9D8CBC}:_D6243E2F662644458E30BFABF9DBD0C4"
+                    "{688940B3-5CA9-4162-8DEE-2993FA9D8CBC}:_E2E3CB32D267428EB0C0A5B606161C0E"
                     {
-                    "Sequence" = "3:300"
+                    "Sequence" = "3:210"
                     "DisplayName" = "8:Confirm Installation"
                     "UseDynamicProperties" = "11:TRUE"
                     "IsDependency" = "11:FALSE"
@@ -919,7 +919,7 @@
                             "ContextData" = "8:"
                             "Attributes" = "3:0"
                             "Setting" = "3:2"
-                            "Value" = "8:Hi!"
+                            "Value" = "8:"
                             "DefaultValue" = "8:#1202"
                             "UsePlugInResources" = "11:TRUE"
                             }

@@ -43,7 +43,6 @@ uint16_t Test(TurboBlocks& p_blocks, fs::path p_filename);
 
 
 #ifndef _WIN32
-
 #include <termios.h>
 #include <unistd.h>     // STDIN_FILENO
 int Key()
@@ -66,28 +65,37 @@ int Key()
 #endif
 
 
+void Version()
+{
+    std::cout << 1 + &*R"(
+ZQLoader version 0.1
+(C) 2023 Daan Scherft[Oxidaan].
+https://github.com/oxidaan/zqloader
+This project uses the miniaudio library by David Read. (https://miniaud.io/)
+    )" << std::endl;
+}
 
 
 void Help()
 {
+    Version();
     std::cout << 1 + &*R"(
-ZQLoader
-
-This is a turbo loader to load machine code (typical games) into a *real* ZX Spectrum at high speed.
+This is a turbo loader to load machine code (like games) into a *real* ZX Spectrum at high speed.
 This loader is capable of loading a 48K game in about 30 seconds. This time includes the time of 
 loading the loader itself (which uses traditional ROM loader/speed) plus a splash screen.  
 For it to work it is needed to connect the audio output of your computer to the ZX Spectrum EAR input.
-Set the volume of your computer to maximum. Then type LOAD "" at the ZX spectrum.
+Set the volume of your computer to maximum. Make sure no other sound is playing.
+Then type LOAD "" at the ZX spectrum.
 This loader generates the sound pulses, that the ZX Spectrum can load as data.
-First it will load a turbo loader progam to the ZX Spectrum. Then using that it will load
-the second given with turbo speed.
+First it will load a turbo loader program to the ZX Spectrum. Then using that it will load
+the second given file with turbo speed.
 
 
-syntax:
-zqloader.exe path/to/filename1 
-zqloader.exe path/to/zqloader.tap path/to/turbofile
-zqloader.exe filename="path/to/zqloader.tap" turbofile="path/to/turbofile" volume=value
-
+Syntax:
+1) zqloader.exe [options] path/to/filename1 
+2) zqloader.exe [options] path/to/zqloader.tap path/to/turbofile
+3) zqloader.exe [options] filename="path/to/zqloader.tap" turbofile="path/to/turbofile" 
+options:
     path/to/filename1       First file: can be a tap or tzx file and will be
                             loaded at normal speed into a real ZX spectrum.
                             Only when the file here is 'zqloader.tap' it can
@@ -96,23 +104,22 @@ zqloader.exe filename="path/to/zqloader.tap" turbofile="path/to/turbofile" volum
                             snapshot file. A game for example.
                             When given will be send to the
                             ZX spectrum at turbo speed.
-    volume_left             
-    volume_right            A number between -100 and 100: sets volume for left or right 
+    volume_left = value            
+    volume_right = value    A number between -100 and 100: sets volume for left or right 
                             sound (stereo) channel.
                             Default 100 (max). A negative value eg -100 inverts this channel.
-    samplerate              Samplerate for audio. Default 0 meaning take device native sample rate.
+    samplerate = value      Samplerate for audio. Default 0 meaning take device native sample rate.
                             S/a miniadio documentation.
-    zero_tstates
-    one_tstates             The number of TStates a zero / one pulse will take when using the 
+    zero_tstates = value
+    one_tstates = value     The number of TStates a zero / one pulse will take when using the 
                             zqloader/turboloader. Not giving this (or 0) uses a default that 
                             worked for me.
-    
-
-(C) 2023 Daan Scherft [Oxidaan].
-This project uses the miniaudio libarary by David Read. (https://miniaud.io/)
-
-)";
+    key = yes/no/error      When done wait for key: always, never or only when an error occurred.
+    )" << std::endl;
+ //   Version();
 }
+
+
 
 int main(int argc, char** argv)
 {
@@ -125,7 +132,11 @@ int main(int argc, char** argv)
             Help();
             throw std::runtime_error("Please give a .tap or .tzx filename as runtime argument.");
         }
-
+        if (cmdline.TryGetParameter("--version") || cmdline.TryGetParameter("-v"))
+        {
+            Version();
+            return 0;
+        }
 
         // either only parameter (if 1 given) or 2nd to last parameter if 2 or more parameters
         // or filename="path/to/file" given
@@ -232,8 +243,8 @@ A second filename argument is only usefull when using zqloader.tap
             else if (ToLower(filename2.extension().string()) == ".z80")
             {
                 Z80SnapShotLoader z80loader;
-                // Read file snapshotregs.bin -> regblock
-                fs::path snapshot_regs_filename = filename;
+                // Read file snapshotregs.bin -> regblock 
+                fs::path snapshot_regs_filename = filename; 
                 snapshot_regs_filename.replace_filename("snapshotregs");
                 snapshot_regs_filename.replace_extension("bin");      
                 DataBlock regblock;

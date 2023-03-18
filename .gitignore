@@ -363,3 +363,7 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /z80/zqloader.lst
+
+
+# Svn directory
+.svn/

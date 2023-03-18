@@ -142,5 +142,6 @@ private:
     DataBlock m_mem48k;
     DataBlock m_reg_block;
     uint16_t m_usr;
+    std::string m_name;
 };
 

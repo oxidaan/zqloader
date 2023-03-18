@@ -28,6 +28,7 @@ PROG                    EQU 23635       // Zx spectrum system variable PROG indi
 SCR_CT                  EQU 23692       // avoid Scroll?
 
 SCREEN_23RD             EQU 16384+4*1024
+SCREEN_END              EQU 16384+6*1024
 
 
 //----------------------------------------------------------------------------
@@ -48,13 +49,12 @@ ONE_MIN                 EQU 4           //
 
 //----------------------------------------------------------------------------
 
+ASM_LOWER_LEN   EQU ASM_LOWER_END - ASM_LOWER_BEGIN    // length of code to be moved to upper for org/disp 0xffff - ASM_UPPER_LEN
 ASM_UPPER_LEN   EQU ASM_END - ASM_UPPER_BEGIN           // length of code to be moved to upper for org/disp 0xffff - ASM_UPPER_LEN
-ASM_LOWER_LEN   EQU ASM_LOWER_END - ASM_LOWER_OFFSET    // length of code to be moved to upper for org/disp 0xffff - ASM_UPPER_LEN
 
 // ===========================================================================
 // ===========================================================================
  
-ASM_UPPER_OFFSET EQU ASM_UPPER_BEGIN - BASIC_START      // used at mc-move for source asm-offset
 
 // Write basic numbers shorter visible text allways "0" spares space.
 NUM2   MACRO	value
@@ -80,23 +80,21 @@ line_useval = 1   ;; Use VAL for numbers
 BASIC_LEN EQU BASIC_END-BASIC_START                     // length of total basic inc mc-rem for SAVETAP
 
     DISPLAY "BASIC_START = ",/A,BASIC_START             // usually 0
-    DISPLAY "BASIC_LEN = ",/A,BASIC_LEN                 // total length of BASIC including MC code-REM (so tal length)
+    DISPLAY "BASIC_LEN = ",/A,BASIC_LEN                 // total length of BASIC including MC code-REM (so total length)
     DISPLAY "BASIC_END = ",/A,BASIC_END                 // end of BASIC s/a BASIC_LEN since BASIC_START is zero
     DISPLAY "ASM_START = ",/A,ASM_START                 // offset of MC code from BASIC_START
     DISPLAY "ASM_END = ",/A,ASM_END                     // len/end of total mc
-    DISPLAY "ASM_LOWER_OFFSET = ",/A,ASM_LOWER_OFFSET   // offset of upper from start of basic, s/a ASM_UPPER_BEGIN
-    DISPLAY "ASM_LOWER_LEN = ",/A,ASM_LOWER_LEN         // offset of upper from start of basic, s/a ASM_UPPER_BEGIN
-    DISPLAY "ASM_UPPER_OFFSET = ",/A,ASM_UPPER_OFFSET   // offset of upper from start of basic, s/a ASM_UPPER_BEGIN
-    DISPLAY "ASM_UPPER_LEN = ",/A,ASM_UPPER_LEN         // offset of upper from start of basic, s/a ASM_UPPER_BEGIN
+    DISPLAY "ASM_LOWER_BEGIN = ",/A,ASM_LOWER_BEGIN     // offset of lower from start of basic
+    DISPLAY "ASM_LOWER_LEN = ",/A,ASM_LOWER_LEN         // length of lower
+    DISPLAY "ASM_UPPER_LEN = ",/A,ASM_UPPER_LEN         // length of upper (copied to upper)
     DISPLAY "ASM_UPPER_BEGIN = ",/A,ASM_UPPER_BEGIN     // offset of upper begin eg 376
     DISPLAY "ASM_UPPER_START = ",/A,ASM_UPPER_START     // start of upper begin eg 65253
-    DISPLAY "0xffff-(ASM_UPPER_LEN -1) = ",/A,0xffff-(ASM_UPPER_LEN -1)         // s/a ASM_UPPER_START
 
 ASM_START:
     // move loader to upper regions.
     ld HL, (PROG)               // PROG variable contains start of BASIC typically 23755
-    ld DE, ASM_UPPER_OFFSET     // offset from start of BASIC
-    add HL, DE                  // HL = (PROG) + ASM_UPPER_OFFSET
+    ld DE, ASM_UPPER_BEGIN      // offset from start of BASIC
+    add HL, DE                  // HL = (PROG) + ASM_UPPER_BEGIN
     ld (load_address_at_basic), HL    // keep for later (eg 24036)    (or 24117)
     ld DE, ASM_UPPER_START 
     ld BC, ASM_UPPER_LEN - 2    // -2 do NOT overwrite load_address_at_basic just written
@@ -108,8 +106,7 @@ ASM_START:
 
 
 
-ASM_LOWER_OFFSET: 
-start:
+ASM_LOWER_BEGIN: 
     ld A, 2                 
     call CHAN_OPEN              // rst 10 goes to screen
     ld DE, TEXT_START
@@ -258,15 +255,16 @@ call_usr:
 
 copy_me_to_screen:
     ld HL, (PROG)               // PROG variable contains start of BASIC typically 23755
-    ld DE, ASM_LOWER_OFFSET     // offset from start of BASIC
-    add HL, DE                  // HL = (PROG) + ASM_LOWER_OFFSET
+    ld DE, ASM_LOWER_BEGIN      // offset from start of BASIC
+    add HL, DE                  // HL = (PROG) + ASM_LOWER_BEGIN
     ld DE, SCREEN_23RD          // lower 3rd of screen
     ld BC, ASM_LOWER_LEN             
     ldir
-    ld SP, 16384+6*1024         // also put stack at (end of) screen! We cant go back to basic anyway
-    ld HL, SCREEN_23RD + ASM_UPPER_OFFSET - ASM_LOWER_OFFSET
+//    ld SP, SCREEN_END         // also put stack at (end of) screen! We cant go back to basic anyway
+    ld SP, SCREEN_END - SNAPSHOT_CODE_LEN           // also put stack at (end of) screen! We cant go back to basic anyway
+    ld HL, SCREEN_23RD + ASM_LOWER_LEN
     ld (load_address_at_basic), HL                  // also adjust this!!
-    jp SCREEN_23RD + load_ok - ASM_LOWER_OFFSET     // and go on from there (load_ok)
+    jp SCREEN_23RD + load_ok - ASM_LOWER_BEGIN      // and go on from there (load_ok)
 
 // Show error messages
 checksum_error:
@@ -704,7 +702,9 @@ BASIC_END
 // Snapshot register-load code -> snapshotregs.bin
 // ===========================================================================
 
-LOAD_SNAPSHOT EQU SCREEN_23RD + BASIC_LEN - ASM_LOWER_OFFSET
+// LOAD_SNAPSHOT EQU SCREEN_23RD + BASIC_LEN - ASM_LOWER_BEGIN
+LOAD_SNAPSHOT EQU SCREEN_END - SNAPSHOT_CODE_LEN
+
 
  ORG 0
 SNAPSHOT_CODE_BEGIN
@@ -744,15 +744,15 @@ A_reg:   DEFS 1
 // ===========================================================================
 SNAPSHOT_CODE_END
 
-SNAPSHOT_CODE_LEN EQU SNAPSHOT_CODE_END-SNAPSHOT_CODE_BEGIN
+SNAPSHOT_CODE_LEN EQU SNAPSHOT_CODE_END-SNAPSHOT_CODE_BEGIN 
  DISPLAY "SNAPSHOT_CODE_BEGIN = ",/A,SNAPSHOT_CODE_BEGIN
  DISPLAY "SNAPSHOT_CODE_END = ",/A,SNAPSHOT_CODE_END
  DISPLAY "SNAPSHOT_CODE_LEN = ",/A,SNAPSHOT_CODE_LEN
  DISPLAY "LOAD_SNAPSHOT = ",/A,LOAD_SNAPSHOT 
- DISPLAY "SCREEN_23RD + BASIC_LEN - ASM_LOWER_OFFSET = ",/A, SCREEN_23RD + BASIC_LEN - ASM_LOWER_OFFSET
- DISPLAY "(load address at basic=) SCREEN_23RD + ASM_UPPER_OFFSET - ASM_LOWER_OFFSET = ",/A, SCREEN_23RD + ASM_UPPER_OFFSET - ASM_LOWER_OFFSET
- DISPLAY "(end load address at basic=) SCREEN_23RD + ASM_UPPER_OFFSET - ASM_LOWER_OFFSET + ASM_UPPER_LEN= ",/A, SCREEN_23RD + ASM_UPPER_OFFSET - ASM_LOWER_OFFSET + ASM_UPPER_LEN
- DISPLAY "SCREEN_23RD + load_ok - ASM_LOWER_OFFSET = ",/A, SCREEN_23RD + load_ok - ASM_LOWER_OFFSET
+ //DISPLAY "SCREEN_23RD + BASIC_LEN - ASM_LOWER_BEGIN = ",/A, SCREEN_23RD + BASIC_LEN - ASM_LOWER_BEGIN
+ //DISPLAY "(load address at basic=)     SCREEN_23RD + ASM_LOWER_LEN = ",/A, SCREEN_23RD + ASM_LOWER_LEN
+ //DISPLAY "(end load address at basic=) SCREEN_23RD + ASM_LOWER_LEN + ASM_UPPER_LEN= ",/A, SCREEN_23RD + ASM_LOWER_LEN + ASM_UPPER_LEN
+ //DISPLAY "SCREEN_23RD + load_ok - ASM_LOWER_BEGIN = ",/A, SCREEN_23RD + load_ok - ASM_LOWER_BEGIN
  
  SAVEBIN "snapshotregs.bin", SNAPSHOT_CODE_BEGIN, SNAPSHOT_CODE_LEN
 // ENT
@@ -762,6 +762,7 @@ SNAPSHOT_CODE_LEN EQU SNAPSHOT_CODE_END-SNAPSHOT_CODE_BEGIN
 // ===========================================================================
 
  EXPORT ASM_UPPER_LEN
+ EXPORT ASM_UPPER_START
  EXPORT CLEAR
 
  EXPORT LOAD_SNAPSHOT

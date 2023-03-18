@@ -1,3 +1,13 @@
+//==============================================================================
+// PROJECT:         zqloader
+// FILE:            tools.h
+// DESCRIPTION:     Random stuff, including Random
+// 
+// Copyright (c) 2023 Daan Scherft [Oxidaan]
+// This project uses the MIT license. See LICENSE.txt for details.
+//==============================================================================
+
+
 #pragma once
 #include <string>
 #include <iomanip>
@@ -5,6 +15,7 @@
 #include <sstream>
 #include <optional>
 #include <vector>
+#include <random>
 
 
 template <class TString>
@@ -16,6 +27,14 @@ TString ToLower(TString p_string)
     return s;
 }
 
+template <class TString>
+TString ToUpper(TString p_string)
+{
+    std::string s = std::move(p_string);
+    std::transform(s.begin(), s.end(), s.begin(),
+        [](unsigned char c) { return char(std::toupper(c)); });
+    return s;
+}
 
 // lib2021::system::CommandLine
 class CommandLine
@@ -232,3 +251,24 @@ inline std::istream& operator >>(std::istream& p_stream, const quoted& p_quoted)
 
 }       // iomanip
 
+
+
+template<class TEngine = std::minstd_rand>
+auto& GetSeededRandomEngine()
+{
+    static std::random_device seed;
+    static TEngine gen(seed());
+    return gen;
+}
+
+
+
+// Eg Dice: Random(1,6)
+template<class TInt1, class TInt2,
+    typename std::enable_if<std::is_integral<TInt1>::value, int>::type = 0,
+    typename std::enable_if<std::is_integral<TInt2>::value, int>::type = 0>
+TInt1 Random(TInt1 p_min, TInt2 p_max)
+{
+    std::uniform_int_distribution distrib(p_min, TInt1(p_max));
+    return distrib(GetSeededRandomEngine());
+}

@@ -12,12 +12,13 @@
 #include "datablock.h"
 #include "turboblock.h"
 #include "byte_tools.h"
+#include "tools.h"
 #include <fstream>
 #include <filesystem>
 #include <string>
 
 
-
+void WriteTextToAttr(DataBlock& out_attr, const std::string& p_text1, const std::string& p_text2, std::byte p_color1, std::byte p_color2);
 namespace fs = std::filesystem;
 
 
@@ -38,6 +39,7 @@ Z80SnapShotLoader& Z80SnapShotLoader::Load(const fs::path &p_filename)
        // clarify
        throw std::runtime_error("Reading file: " + p_filename.string() + ": " + e.what());
     }
+    m_name = p_filename.stem().string();
     //   MoveToLoader(p_loader);
     return *this;
 }
@@ -124,13 +126,169 @@ Z80SnapShotLoader& Z80SnapShotLoader::Load(std::istream& p_stream)
     return *this;
 }
 
+void WriteTextToAttr(DataBlock &out_attr, const std::string &p_text1, const std::string& p_text2, std::byte p_color1, std::byte p_color2)
+{
+    static const std::string font = 1 + &*R"(
+    @    @    @    @   @   @    @    @ @    @    @   @     @    @    @    @    @    @    @   @    @     @     @    @   @    @
+#XX  XXX   XX  XXX  XXX XXX  XXX X  X X    X X  X X   XXXX  XXX   XX  XXX  XXX  XXX   XXX XXX X  X X   X X X X X  X X X XXXX 
+X  X  X X X  X  X X X   X   X  X X  X X    X X X  X   X X X X  X X  X X  X X  X X  X X     X  X  X X   X X X X X  X X X    X 
+XXXX  XX  X     X X XXX XX  X  X XXXX X    X XX   X   X X X X  X X  X X  X X  X XXX   XX   X  X  X X   X X X X  XX  XXX   X  
+X  X  X X X     X X X   X   XXXX X  X X    X X X  X   X X X X  X X  X XXX  XXXX X X     X  X  X  X  X X  X X X X  X  X   X   
+X  X  X X X  X  X X X   X      X X  X X X  X X  X X   X X X X  X X  X X       X X  X    X  X  X  X  X X  X X X X  X  X  X    
+X  X XXX   XX  XXX  XXX X   XXXX X  X X  XX  X  X XXX X X X X  X  XX  X       X X  X XXX   X   XX    X    X X  X  X  X  XXXX 
+    )";
+    const auto font_col_len = font.find('#');        // put cursor at end and look at col
+    auto GetStartOfLetter = [&](char p_letter)
+    {
+        int lt = p_letter - 'A';
+        if (lt == 0)
+        {
+            return 0;
+        }
+        for (int n = 0; n < font_col_len; n++)
+        {
+            auto c = font[n];
+            if (c == '@')
+            {
+                lt--;
+                if (lt == 0)
+                {
+                    return n + 1;
+                }
+            }
+        }
+        return 0;   // error
+    };
+    auto GetWidthForLetter = [&](char p_letter)
+    {
+        int let = p_letter - 'A';
+        int prev = -1;
+        for (int n = 0; n < font_col_len; n++)
+        {
+            auto c = font[n];
+            if (c == '@')
+            {
+                if (let == 0)
+                {
+                    return n - prev - 1;
+                }
+                prev = n;
+                let--;
+            }
+        }
+        return 0;   // error
+    };
+    auto GetStartForLetterRow = [&](char p_letter, int p_row)
+    {
+        return GetStartOfLetter(p_letter) + p_row * font_col_len;
+    };
+    auto GetTextWidth = [&](const std::string& p_text)
+    {
+        int width = 0;
+        for (const auto& c : p_text)
+        {
+            width += GetWidthForLetter(c) + (width != 0);
+        }
+        return width;
+    };
+    auto WriteText = [&](const std::string &p_text, std::byte p_color, int p_left_col)
+    {
+        int col = p_left_col;
+        for (const auto& c : p_text)
+        {
+            //int idx = (row + 1) * 32;
+            if (c == ' ')
+            {
+                col += 4;
+            }
+            else
+            {
+                std::byte color;
+                if (p_color == 0_byte)
+                {
+                    auto colr = Random(1, 7);
+                    color = std::byte(colr | (colr << 3));
+                }
+                else
+                {
+                    color = p_color;
+                }
+                for (int row = 1; row <= 6; row++)
+                {
+                    auto start = GetStartForLetterRow(c, row);
+                    for(int i = 0; i < 1 + GetWidthForLetter(c) && col < 32; i++)
+                    {
+                        bool set = font[start+i] == 'X';
+                        if (set)
+                        {
+                            out_attr[row * 32 + col + i] |= color;
+                        }
+                        
+                    }
+                }
+                col += 1 + GetWidthForLetter(c);
+                if (col >= 32)
+                {
+                    break;
+                }
+            }
+        }
+    };
+    auto w = GetTextWidth(p_text1);
+    WriteText(p_text1, p_color1, w <=32 ? (32-w)/2 : 0);
+    WriteText(p_text2, p_color2,0);
+
+
+}
+
 void Z80SnapShotLoader::MoveToTurboBlocks(TurboBlocks& p_turbo_blocks)
 {
+
+    const auto &symbols = p_turbo_blocks.GetSymbols();
+    auto data = GetData();
+    DataBlock screen23 = DataBlock(data.begin(), data.begin() + 4 * 1024);
+    p_turbo_blocks.AddDataBlock(std::move(screen23), 16384);
+
+
+    // a block for the snapshot-registers plus the 768 attributes
+    DataBlock regs_attr = DataBlock(data.begin() + symbols.GetSymbol("LOAD_SNAPSHOT") - 16384, data.begin() + 6 * 1024 + 768);
+    Z80SnapShotHeaderToSnapShotRegs(symbols);       // fill m_reg_block
+    // copy m_reg_block into regs_attr
+    std::copy(m_reg_block.begin(), m_reg_block.end(), regs_attr.begin() );
+
+    // For fun write a manic miner style attribute block -> text_attr
+    DataBlock text_attr;
+    text_attr.resize(256);
+    WriteTextToAttr(text_attr, ToUpper(m_name), "",0_byte, 0_byte);
+    
+    for (int x = 0; x < 256; x++)
+    {
+        auto b = text_attr[x];
+        if (x % 32 == 0)
+        {
+            std::cout << std::endl;
+        }
+        std::cout << ((b == 0_byte) ? '.' : 'X');
+
+    }
+
+    std::copy(text_attr.begin(), text_attr.end(), regs_attr.begin() + m_reg_block.size() + 512);
+
+    p_turbo_blocks.AddDataBlock(std::move(regs_attr), "LOAD_SNAPSHOT");
+
+
+
+    DataBlock rest = DataBlock(data.begin() + 6 * 1024 + 768, data.end());
+    p_turbo_blocks.AddDataBlock(std::move(rest), 16384 + 6 * 1024 + 768);
+
+/*
     p_turbo_blocks.AddDataBlock(GetData(), 16384);
     //        p_turbo_blocks.CopyLoaderToScreen();      // @DEBUG
     Z80SnapShotHeaderToSnapShotRegs(p_turbo_blocks.GetSymbols());
     p_turbo_blocks.AddDataBlock(std::move(m_reg_block), "LOAD_SNAPSHOT");
+*/
     m_usr = p_turbo_blocks.GetSymbols().GetSymbol("LOAD_SNAPSHOT");
+
 }
 
 // Fill in data to register block (eg snapshotregs.bin)

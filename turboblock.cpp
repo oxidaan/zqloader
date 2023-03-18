@@ -440,11 +440,12 @@ TurboBlocks::~TurboBlocks() = default;
 /// Check if zqloader (lower, at basic) is overlapped.
 TurboBlocks& TurboBlocks::AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr)
 {
+    DataBlock data_block;
     auto end_adr = p_start_adr + p_block.size();
     // Does it overwrite our loader (at upper regions)?
     auto loader_upper_len = m_symbols.GetSymbol("ASM_UPPER_LEN");
-    DataBlock data_block;
-    if (Overlaps(p_start_adr, end_adr, 1 + 0xffff - loader_upper_len, 1 + 0xffff))
+    auto loader_upper_start = m_symbols.GetSymbol("ASM_UPPER_START");
+    if (Overlaps(p_start_adr, end_adr, loader_upper_start, 1 + 0xffff))
     {
         if (m_upper_block)
         {
@@ -483,7 +484,8 @@ TurboBlocks& TurboBlocks::AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr
     // cut it in two pieces before and after
     // except when it is presumably a register block
     if (m_loader_at_screen &&
-        Overlaps(p_start_adr, end_adr, SCREEN_23RD, SCREEN_END))
+//        Overlaps(p_start_adr, end_adr, SCREEN_23RD, SCREEN_END))
+        Overlaps(p_start_adr, end_adr, SCREEN_23RD, m_symbols.GetSymbol("LOAD_SNAPSHOT")))
     {
         auto size_before = (SCREEN_23RD - int(p_start_adr));
         if (size_before > 0)
@@ -492,11 +494,13 @@ TurboBlocks& TurboBlocks::AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr
             DataBlock screen_4k(data_block.begin(), data_block.begin() + size_before);
             AddTurboBlock(std::move(screen_4k), p_start_adr);
         }
-        auto size_after = int(end_adr) - SCREEN_END;
+      //  auto size_after = int(end_adr) - SCREEN_END;
+        auto size_after = int(end_adr) - m_symbols.GetSymbol("LOAD_SNAPSHOT");
         if (size_after > 0)
         {
             DataBlock after_screen(data_block.begin() + data_block.size() - size_after, data_block.end());
-            AddTurboBlock(std::move(after_screen), SCREEN_END);
+//            AddTurboBlock(std::move(after_screen), SCREEN_END);
+            AddTurboBlock(std::move(after_screen), m_symbols.GetSymbol("LOAD_SNAPSHOT"));
         }
         if (size_before <= 0 && size_after <= 0)
         {

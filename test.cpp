@@ -15,7 +15,7 @@
 #include <fstream>
 #include "turboblock.h"
 #include "byte_tools.h"
-#include <random>
+#include "tools.h"
 
 
 template <class TIterator>
@@ -51,25 +51,6 @@ uint16_t Crc16(const std::vector<std::byte>& p_data)
 namespace fs = std::filesystem;
 
 
-template<class TEngine = std::minstd_rand>
-auto& GetSeededRandomEngine()
-{
-    static std::random_device seed;
-    static TEngine gen(seed());
-    return gen;
-}
-
-
-
-// Eg Dice: Random(1,6)
-template<class TInt1, class TInt2,
-    typename std::enable_if<std::is_integral<TInt1>::value, int>::type = 0,
-    typename std::enable_if<std::is_integral<TInt2>::value, int>::type = 0>
-TInt1 Random(TInt1 p_min, TInt2 p_max)
-{
-    std::uniform_int_distribution distrib(p_min, TInt1(p_max));
-    return distrib(GetSeededRandomEngine());
-}
 
 uint16_t Test(TurboBlocks& p_blocks, fs::path p_filename)
 {
