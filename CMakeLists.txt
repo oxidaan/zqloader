@@ -30,6 +30,7 @@ set(SOURCE
     taploader.cpp
     taptoturboblocks.cpp
     test.cpp
+    tools.cpp
     turboblock.cpp
     tzxloader.cpp
 )

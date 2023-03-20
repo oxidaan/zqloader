@@ -92,29 +92,32 @@ the second given file with turbo speed.
 
 
 Syntax:
-1) zqloader.exe [options] path/to/filename1 
+1) zqloader.exe [options] path/to/filename 
 2) zqloader.exe [options] path/to/zqloader.tap path/to/turbofile
-3) zqloader.exe [options] filename="path/to/zqloader.tap" turbofile="path/to/turbofile" 
-options:
-    path/to/filename1       First file: can be a tap or tzx file and will be
+3) zqloader.exe [options] filename="path/to/zqloader.tap" turbofile="path/to/turbofile" option=value
+Arguments:
+    path/to/filename        First file: can be a .tap or .tzx file and will be
                             loaded at normal speed into a real ZX spectrum.
                             Only when the file here is 'zqloader.tap' it can
                             load the second file:
-    path/to/turbofile       Second file, also a .tap or .tzx or a z80
-                            snapshot file. A game for example.
-                            When given will be send to the
-                            ZX spectrum at turbo speed.
+    path/to/turbofile       Second file, also a .tap or .tzx or a .z80 (snapshot) file.
+                            A game for example.
+                            When given will be send to the ZX spectrum at turbo speed.
+
+More options can be given with syntax: option=value, or just option value or option="some value":
     volume_left = value            
     volume_right = value    A number between -100 and 100: sets volume for left or right 
                             sound (stereo) channel.
                             Default 100 (max). A negative value eg -100 inverts this channel.
-    samplerate = value      Samplerate for audio. Default 0 meaning take device native sample rate.
-                            S/a miniadio documentation.
+                            When both are negative both channels are inverted.
+    samplerate = value      Sample rate for audio. Default 0 meaning take device native sample rate.
+                            S/a miniaudio documentation.
     zero_tstates = value
     one_tstates = value     The number of TStates a zero / one pulse will take when using the 
                             zqloader/turboloader. Not giving this (or 0) uses a default that 
                             worked for me.
-    key = yes/no/error      When done wait for key: always, never or only when an error occurred.
+    key = yes/no/error      When done wait for key: yes=always, no=never or only when an error
+                            occurred (which is the default).
     )" << std::endl;
  //   Version();
 }
@@ -127,10 +130,15 @@ int main(int argc, char** argv)
     CommandLine cmdline(argc, argv);
     try
     {
-        if (argc <= 1 || cmdline.TryGetParameter("--help") || cmdline.TryGetParameter("-h"))
+        if (argc <= 1)
         {
             Help();
             throw std::runtime_error("Please give a .tap or .tzx filename as runtime argument.");
+        }
+        if ( cmdline.TryGetParameter("--help") || cmdline.TryGetParameter("-h"))
+        {
+            Help();
+            return 0;    
         }
         if (cmdline.TryGetParameter("--version") || cmdline.TryGetParameter("-v"))
         {
