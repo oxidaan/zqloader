@@ -1,7 +1,7 @@
 //==============================================================================
 // PROJECT:         zqloader
 // FILE:            spectrum_types.h
-// DESCRIPTION:     Definition of class SpectrumLoader.
+// DESCRIPTION:     Definition some ZX spectrum specific types.
 // 
 // Copyright (c) 2023 Daan Scherft [Oxidaan]
 // This project uses the MIT license. See LICENSE.txt for details.
@@ -16,8 +16,8 @@
 // ZX BlockType (header or data)
 enum class ZxBlockType : unsigned char
 {
-    header = 0x0,           // spectrum header
-    data = 0xff,            // spectrum data
+    header = 0x0,           // ZX spectrum header
+    data = 0xff,            // ZX spectrum data
     raw = 0x1,              // eg header and checksum as read from tap file.
     unknown = 0x2,
     error = 0x3,            // eg eof
@@ -26,7 +26,7 @@ std::ostream& operator << (std::ostream& p_stream, ZxBlockType p_enum);
 
 
 
-// ZX Spectrum header
+// ZX Spectrum tape header
 #pragma pack(push, 1)
 struct ZxHeader
 {
