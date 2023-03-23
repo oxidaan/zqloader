@@ -98,7 +98,7 @@ private:
     int m_headercnt = 0;
     int m_codecount = 0;
     TurboBlocks& m_tblocks;
-    uint16_t m_usr = 0;
-    uint16_t m_clear = 0;
-    std::vector< uint16_t> m_loadcodes;         // LOAD "" CODE xxxx found in basic
+    uint16_t m_usr = 0;                         // [RANDOMIZE] USX xxxxx found in BASIC
+    uint16_t m_clear = 0;                       // CLEAR xxxxx found in BASIC
+    std::vector< uint16_t> m_loadcodes;         // multiple LOAD "" CODE xxxx found in BASIC
 };

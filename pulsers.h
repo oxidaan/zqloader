@@ -21,6 +21,8 @@
 /// A pulser is used by miniaudio te create an audio stream.
 /// Encodes binary data to a series of (audio) pulses that can be loaded by
 /// ancient computers like the ZX spectrum.
+/// Typically pulsers will toggle an output edge (as used for audio) after a certain 
+/// duration given in T states.
 /// Can also create leader tones  / pauses etc.
 /// 
 /// Base / interface for all pulsers
@@ -131,6 +133,7 @@ public:
 
     /// Set tone pattern using one ore more given T-state durations.
     /// These form one pattern.
+    /// Audio output edge well be toggled after here given each given T state.
     template<typename ... TParams>
     TonePulser& SetPattern(int p_first, TParams ... p_rest)
     {
