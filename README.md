@@ -13,8 +13,8 @@ To speed up even more data (can be) compressed before loading.
 
 The project code is portable and should be able to run under both Windows and Linux. (For Linux I briefly tried with WSL2/TODO)
 
-Obviously this project has lots in common with [otla](https://github.com/sweetlilmre/otla). Actually I was at 2/3 of developing this when I found out about otla....
-Otla seems barely maintained and uses CppBuilder - I think. Unlike Otla this project can also be compiled for Linux. And unlike Otla it uses compression to speed up even more.
+Obviously this project has lots in common with [otla](https://github.com/sweetlilmre/otla). Actually I was at 2/3 of developing this when I found out about Otla....  
+However Otla seems barely maintained and uses CppBuilder - I think. Unlike Otla this project can also be compiled for **Linux**. And unlike Otla it uses compression to speed up even more.
 
 Project
 ----
@@ -66,26 +66,84 @@ Limitations/TODO's
 Building
 ---
 
-You can use the file `zqloader.sln` with `zqloader.vcproj` to build the ZQloader executable with Visual studio 2022 in Windows. Or - at Linux - use the `CMakeList.txt` file to build it with cmake eg:
+You can use the file `zqloader.sln` with `zqloader.vcproj` to build the ZQloader executable with Visual studio 2022 in **Windows**.  
+Or - at **Linux** - use the `CMakeList.txt` file to build it with cmake eg:
 ```
 mkdir build
 cd build
 cmake ..
 make
 ```
-This will also build the z80 assembly code - but only if sjasmplus is present. 
+This will also try to build the z80 assembly code - but only if [sjasmplus](https://github.com/z00m128/sjasmplus) is present. For instructions see [sjasmplus](https://github.com/z00m128/sjasmplus/blob/master/INSTALL.md); I recommend was is described there under *CMAKE method for Linux / Unix / macOS / BSD* because zqloader also uses cmake.
+The assembler will also need the `BasicLib` to be present in the `examples` directory that comes with sjasmplus.  
+If you can not build sjasmplus: no problem because its output files `zqloader.tap` and `zqloader.exp` and `snapshotregs.bin` are also at github.
 
-To assemble the z80 assembly code manually use [sjasmplus](https://github.com/z00m128/sjasmplus). You can use Visual studio code with the provided `tasks.json` at `.vscode` directory.
+To assemble the z80 assembly code manually (without cmake) you can also use Visual studio code with the provided `tasks.json` at `.vscode` directory.
 Or use a command like:
 ```
 sjasmplus --fullpath     \
-   -ipath/to/sjasmplus/examples/TapLib \
    -ipath/to/sjasmplus/examples/BasicLib \
    --exp=path/to/zqloader/z80/zqloader.exp \
    --lst --syntax=abf --color=on       \
    path/to/zqloader/z80/zqloader\z80\zqloader.z80asm  
 ```   
+Installing
+---
 
 Instructions
 ---
-You need a real ZX-spectrum. Connect the ZX-spectrums EAR input to your host computers sound output. At the host computer set sound to maximum.
+You need a real ZX-spectrum. Connect the ZX-spectrums EAR input to your host computers sound output. At the host computer set sound to maximum.  
+At Windows, make sure *Audio Enhancements* are switched off. 
+Eg at `Settings -> System -> Sound -> Speakers -> Advanced` 
+
+Switch off `Audio Enhancements` there.
+
+Make sure no other sound is playing.
+At the host type:
+```
+zqloader path/to/zqloader.tap path/to/turbofile
+```
+Eg:
+```
+zqloader z80/zqloader.tap c:\games\manic.z80`
+```
+You can play with options like, for example (see also [zqloader commandline options](#zqloader-commandline-options) ):
+```
+zqloader samplerate=48000 volume_left=-100 volume_right=-100 z80/zqloader.tap c:\games/rtype.z80
+```
+
+
+Then at the ZX Spectrum type:
+```
+LOAD ""
+``` 
+zqloader commandline options
+---
+
+Syntax:
+1) `zqloader.exe [options] path/to/filename` 
+2) `zqloader.exe [options] path/to/zqloader.tap path/to/turbofile`
+3) `zqloader.exe [options] filename="path/to/zqloader.tap" turbofile="path/to/turbofile" option=value`
+Arguments:
+-  `path/to/filename`  
+            First file: can be a .tap or .tzx file and will be loaded at normal speed into a real ZX spectrum. Only when the file here is 'zqloader.tap' it can load the second file:<br>
+-  `path/to/turbofile`  
+       Second file, also a .tap or .tzx or a .z80 (snapshot) file. A game for example. When given will be send to the ZX spectrum at turbo speed.
+
+More options can be given with syntax:
+
+`option=value`, or just `option value` or `option="some value"`:
+
+* volume_left = value            
+* volume_right = value    
+A number between -100 and 100: sets volume for left or right sound (stereo) channel. Default 100 (max). A negative value eg -100 inverts this channel. When both are negative both channels are inverted.
+* samplerate = value  
+   Sample rate for audio. Default 0 meaning take device native sample rate. S/a miniaudio documentation.
+* zero_tstates = value
+* one_tstates = value  
+     The number of TStates a zero / one pulse will take when using the zqloader/turboloader. Not giving this (or 0) uses a default that worked for me.
+* key = yes/no/error  
+      When done wait for key: yes=always, no=never or only when an error occurred (which is the default).
+* --help
+* --version  
+   Show help or version.

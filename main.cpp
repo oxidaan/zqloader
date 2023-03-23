@@ -130,7 +130,7 @@ int main(int argc, char** argv)
     CommandLine cmdline(argc, argv);
     try
     {
-        if (argc <= 1)
+        if (!cmdline.HasParameters())
         {
             Help();
             throw std::runtime_error("Please give a .tap or .tzx filename as runtime argument.");
@@ -161,11 +161,13 @@ int main(int argc, char** argv)
         sample_sender.SetVolume(vol1, vol2).SetSampleRate(samplerate);
         SpectrumLoader spectrumloader;
         spectrumloader.SetSampleSender(std::move(sample_sender));
+
+        // 1st file
         {
             std::ifstream fileread(filename, std::ios::binary);
             if (!fileread)
             {
-                // try at executable directory by default 
+                // try at current executable directory by default 
                 filename = fs::path(argv[0]).parent_path() / filename;
                 fileread.open(filename, std::ios::binary);
             }

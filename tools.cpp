@@ -21,6 +21,7 @@
 
 
 /// Get value of given named commandine parameter. 
+/// Return nullopt when not found.
 std::optional<std::string> CommandLine::TryGetParameter(std::string_view p_command) const noexcept
 {
     using namespace std::string_literals;

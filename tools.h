@@ -36,10 +36,11 @@ TString ToUpper(TString p_string)
     return s;
 }
 
-// lib2021::system::CommandLine
+
 class CommandLine
 {
 public:
+    ///  Initialize with argc and argv taken from main.
     CommandLine(int argc, char** argv) noexcept
     {
         std::string s;
@@ -49,16 +50,19 @@ public:
         }
     }
 
+    /// Has it commandline parameters? Convenience.
     bool HasParameters() const noexcept
     {
         return m_args.size() > 1;
     }
 
+    /// Get # parameters
     unsigned GetNumParameters() const noexcept
     {
         return unsigned(m_args.size() - 1);
     }
 
+    /// Get last parameter
     std::string GetLastParamer() const noexcept
     {
         if (HasParameters())
@@ -68,14 +72,14 @@ public:
         return "";
     }
 
-
+    /// Get nth parameter
     std::string GetParameter(int p_num) const noexcept
     {
         return m_args[p_num];
     }
     
-    /// Get value of given named commandine parameter.
-    /// Returns given default when not found.
+    /// Get value of given named commandine parameter overload for const char *.
+    /// Return given default when not found.
     std::string GetParameter(std::string_view p_param, const char* p_default) noexcept
     {
         auto opt = TryGetParameter(p_param);
@@ -86,7 +90,8 @@ public:
         return p_default;
     }
 
-    
+    /// Get value of given named commandine parameter as TData.
+    /// Return given default when not found.
     template <class TData>
     TData GetParameter(std::string_view p_param, TData p_default) noexcept
     {
@@ -101,6 +106,8 @@ public:
         return p_default;
     }
 
+    /// Get value of given named commandine parameter. 
+    /// Return nullopt when not found.
     std::optional<std::string> TryGetParameter(std::string_view p_command) const noexcept;
 
 private:

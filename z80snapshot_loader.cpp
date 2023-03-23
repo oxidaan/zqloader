@@ -18,7 +18,7 @@
 #include <string>
 
 
-void WriteTextToAttr(DataBlock& out_attr, const std::string& p_text1, const std::string& p_text2, std::byte p_color1, std::byte p_color2);
+void WriteTextToAttr(DataBlock& out_attr, const std::string& p_text1, std::byte p_color);
 namespace fs = std::filesystem;
 
 
@@ -45,7 +45,6 @@ Z80SnapShotLoader& Z80SnapShotLoader::Load(const fs::path &p_filename)
 }
 
 // https://worldofspectrum.org/faq/reference/z80format.htm
-
 Z80SnapShotLoader& Z80SnapShotLoader::Load(std::istream& p_stream)
 {
     auto header = LoadBinary<Z80SnapShotHeader>(p_stream);
@@ -126,7 +125,10 @@ Z80SnapShotLoader& Z80SnapShotLoader::Load(std::istream& p_stream)
     return *this;
 }
 
-void WriteTextToAttr(DataBlock &out_attr, const std::string &p_text1, const std::string& p_text2, std::byte p_color1, std::byte p_color2)
+/// Write given text to attribute block
+/// For fun write a attribute block -> text_attr
+/// at the bottom 1/3rd of screen were our loader is.
+void WriteTextToAttr(DataBlock &out_attr, const std::string &p_text, std::byte p_color)
 {
     static const std::string font = 1 + &*R"(
     @    @    @    @   @   @    @    @ @    @    @   @     @    @    @    @    @    @    @   @    @     @     @    @   @    @
@@ -137,7 +139,7 @@ X  X  X X X     X X X   X   XXXX X  X X    X X X  X   X X X X  X X  X XXX  XXXX 
 X  X  X X X  X  X X X   X      X X  X X X  X X  X X   X X X X  X X  X X       X X  X    X  X  X  X  X X  X X X X  X  X  X    
 X  X XXX   XX  XXX  XXX X   XXXX X  X X  XX  X  X XXX X X X X  X  XX  X       X X  X XXX   X   XX    X    X X  X  X  X  XXXX 
     )";
-    const auto font_col_len = font.find('#');        // put cursor at end and look at col
+    const auto font_col_len = font.find('#');  
     auto GetStartOfLetter = [&](char p_letter)
     {
         int lt = p_letter - 'A';
@@ -182,63 +184,55 @@ X  X XXX   XX  XXX  XXX X   XXXX X  X X  XX  X  X XXX X X X X  X  XX  X       X 
     {
         return GetStartOfLetter(p_letter) + p_row * font_col_len;
     };
-    auto GetTextWidth = [&](const std::string& p_text)
+
+
+    // determine text width for centering
+    int width = 0;
+    for (const auto& c : p_text)
     {
-        int width = 0;
-        for (const auto& c : p_text)
+        width += GetWidthForLetter(c) + (width != 0);
+    }
+
+    int col = width <= 32 ? (32 - width) / 2 : 0;
+    for (const auto& c : p_text)
+    {
+        //int idx = (row + 1) * 32;
+        if (c == ' ')
         {
-            width += GetWidthForLetter(c) + (width != 0);
+            col += 4;
         }
-        return width;
-    };
-    auto WriteText = [&](const std::string &p_text, std::byte p_color, int p_left_col)
-    {
-        int col = p_left_col;
-        for (const auto& c : p_text)
+        else
         {
-            //int idx = (row + 1) * 32;
-            if (c == ' ')
+            std::byte color;
+            if (p_color == 0_byte)      // black makes no sense, choose random color then
             {
-                col += 4;
+                auto colr = Random(1, 7);       
+                color = std::byte(colr | (colr << 3));  // ink en paper same
             }
             else
             {
-                std::byte color;
-                if (p_color == 0_byte)
+                color = p_color;
+            }
+            for (int row = 1; row <= 6; row++)
+            {
+                auto start = GetStartForLetterRow(c, row);
+                for(int i = 0; i < 1 + GetWidthForLetter(c) && col < 32; i++)
                 {
-                    auto colr = Random(1, 7);
-                    color = std::byte(colr | (colr << 3));
-                }
-                else
-                {
-                    color = p_color;
-                }
-                for (int row = 1; row <= 6; row++)
-                {
-                    auto start = GetStartForLetterRow(c, row);
-                    for(int i = 0; i < 1 + GetWidthForLetter(c) && col < 32; i++)
+                    bool set = font[start+i] == 'X';
+                    if (set)
                     {
-                        bool set = font[start+i] == 'X';
-                        if (set)
-                        {
-                            out_attr[row * 32 + col + i] |= color;
-                        }
-                        
+                        out_attr[row * 32 + col + i] |= color;
                     }
-                }
-                col += 1 + GetWidthForLetter(c);
-                if (col >= 32)
-                {
-                    break;
+                        
                 }
             }
+            col += 1 + GetWidthForLetter(c);
+            if (col >= 32)
+            {
+                break;
+            }
         }
-    };
-    auto w = GetTextWidth(p_text1);
-    WriteText(p_text1, p_color1, w <=32 ? (32-w)/2 : 0);
-    WriteText(p_text2, p_color2,0);
-
-
+    }
 }
 
 void Z80SnapShotLoader::MoveToTurboBlocks(TurboBlocks& p_turbo_blocks)
@@ -256,21 +250,11 @@ void Z80SnapShotLoader::MoveToTurboBlocks(TurboBlocks& p_turbo_blocks)
     // copy m_reg_block into regs_attr
     std::copy(m_reg_block.begin(), m_reg_block.end(), regs_attr.begin() );
 
-    // For fun write a manic miner style attribute block -> text_attr
+    // For fun write a attribute block -> text_attr
+    // at the bottom 1/3rd of screen were our loader is.
     DataBlock text_attr;
     text_attr.resize(256);
-    WriteTextToAttr(text_attr, ToUpper(m_name), "",0_byte, 0_byte);
-    
-    for (int x = 0; x < 256; x++)
-    {
-        auto b = text_attr[x];
-        if (x % 32 == 0)
-        {
-            std::cout << std::endl;
-        }
-        std::cout << ((b == 0_byte) ? '.' : 'X');
-
-    }
+    WriteTextToAttr(text_attr, ToUpper(m_name), 0_byte);    // 0_byte: random colors
 
     std::copy(text_attr.begin(), text_attr.end(), regs_attr.begin() + m_reg_block.size() + 512);
 
@@ -291,7 +275,8 @@ void Z80SnapShotLoader::MoveToTurboBlocks(TurboBlocks& p_turbo_blocks)
 
 }
 
-// Fill in data to register block (eg snapshotregs.bin)
+
+/// Fill in register data to register block (eg snapshotregs.bin)
 inline void Z80SnapShotLoader::Z80SnapShotHeaderToSnapShotRegs(const Symbols& p_symbols)
 {
     p_symbols.SetByte(m_reg_block, "flags_and_border", (m_z80_snapshot_header.flags_and_border >> 1) & 0xb00000111);
@@ -319,6 +304,7 @@ inline void Z80SnapShotLoader::Z80SnapShotHeaderToSnapShotRegs(const Symbols& p_
     p_symbols.SetByte(m_reg_block, "A_reg", m_z80_snapshot_header.A_reg);
     p_symbols.SetByte(m_reg_block, "F_reg", m_z80_snapshot_header.F_reg);
 }
+
 
 // Z80 decompress 
 // see https://worldofspectrum.org/faq/reference/z80format.htm
