@@ -168,8 +168,7 @@ public:
 
 
         GetHeader().m_length = uint16_t(data->size());
-        // GetHeader().m_length = uint16_t(compressed_data.size() + 2);       // @DEBUG should give ERROR
-        // GetHeader().m_length = uint16_t(compressed_data.size() );       // @DEBUG should give CHECKSUM ERROR
+        //GetHeader().m_length = uint16_t(compressed_data.size() + 2);       // @DEBUG should give ERROR
         m_data.insert(m_data.end(), data->begin(), data->end());          // append given data at m_data (after header)
 
 
@@ -404,7 +403,7 @@ private:
     uint8_t CalculateChecksum() const
     {
         int8_t retval = int8_t(sizeof(Header));
-        //        int8_t retval = 1+ int8_t(sizeof(Header));  // @DEBUG must give CHECKSUM ERROR
+        // retval++;  // @DEBUG must give CHECKSUM ERROR
         for (const std::byte& b : m_data)
         {
             retval += int8_t(b);
@@ -451,7 +450,7 @@ TurboBlocks& TurboBlocks::AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr
         {
             throw std::runtime_error("Already found a block loading to loader-overlapped region, blocks overlap");
         }
-        std::cout << "Block Overlaps our loader! Adding extra block..." << std::endl;
+        std::cout << "Block overlaps loader at upper memory region. Adding extra block..." << std::endl;
         int size2 = int(loader_upper_len + end_adr - (1 + 0xffff));
         int size1 = int(p_block.size() - size2);
         if (size1 > 0)
@@ -477,6 +476,10 @@ TurboBlocks& TurboBlocks::AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr
     if (Overlaps(p_start_adr, end_adr, SCREEN_END + 768, m_symbols.GetSymbol("CLEAR")))
     {
         // add some signal to copy loader to screen at 16384+4*1024
+        if(m_loader_at_screen == false)
+        {
+            std::cout << "Block overlaps loader at BASIC. Will copy loader to screen." << std::endl;
+        }
         m_loader_at_screen = true;
     }
 
@@ -484,9 +487,9 @@ TurboBlocks& TurboBlocks::AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr
     // cut it in two pieces before and after
     // except when it is presumably a register block
     if (m_loader_at_screen &&
-//        Overlaps(p_start_adr, end_adr, SCREEN_23RD, SCREEN_END))
         Overlaps(p_start_adr, end_adr, SCREEN_23RD, m_symbols.GetSymbol("LOAD_SNAPSHOT")))
     {
+        std::cout << "Block overlaps loader at SCREEN. Will split in two." << std::endl;
         auto size_before = (SCREEN_23RD - int(p_start_adr));
         if (size_before > 0)
         {
@@ -494,12 +497,10 @@ TurboBlocks& TurboBlocks::AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr
             DataBlock screen_4k(data_block.begin(), data_block.begin() + size_before);
             AddTurboBlock(std::move(screen_4k), p_start_adr);
         }
-      //  auto size_after = int(end_adr) - SCREEN_END;
         auto size_after = int(end_adr) - m_symbols.GetSymbol("LOAD_SNAPSHOT");
         if (size_after > 0)
         {
             DataBlock after_screen(data_block.begin() + data_block.size() - size_after, data_block.end());
-//            AddTurboBlock(std::move(after_screen), SCREEN_END);
             AddTurboBlock(std::move(after_screen), m_symbols.GetSymbol("LOAD_SNAPSHOT"));
         }
         if (size_before <= 0 && size_after <= 0)
@@ -548,6 +549,7 @@ void TurboBlocks::MoveToLoader(SpectrumLoader& p_loader, uint16_t p_usr_address,
         {
             m_turbo_blocks.front().SetCopyToScreen();
         }
+
         m_turbo_blocks.back().SetUsrStartAddress(p_usr_address);    // now is last block
         m_turbo_blocks.back().SetClearAddress(p_clear_address);
     }
