@@ -2,12 +2,5 @@
     "files.associations": {
         "*.z80asm": "z80-macroasm",
         "*.asm": "asm-collection",
-        "CRC.C": "cpp",
-        "COMTES.C": "cpp",
-        "COMTES2.C": "cpp",
-        "COMVID2.C": "cpp",
-        "TESTBRUG.C": "cpp",
-        "BRUG_VAR.C": "cpp",
-        "GRAPHSPL.C": "cpp"
     }
 }
