@@ -49,7 +49,7 @@ public:
         uint8_t m_rle_most;                 // 14 RLE byte most
         uint8_t m_rle_min1;                 // 16 RLE byte min1
         uint8_t m_rle_min2;                 // 17 RLE byte min2
-        uint8_t  m_copy_to_screen;          // when true it is a 'copy loader to screen' command
+        // uint8_t  m_copy_to_screen;          // when true it is a 'copy loader to screen' command
 
         friend std::ostream& operator <<(std::ostream& p_stream, const Header& p_header)
         {
@@ -62,8 +62,8 @@ public:
                 << "m_clear_address = " << p_header.m_clear_address << std::endl
                 << "m_rle_most = " << int(p_header.m_rle_most) << ' '
                 << "m_rle_min1 = " << int(p_header.m_rle_min1) << ' '
-                << "m_rle_min2 = " << int(p_header.m_rle_min2) << ' ' << std::endl
-                << "m_copy_to_screen = " << int(p_header.m_copy_to_screen) << ' '
+                << "m_rle_min2 = " << int(p_header.m_rle_min2) << ' '
+                // << "m_copy_to_screen = " << int(p_header.m_copy_to_screen) << ' '
                 //   << " is_last = " << int(p_header.m_is_last);
                 ;
 
@@ -71,7 +71,7 @@ public:
         }
     };
 #pragma pack(pop)
-    static_assert(sizeof(Header) == 16, "Check size of Header");
+    static_assert(sizeof(Header) == 15, "Check size of Header");
 public:
     TurboBlock(const TurboBlock&) = delete;
     TurboBlock(TurboBlock&&) = default;
@@ -85,7 +85,7 @@ public:
         GetHeader().m_usr_start_address = TurboBlocks::ReturnToBasic;        // last block for now 
         GetHeader().m_clear_address = 0;
         GetHeader().m_checksum = 0;                    // MUST be zero at first so dont affect calc. itself
-        GetHeader().m_copy_to_screen = false;
+       // GetHeader().m_copy_to_screen = false;
     }
 
 
@@ -304,7 +304,8 @@ private:
 
     TurboBlock& SetCopyToScreen()
     {
-        GetHeader().m_copy_to_screen = true;
+        // GetHeader().m_copy_to_screen = true;
+        GetHeader().m_usr_start_address = TurboBlocks::CopyToScreen;
         return *this;
     }
     // Move prepared data out of here. Append checksum.

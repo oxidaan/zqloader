@@ -47,6 +47,7 @@ public:
     {
         LoadNext = 0,               // go on to next block
         ReturnToBasic = 1,          // return to basic
+        CopyToScreen = 2,
         // all other values are like RANDOMIZE USR xxxxx so start MC there.
     };
 public:

@@ -182,9 +182,9 @@ LOAD:
 
     // -- Once here here a turbo block was correctly loaded --
 
-    ld A, (m_copy_to_screen)	// check flag that indicates a copy to screen is needed
-    dec A
-    jr z, copy_me_to_screen     // continues from there!
+  //  ld A, (m_copy_to_screen)	// check flag that indicates a copy to screen is needed
+  //  dec A
+  //  jr z, copy_me_to_screen     // continues from there!
 
 
 load_ok:
@@ -241,8 +241,9 @@ copy_done:
     jr z, next_block            // when HL == 0 continue to next block
     ld A, L
     dec A
-    or H
     jr z, end_to_basic          // HL = 1 so last block but do not start MC, return to BASIC.
+    dec A
+    jr z, copy_me_to_screen     // when HL = 2 copy to screen, then to next block
 
     // -- When here: --
     // -- HL is start addres as in RANDOMIZE USR xxxxx --
@@ -264,7 +265,7 @@ copy_me_to_screen:
     ld SP, SCREEN_END - SNAPSHOT_CODE_LEN           // also put stack at (end of) screen! We cant go back to basic anyway
     ld HL, SCREEN_23RD + ASM_LOWER_LEN
     ld (load_address_at_basic), HL                  // also adjust this!!
-    jp SCREEN_23RD + load_ok - ASM_LOWER_BEGIN      // and go on from there (load_ok)
+    jp SCREEN_23RD + next_block - ASM_LOWER_BEGIN      // and go on from there (load_ok)
 
 // Show error messages
 checksum_error:
@@ -649,7 +650,7 @@ TEXT_ERROR:
 // s/a struct TurboBlock::Header
 //============================================================================
 
-sizeof_header equ 16
+sizeof_header equ 15
 header:  BLOCK sizeof_header 
 m_length equ header + 0
 m_load_address equ header + 2
@@ -661,7 +662,7 @@ m_clear_address equ header + 10
 m_rle_most equ header + 12
 m_rle_min1 equ header + 13
 m_rle_min2 equ header + 14
-m_copy_to_screen equ header + 15
+//m_copy_to_screen equ header + 15
 
 
 load_address_at_basic: BLOCK 2
@@ -785,6 +786,7 @@ SNAPSHOT_CODE_LEN EQU SNAPSHOT_CODE_END-SNAPSHOT_CODE_BEGIN
  EXPORT Aa_reg 
  EXPORT A_reg 
  EXPORT F_reg 
+ EXPORT sizeof_header   // so can check at C++
 
 
  // ===========================================================================

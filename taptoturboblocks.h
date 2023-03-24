@@ -34,7 +34,7 @@ public:
     // Get MC start address as found in BASIC block as in RANDOMIZE USR xxxxx
     uint16_t GetUsrAddress() const
     {
-        return m_usr == 0 ? 1 : m_usr;
+        return m_usr == 0 ? int(TurboBlocks::ReturnToBasic) : m_usr;
     }
 
     // Get CLEAR address as found in BASIC block as in CLEAR xxxxx
