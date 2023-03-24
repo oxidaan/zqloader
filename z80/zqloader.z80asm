@@ -35,7 +35,7 @@ SCREEN_END              EQU 16384+6*1024
 CLEAR                   EQU 24500       // CLEAR eg horace (H.spiders: 24575)   min:24290
 
 //----------------------------------------------------------------------------
-LEADER_MIN_EDGES        EQU 200         // Minimum edges a leader beed to have tobe accepted
+LEADER_MIN_EDGES        EQU 200         // Minimum edges a leader need to have to be accepted
 
 LEADER_MAX              EQU 12          // a valid leader pulse is between LEADER_MAX and LEADER_MIN
 LEADER_MIN              EQU 8           // 
@@ -49,14 +49,14 @@ ONE_MIN                 EQU 4           //
 
 //----------------------------------------------------------------------------
 
-ASM_LOWER_LEN   EQU ASM_LOWER_END - ASM_LOWER_BEGIN    // length of code to be moved to upper for org/disp 0xffff - ASM_UPPER_LEN
+ASM_LOWER_LEN   EQU ASM_LOWER_END - ASM_LOWER_BEGIN     // length of lower code 
 ASM_UPPER_LEN   EQU ASM_END - ASM_UPPER_BEGIN           // length of code to be moved to upper for org/disp 0xffff - ASM_UPPER_LEN
 
 // ===========================================================================
 // ===========================================================================
  
 
-// Write basic numbers shorter visible text allways "0" spares space.
+// Write basic numbers shorter; but visible text allways "0". Spares space.
 NUM2   MACRO	value
       db "0"
 	  db	#0E,0,0
@@ -127,23 +127,23 @@ LOAD:
 // HL' is destination of header.
 // Return:
 //  c=1 z=d  carry set: ok
-//  c=0 z=0  break pressed
+//  c=0 z=0  key pressed
 //  c=0 z=1  Timeout or checksum error 
 // General register usage:
 // A For IN etc.
-// carry: edge found; b is time measured.
+// carry: edge found; B is time measured.
 //          no carry: no edge found:
 //              z= 1 timeout, z=0 break pressed    
 // B  = edge counter    
 // C  = prev. edge (bit 5) + border color (bit 0-3)
-// HL' = target addres to read, will be modified
-// DE = length to read, will be zero when OK
-// H  = major counter (leader)/checksum
+// HL' = target address to read, will be modified
+// DE' = length to read, will be zero when OK
+// C' = checksum
+// H  = major counter (leader)/checksum / xor value for C.
 // L  = byte being loaded
 
-    // intialize edge plus border color -> c
-
-// Get intial value from port->C
+    // Intialize edge plus border color -> C
+    // So get intial value from port->C
     
     // E=ear, M=mic, K-keyboard, B = bordercolor
     //            7  6  5  4  3  2  1  0
@@ -167,7 +167,7 @@ LOAD:
     //    ld HL, header           // location of header @(HL++)
         ld HL, header-1         // location of header @ (++HL)
         ld DE, sizeof_header    // length of header 
-        ld C, sizeof_header     // checksum
+        ld C, sizeof_header     // checksum - use header length as init. value.
     exx
 
     call LOAD_HEADER_PLUS_DATA  // upper, call is ok
@@ -182,7 +182,7 @@ LOAD:
 
     // -- Once here here a turbo block was correctly loaded --
 
-    ld A, (m_copy_to_screen)
+    ld A, (m_copy_to_screen)	// check flag that indicates a copy to screen is needed
     dec A
     jr z, copy_me_to_screen     // continues from there!
 
@@ -207,7 +207,7 @@ load_ok:
     ld HL, (load_address_at_basic)               
 
 .hl_is_load_address
-    ld BC, (m_length)           // payload size
+    ld BC, (m_length)           
 
     // -- Now DE is m_dest_address;  HL is m_load_address (or load_address_at_basic), BC is m_length --
 
@@ -294,7 +294,7 @@ end_to_basic:
 // BC: Length/counter
 // A, IX is touched.
 DECOMPRESS
-//    di                        // di2 IY is used in interrupts and here so di
+//    di                        // di2 IY is used in interrupts and here so di - already don though.
     push IY
     // 40 T 8B
     ld IX, (m_rle_most)         // IXH = not used; IXL = (m_rle_most+0) so most
@@ -406,8 +406,8 @@ LOAD_HEADER_PLUS_DATA:
 // wait for edge until enter pressed.
 // Note value of B is not really relevant at first.
 wait_for_first_edge:     
- 	ld A,$BF 	                // Read from port 0xBFFE, read ENTER to break
-	in A,($FE)                  // bit 0 is !BREAK,
+    ld A,$BF 	                // Read from port 0xBFFE, read ENTER to break
+    in A,($FE)                  // bit 0 is !ENTER
     rrca                        // check for key pressed, when C: no key
     ret nc
     call WAIT_FOR_EDGE
@@ -424,7 +424,7 @@ wait_for_first_edge:
 .leader_loop1:    
     ld B, LEADER_MAX            // # counts = max acceptable time between edges
     call WAIT_FOR_EDGE
-  	jr z, wait_for_first_edge   // T/O no edge (note B is 0 when T/O)
+    jr z, wait_for_first_edge   // T/O no edge (note B is 0 when T/O)
 
     ld A, B
     cp LEADER_MAX+2-LEADER_MIN   // minimum acceptable time between edges (eg 12+2-8=6)
@@ -444,12 +444,12 @@ wait_for_first_edge:
 .leader_loop2:        
     ld B, LEADER_MAX    
     call WAIT_FOR_EDGE
-  	jr z, wait_for_first_edge   // > LEADER_MAX counts no edge: timeout (note B is 0 when T/O)
+    jr z, wait_for_first_edge   // > LEADER_MAX counts no edge: timeout (note B is 0 when T/O)
     ld A, B                     
-	cp LEADER_MAX+2-SYNC_MIN    // minimum acceptable time between edges eg(12+2-4=10)
+    cp LEADER_MAX+2-SYNC_MIN    // minimum acceptable time between edges eg(12+2-4=10)
     // B > LEADER_MAX-SYNC_MIN : waited shorter than SYNC_MIN -> nc -> nok to soon
     jr nc,wait_for_first_edge   // edge < SYNC_MIN counts, (B=9,11,11) to soon not even a sync to soon start all over
-	cp LEADER_MAX+2-LEADER_MIN 	// (12+2-8=6) edge SYNC_MIN-LEADER_MIN counts its a sync
+    cp LEADER_MAX+2-LEADER_MIN 	// (12+2-8=6) edge SYNC_MIN-LEADER_MIN counts its a sync
     // B > LEADER_MAX-LEADER_MIN : waited shorter than LEADER_MIN but longer than SYNC_MIN -> its a sync
     jr c, .leader_loop2         // edge between LEADER_MIN-LEADER_MAX counts valid leader but no sync continue
 
@@ -620,8 +620,8 @@ wait_for_edge_loop:
     dec B                       // Dec. cycle count (carry not touched) 43 since in
     ret z                       // 5/11 t/o, note carry still not set    (c=0 z=1)
 WAIT_FOR_EDGE:        
- 	ld A,$7F 	                // Read from port 0x7FFE, read BREAK and EAR. 49 + 16 since prev. IN is 59 
-	in A,($FE)                  //  bit 0 is !BREAK, bit 6 is ear
+    ld A,$7F 	                // Read from port 0x7FFE, read BREAK and EAR. 49 + 16 since prev. IN is 59 
+    in A,($FE)                  //  bit 0 is !BREAK, bit 6 is ear
     xor C                       //  detect change at ear (also reset carry)
     and 0b01000000              // mask ear 31 since in
     jr z, wait_for_edge_loop    // when loop: 43 since in
