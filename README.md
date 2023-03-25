@@ -65,18 +65,18 @@ Building
 ---
 
 You can use the file `zqloader.sln` with `zqloader.vcproj` to build the ZQloader executable with Visual studio 2022 in **Windows**.  
-Or - at **Linux** - use the `CMakeList.txt` file to build it with cmake eg:
+Or - at **Linux** - use the `CMakeList.txt` file to build it with CMake eg:
 ```
 mkdir build
 cd build
 cmake ..
 make
 ```
-This will also try to build the z80 assembly code - but only if [sjasmplus](https://github.com/z00m128/sjasmplus) is present. For instructions see [sjasmplus](https://github.com/z00m128/sjasmplus/blob/master/INSTALL.md); I recommend was is described there under *CMAKE method for Linux / Unix / macOS / BSD* because zqloader also uses cmake.
+This will also try to build the z80 assembly code - but only if [sjasmplus](https://github.com/z00m128/sjasmplus) is present. For instructions see [sjasmplus](https://github.com/z00m128/sjasmplus/blob/master/INSTALL.md); I recommend was is described there under *CMAKE method for Linux / Unix / macOS / BSD* because ZQloader also uses CMake.
 The assembler will also need the `BasicLib` to be present in the `examples` directory that comes with sjasmplus.  
 If you can not build sjasmplus: no problem because its output files `zqloader.tap` and `zqloader.exp` and `snapshotregs.bin` are also at github.
 
-To assemble the z80 assembly code manually (without cmake) you can also use Visual studio code with the provided `tasks.json` at `.vscode` directory.
+To assemble the z80 assembly code manually (without CMake) you can also use Visual studio code with the provided `tasks.json` at `.vscode` directory.
 Or use a command like:
 ```
 sjasmplus --fullpath     \
@@ -87,6 +87,11 @@ sjasmplus --fullpath     \
 ```   
 Installing
 ---
+**Windows**  
+A Windows installer isavailable [here](https://github.com/oxidaan/zqloader/releases). After installation it *should* add menu items to TAP/TZX/Z*) files `Load with ZQLoader`. If it does not try `Open with` -> `Choose another app`.  
+**Linux**  
+Use CMake, see above.
+
 
 Instructions
 ---
@@ -105,7 +110,7 @@ Eg:
 ```
 zqloader z80/zqloader.tap c:\games\manic.z80`
 ```
-You can play with options like, for example (see also [zqloader commandline options](#zqloader-commandline-options) ):
+You can play with options like, for example (see also [ZQloader commandline options](#ZQloader-commandline-options) ):
 ```
 zqloader samplerate=48000 volume_left=-100 volume_right=-100 z80/zqloader.tap c:\games/rtype.z80
 ```
@@ -115,7 +120,7 @@ Then at the ZX Spectrum type:
 ```
 LOAD ""
 ``` 
-zqloader commandline options
+ZQloader commandline options
 ---
 
 Syntax:
@@ -139,7 +144,7 @@ A number between -100 and 100: sets volume for left or right sound (stereo) chan
    Sample rate for audio. Default 0 meaning take device native sample rate. S/a miniaudio documentation.
 * zero_tstates = value
 * one_tstates = value  
-     The number of TStates a zero / one pulse will take when using the zqloader/turboloader. Not giving this (or 0) uses a default that worked for me.
+     The number of TStates a zero / one pulse will take when using the ZQloader/turboloader. Not giving this (or 0) uses a default that worked for me.
 * key = yes/no/error  
       When done wait for key: yes=always, no=never or only when an error occurred (which is the default).
 * --help
