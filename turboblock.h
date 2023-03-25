@@ -47,11 +47,11 @@ public:
     {
         LoadNext = 0,               // go on to next block
         ReturnToBasic = 1,          // return to basic
-        CopyToScreen = 2,
+        CopyToScreen = 2,           // copy loader to screen, then go on to next block
         // all other values are like RANDOMIZE USR xxxxx so start MC there.
     };
 public:
-    /// CTOR, take an EXP file name that will be used to load symbols.
+    /// CTOR, take an export file name that will be used to load symbols.
     /// TPath must be std::filesystem::path
     template <class TPath>
     TurboBlocks(const TPath &p_symbol_file_name);

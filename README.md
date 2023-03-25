@@ -13,7 +13,7 @@ To speed up even more data (can be) compressed before loading.
 
 The project code is portable and should be able to run under both Windows and Linux. (For Linux I briefly tried with WSL2/TODO)
 
-Obviously this project has lots in common with [otla](https://github.com/sweetlilmre/otla). Actually I was at 2/3 of developing this when I found out about Otla....  
+Obviously this project has lots in common with [Otla](https://github.com/sweetlilmre/otla). Actually I was at 2/3 of developing this when I found out about Otla....  
 However Otla seems barely maintained and uses CppBuilder - I think. Unlike Otla this project can also be compiled for **Linux**. And unlike Otla it uses compression to speed up even more.
 
 Project
@@ -45,19 +45,17 @@ The RLE compression algorithm compresses the most used byte value (usually this 
 Limitations/TODO's
 ---
 
-*Most of these limitations can be worked around by just loading a Z80 snapshot.*
+* Only works with 48K ZX Spectrum! Because thats all I have to test it with!
 
-* It can only load games (or applications) that are in machine code, not BASIC. Any BASIC is ignored. This is because the loader itself is coded into a BASIC rem statement - and would get lost if any loaded BASIC over writes it. Yes, it is copied to upper memory regions as well, but this might als be overwritten as described here ****.  
-*TODO* a possible solution might be to have our c++ program recognize this situation and then copy the Z80 ZQloader code to the (lower 3rd) of the screen - then BASIC can be overwritten. Would spoil 1/3 of the splash screen however.
+*When using TAP or TZX files:*
 
-* It cannot load games that have any kind of copy protection. Or does any loading without BASIC. Eg *Horace and the Spiders* does some additional loading after Machine code started. ZXloader cannot possible know where this extra datablock needs to go. Same for headerless: ZQloader does not know where to put these.  
-*TODO* a possible solution is to have the option to provide this information manually.
+* It can only load games (or applications) that are in machine code, not BASIC. Any BASIC is ignored. This is because the loader itself is coded into a BASIC rem statement - and would get lost if any loaded BASIC over writes it.  
+The latest version of ZQloader can now recognize this situation and then copy the Z80 ZQloader code to the (lower 3rd) of the screen - then BASIC can be overwritten. Still it ignores any BASIC when processing a TAP or TZX file, except trying to find the CLEAR and USR adresses in it. There is no code yet to see if the BASIC is just a simple loader (that can be ignored) or has more to it.
 
-* It can not load games that overwrite the BASIC memory area. Eg *Galaxians* loads splash screen, basic and machine code at once as one big block. This would overwrite our loader however.  
-*TODO* a possible solution might be to have our c++ program recognize this situation and then uses a Z80 ZQloader that only uses upper RAM area, not at the BASIC rem statement.
+* It cannot load games that have any kind of copy protection. Or does any loading without BASIC. Eg *Horace and the Spiders* does some additional loading after Machine code started. ZXloader cannot possible know where this extra datablock needs to go. Same for headerless: ZQloader does not know where to put these. Of course these games can loaded without problem using a Z80 snapshot.
 
-* A program that does a CLEAR below XXXX is currently to big to load - would overwrite our loader at the REM statement.   
-*TODO* like described above the loader now uses the (lower 3rd) of the screen.
+* It may not load games that overwrite the BASIC memory area. Eg *Galaxians* loads splash screen, basic and machine code at once as one big block. This would overwrite our loader however.  
+The latest version of ZQloader can now recognize this situation and then copy the Z80 ZQloader code to the (lower 3rd) of the screen - then BASIC can be overwritten.
 
 * Want to add code to load .SNA snapshots.
 

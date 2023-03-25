@@ -84,7 +84,7 @@ public:
         GetHeader().m_compression_type = CompressionType::none;
         GetHeader().m_usr_start_address = TurboBlocks::ReturnToBasic;        // last block for now 
         GetHeader().m_clear_address = 0;
-        GetHeader().m_checksum = 0;                    // MUST be zero at first so dont affect calc. itself
+        GetHeader().m_checksum = 0;                     // MUST be zero at first so dont affect calc. itself
        // GetHeader().m_copy_to_screen = false;
     }
 
@@ -109,10 +109,12 @@ public:
     }
 
 
-    /// When 0 more blocks follow.
-    /// When <> 0 this is the last block:
-    ///  When 1 (and thus <> 0) this is the last block but no RANDOMIZE USR xxxxx is done. (default)
-    ///  When <> 0 and <> 1 this is last block, and will jump to this address as if RANDOMIZE USR xxxxx.
+    /// See enum AfterBlock.
+    /// When LoadNext or CopyToScreen more blocks follow.
+    /// When ReturnToBasic (and thus <> 0) this is the last block 
+    ///     but no RANDOMIZE USR xxxxx is done (default), instead return to BASIC
+    /// When CopyToScreen copy loader to screen and continue with next block.
+    /// all other values do RANDOMIZE USR xxxxx thus starting machine code.
     TurboBlock& SetUsrStartAddress(uint16_t p_address)
     {
         GetHeader().m_usr_start_address = p_address;
