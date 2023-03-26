@@ -367,3 +367,4 @@ FodyWeavers.xsd
 
 # Svn directory
 .svn/
+*.bak
