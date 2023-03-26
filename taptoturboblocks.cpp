@@ -72,6 +72,7 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, std::string p_zxfilenam
                 {
                     std::cout << "Found CLEAR " << m_clear << " in BASIC" << std::endl;
                 }
+
                 m_loadcodes = TryFindLoadCode(block);
                 for (auto code : m_loadcodes)
                 {

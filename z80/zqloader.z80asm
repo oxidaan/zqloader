@@ -67,8 +67,6 @@ NUM2   MACRO	value
 BASIC_START:
     MODULE basic1
         INCLUDE	"BasicLib.asm" 
-line_useval = 1   ;; Use VAL for numbers
-
             LINE : db	clear : NUM2(CLEAR) :LEND       
             LINE : db	print, usr, '(', peek : NUM2(PROG) : db '+' : NUM2(256) : db '*',  peek : NUM2(PROG + 1) : db '+' : NUM2(ASM_START) : db ')' : LEND   
  //           LINE : db load, '"','"' : LEND
@@ -111,7 +109,7 @@ ASM_LOWER_BEGIN:
     call CHAN_OPEN              // rst 10 goes to screen
     ld DE, TEXT_START
     call PRINT                  // print "Loading..." 
-    di                          // di1          
+    di                          // #di1          
     exx                     
         // I think BC', DE', HL' must be saved for save return to BASIC (or before ei)
         push DE                 // #PP1
@@ -234,24 +232,34 @@ SCREEN_DECOMPRESSION:           // TODO
 decompress_done:
 copy_done:
 
-    pop HL                      // PP4 last block?
-    pop DE                      // PP3 clear_address
+    pop HL                      // PP4 user start addres/last block?
+    pop DE                      // PP3 clear_address/sp
     ld A, H
     or L
     jr z, next_block            // when HL == 0 continue to next block
     ld A, L
     dec A
-    jr z, end_to_basic          // HL = 1 so last block but do not start MC, return to BASIC.
+    jr z, copy_me_to_screen     //  when HL = 1 copy to screen, then to next block
+    exx
+        pop BC                  // #PP5
+        pop HL                  // #PP2
+        pop DE                  // #PP1
+    exx    
     dec A
-    jr z, copy_me_to_screen     // when HL = 2 copy to screen, then to next block
+    jr z, end_to_basic     // HL = 2 so last block but do not start MC, return to BASIC.
 
     // -- When here: --
     // -- HL is start addres as in RANDOMIZE USR xxxxx --
     // -- DE is address as in CLEAR xxxxx. --
 call_usr:
+    ld A,D
+    or E
+    jr z, go_go_go
     ex DE, HL                   // This is ld SP, DE
     ld SP, HL                   // put SP at CLEAR address.
     ex DE, HL
+go_go_go:   
+    ei                          // #di1
     jp HL                       // go-go-go! note: this also means HL is PC once there
 
 copy_me_to_screen:
@@ -277,11 +285,6 @@ error:
     call PRINT
 
 end_to_basic:
-    exx
-        pop BC                  // #PP5
-        pop HL                  // #PP2
-        pop DE                  // #PP1
-    exx
     ei                          // #di1
     ret    
 

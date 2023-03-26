@@ -46,8 +46,8 @@ public:
     enum AfterBlock
     {
         LoadNext = 0,               // go on to next block
-        ReturnToBasic = 1,          // return to basic
-        CopyToScreen = 2,           // copy loader to screen, then go on to next block
+        CopyToScreen = 1,           // copy loader to screen, then go on to next block
+        ReturnToBasic = 2,          // return to basic
         // all other values are like RANDOMIZE USR xxxxx so start MC there.
     };
 public:

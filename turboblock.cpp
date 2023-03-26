@@ -554,7 +554,9 @@ void TurboBlocks::MoveToLoader(SpectrumLoader& p_loader, uint16_t p_usr_address,
         }
 
         m_turbo_blocks.back().SetUsrStartAddress(p_usr_address);    // now is last block
-        m_turbo_blocks.back().SetClearAddress(p_clear_address);
+        // when not found at BASIC, take value we have set at zqloader.z80asm
+        auto clearaddress = p_clear_address ? p_clear_address : uint16_t(0xff4a); // m_symbols.GetSymbol("CLEAR");
+        m_turbo_blocks.back().SetClearAddress(clearaddress);
     }
     auto pause_before = 100ms;        // time needed to start our loader after loading itself (basic!)
     for (auto& tblock : m_turbo_blocks)
