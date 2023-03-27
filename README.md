@@ -54,9 +54,6 @@ The latest version of ZQloader can now recognize this situation and then copy th
 
 * It cannot load games that have any kind of copy protection. Or does any loading without BASIC. Eg *Horace and the Spiders* does some additional loading after Machine code started. ZXloader cannot possible know where this extra datablock needs to go. Same for headerless: ZQloader does not know where to put these. Of course these games can loaded without problem using a Z80 snapshot.
 
-* It may not load games that overwrite the BASIC memory area. Eg *Galaxians* loads splash screen, basic and machine code at once as one big block. This would overwrite our loader however.  
-The latest version of ZQloader can now recognize this situation and then copy the Z80 ZQloader code to the (lower 3rd) of the screen - then BASIC can be overwritten.
-
 * Want to add code to load .SNA snapshots.
 
 * Not all TZX blocks are correctly recognized.
