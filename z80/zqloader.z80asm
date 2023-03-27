@@ -67,6 +67,7 @@ NUM2   MACRO	value
 BASIC_START:
     MODULE basic1
         INCLUDE	"BasicLib.asm" 
+//            LINE : db	paper : NUM2(0) : db ':', ink : NUM2(0): db ':', cls :LEND  
             LINE : db	clear : NUM2(CLEAR) :LEND       
             LINE : db	print, usr, '(', peek : NUM2(PROG) : db '+' : NUM2(256) : db '*',  peek : NUM2(PROG + 1) : db '+' : NUM2(ASM_START) : db ')' : LEND   
  //           LINE : db load, '"','"' : LEND
@@ -97,6 +98,13 @@ ASM_START:
     ld DE, ASM_UPPER_START 
     ld BC, ASM_UPPER_LEN - 2    // -2 do NOT overwrite load_address_at_basic just written
     ldir
+    // clear screen
+    ld HL, 16384
+    ld DE, 16385
+    ld BC, 6*1024 + 3 * 256
+    ld (HL), 0
+    ldir
+
  
 
 
@@ -180,10 +188,6 @@ LOAD:
 
     // -- Once here here a turbo block was correctly loaded --
 
-  //  ld A, (m_copy_to_screen)	// check flag that indicates a copy to screen is needed
-  //  dec A
-  //  jr z, copy_me_to_screen     // continues from there!
-
 
 load_ok:
     ld DE, (m_clear_address)    // clear address/SP
@@ -240,11 +244,7 @@ copy_done:
     ld A, L
     dec A
     jr z, copy_me_to_screen     //  when HL = 1 copy to screen, then to next block
-    exx
-        pop BC                  // #PP5
-        pop HL                  // #PP2
-        pop DE                  // #PP1
-    exx    
+  
     dec A
     jr z, end_to_basic     // HL = 2 so last block but do not start MC, return to BASIC.
 
@@ -252,14 +252,14 @@ copy_done:
     // -- HL is start addres as in RANDOMIZE USR xxxxx --
     // -- DE is address as in CLEAR xxxxx. --
 call_usr:
-    ld A,D
+    ld A,D                      // when not 0 do m_clear_address -> SP
     or E
     jr z, go_go_go
     ex DE, HL                   // This is ld SP, DE
     ld SP, HL                   // put SP at CLEAR address.
     ex DE, HL
 go_go_go:   
-    ei                          // #di1
+    ei                          // #di1 (this is needed for a game like Galaxians)
     jp HL                       // go-go-go! note: this also means HL is PC once there
 
 copy_me_to_screen:
@@ -269,7 +269,6 @@ copy_me_to_screen:
     ld DE, SCREEN_23RD          // lower 3rd of screen
     ld BC, ASM_LOWER_LEN             
     ldir
-//    ld SP, SCREEN_END         // also put stack at (end of) screen! We cant go back to basic anyway
     ld SP, SCREEN_END - SNAPSHOT_CODE_LEN           // also put stack at (end of) screen! We cant go back to basic anyway
     ld HL, SCREEN_23RD + ASM_LOWER_LEN
     ld (load_address_at_basic), HL                  // also adjust this!!
@@ -285,6 +284,11 @@ error:
     call PRINT
 
 end_to_basic:
+    exx
+        pop BC                  // #PP5
+        pop HL                  // #PP2
+        pop DE                  // #PP1
+    exx  
     ei                          // #di1
     ret    
 

@@ -106,8 +106,11 @@ TzxLoader& TzxLoader::Load(std::istream& p_stream, std::string p_zxfilename)
             p_stream.ignore(4);
             break;
         case TzxBlockType::PulseSequence:
-            p_stream.ignore(2 * LoadBinary<std::uint8_t>(p_stream));
-            break;
+        {
+            auto len = LoadBinary<std::uint8_t>(p_stream);
+            p_stream.ignore(2 * len);
+            break;  
+        }
         case TzxBlockType::PureDataBlock:
             done = LoadDataAsInTapFile(p_stream, p_zxfilename, 0x0A - 2);
             break;
@@ -121,15 +124,95 @@ TzxLoader& TzxLoader::Load(std::istream& p_stream, std::string p_zxfilename)
             break;
         }
         case TzxBlockType::CSWRecordingBlock:
-            p_stream.ignore(0x0a);
-            p_stream.ignore(LoadBinary<std::uint32_t>(p_stream));
+        {
+            auto len = LoadBinary<std::uint32_t>(p_stream);
+            p_stream.ignore(len);
             break;
+        }
         case TzxBlockType::GeneralizedDataBlock:
-            p_stream.ignore(LoadBinary<std::uint32_t>(p_stream));
+        {
+            auto len = LoadBinary<std::uint32_t>(p_stream);
+            p_stream.ignore(len);
             break;
+        }
         case TzxBlockType::PauseOrStopthetapecommand:
             p_stream.ignore(2);
             break;
+        case TzxBlockType::GroupStart:
+        {
+            auto len = LoadBinary<std::uint8_t>(p_stream);
+            p_stream.ignore(len);
+            break;
+        }
+        case TzxBlockType::GroupEnd:
+            break;
+        case TzxBlockType::Jumptoblock:
+            p_stream.ignore(2);
+            break;
+        case TzxBlockType::Loopstart:
+            p_stream.ignore(2);
+            break;
+        case TzxBlockType::Loopend:
+            break;
+        case TzxBlockType::Callsequence:
+        {
+            auto len = LoadBinary<std::uint16_t>(p_stream);
+            p_stream.ignore(len * 2);
+            break;
+        }
+        case TzxBlockType::Returnfromsequence:
+        {
+            break;
+        }
+        case TzxBlockType::Selectblock:
+        {
+            auto len = LoadBinary<std::uint16_t>(p_stream);
+            p_stream.ignore(len * 2);
+            break;
+        }
+        case TzxBlockType::Stopthetapeifin48Kmode:
+            p_stream.ignore(4);
+            break;
+        case TzxBlockType::Setsignallevel:
+            p_stream.ignore(5);
+            break;
+        case TzxBlockType::Textdescription:
+        {
+            auto len = LoadBinary<std::uint8_t>(p_stream);
+            p_stream.ignore(len);
+            break;
+        }
+        case TzxBlockType::Messageblock:
+        {
+            p_stream.ignore(1);
+            auto len = LoadBinary<std::uint8_t>(p_stream);
+            p_stream.ignore(len);
+            break;
+        }
+        case TzxBlockType::Archiveinfo:
+        {
+            auto len = LoadBinary<std::uint16_t>(p_stream);
+            p_stream.ignore(len);
+            break;
+        }
+        case TzxBlockType::Hardwaretype:
+        {
+            auto len = LoadBinary<std::uint8_t>(p_stream);
+            p_stream.ignore(len * 3);
+            break;
+        }
+        case TzxBlockType::Custominfoblock:
+        {
+            p_stream.ignore(0x10);
+            auto len = LoadBinary<std::uint16_t>(p_stream);
+            p_stream.ignore(len);
+            break;
+        }
+        case TzxBlockType::Glueblock:
+        {
+            p_stream.ignore(9);
+            break;
+        }
         default:
             std::cout << "TODO: TZX:" << id << std::endl;       // TODO!
 
