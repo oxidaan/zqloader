@@ -101,8 +101,10 @@ Switch off `Audio Enhancements` there.
 Make sure no other sound is playing.
 At the host type:
 ```
-zqloader path/to/zqloader.tap path/to/turbofile
+path/to/zqloader path/to/zqloader.tap path/to/turbofile
 ```
+(At Windows there should be an explorer context menu `Load with ZQLoader`)
+
 Eg:
 ```
 zqloader z80/zqloader.tap c:\games\manic.z80`
