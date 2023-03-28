@@ -71,7 +71,7 @@ make
 ```
 This will also try to build the z80 assembly code - but only if [sjasmplus](https://github.com/z00m128/sjasmplus) is present. For instructions see [sjasmplus](https://github.com/z00m128/sjasmplus/blob/master/INSTALL.md); I recommend was is described there under *CMAKE method for Linux / Unix / macOS / BSD* because ZQloader also uses CMake.
 The assembler will also need the `BasicLib` to be present in the `examples` directory that comes with sjasmplus.  
-If you can not build sjasmplus: no problem because its output files `zqloader.tap` and `zqloader.exp` and `snapshotregs.bin` are also at github.
+If you can not build sjasmplus: no problem because its output files `zqloader.tap` and `zqloader.exp` and `snapshotregs.bin` are also here at github.
 
 To assemble the z80 assembly code manually (without CMake) you can also use Visual studio code with the provided `tasks.json` at `.vscode` directory.
 Or use a command like:
@@ -85,7 +85,7 @@ sjasmplus --fullpath     \
 Installing
 ---
 **Windows**  
-A Windows installer isavailable [here](https://github.com/oxidaan/zqloader/releases). After installation it *should* add menu items to TAP/TZX/Z*) files `Load with ZQLoader`. If it does not try `Open with` -> `Choose another app`.  
+A Windows installer is available [here](https://github.com/oxidaan/zqloader/releases). After installation it *should* add menu items to TAP/TZX/Z*) files `Load with ZQLoader`. If it does not try `Open with` -> `Choose another app`. At some point `Load with ZQ Loader` should be there in the explorer context menu.
 **Linux**  
 Use CMake, see above.
 
