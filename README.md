@@ -52,11 +52,11 @@ Limitations/TODO's
 * It can only load games (or applications) that are in machine code, not BASIC. Any BASIC is ignored. This is because the loader itself is coded into a BASIC rem statement - and would get lost if any loaded BASIC over writes it.  
 The latest version of ZQloader can now recognize this situation and then copy the Z80 ZQloader code to the (lower 3rd) of the screen - then BASIC can be overwritten. Still it ignores any BASIC when processing a TAP or TZX file, except trying to find the CLEAR and USR adresses in it. There is no code yet to see if the BASIC is just a simple loader (that can be ignored) or has more to it.
 
-* It cannot load games that have any kind of copy protection. Or does any loading without BASIC. Eg *Horace and the Spiders* does some additional loading after Machine code started. ZXloader cannot possible know where this extra datablock needs to go. Same for headerless: ZQloader does not know where to put these. Of course these games can loaded without problem using a Z80 snapshot.
+* It cannot load games that have any kind of copy protection. Or does any loading without BASIC. Eg *Horace and the Spiders* does some additional loading after Machine code started. ZXloader cannot possible know where this extra datablock needs to go. Same for headerless: ZQloader does not know where to put these. Of course these games can be loaded without problem using a Z80 snapshot.
 
 * Want to add code to load .SNA snapshots.
 
-* Not all TZX blocks are correctly recognized.
+* Add a user interface! Maybe with QT. It is now only commandline...
 
 Building
 ---
@@ -71,7 +71,7 @@ make
 ```
 This will also try to build the z80 assembly code - but only if [sjasmplus](https://github.com/z00m128/sjasmplus) is present. For instructions see [sjasmplus](https://github.com/z00m128/sjasmplus/blob/master/INSTALL.md); I recommend was is described there under *CMAKE method for Linux / Unix / macOS / BSD* because ZQloader also uses CMake.
 The assembler will also need the `BasicLib` to be present in the `examples` directory that comes with sjasmplus.  
-If you can not build sjasmplus: no problem because its output files `zqloader.tap` and `zqloader.exp` and `snapshotregs.bin` are also at github.
+If you can not build sjasmplus: no problem because its output files `zqloader.tap` and `zqloader.exp` and `snapshotregs.bin` are also here at github.
 
 To assemble the z80 assembly code manually (without CMake) you can also use Visual studio code with the provided `tasks.json` at `.vscode` directory.
 Or use a command like:
@@ -85,7 +85,7 @@ sjasmplus --fullpath     \
 Installing
 ---
 **Windows**  
-A Windows installer isavailable [here](https://github.com/oxidaan/zqloader/releases). After installation it *should* add menu items to TAP/TZX/Z*) files `Load with ZQLoader`. If it does not try `Open with` -> `Choose another app`.  
+A Windows installer is available [here](https://github.com/oxidaan/zqloader/releases). After installation it *should* add menu items to TAP/TZX/Z*) files `Load with ZQLoader`. If it does not try `Open with` -> `Choose another app`. At some point `Load with ZQ Loader` should be there in the explorer context menu.
 **Linux**  
 Use CMake, see above.
 
@@ -101,8 +101,10 @@ Switch off `Audio Enhancements` there.
 Make sure no other sound is playing.
 At the host type:
 ```
-zqloader path/to/zqloader.tap path/to/turbofile
+path/to/zqloader path/to/zqloader.tap path/to/turbofile
 ```
+(At Windows there should be an explorer context menu `Load with ZQLoader`)
+
 Eg:
 ```
 zqloader z80/zqloader.tap c:\games\manic.z80`
