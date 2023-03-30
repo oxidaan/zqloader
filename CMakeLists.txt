@@ -35,6 +35,11 @@ set(SOURCE
     tzxloader.cpp
 )
 
+if(MSVC)
+    set(SOURCE ${SOURCE}
+    zqloader.rc)
+endif()
+
 set(DOCUMENTATION
     README.md
     LICENSE.txt
@@ -63,20 +68,20 @@ endif()
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE
         /permissive-;
-        /MP;
-        /Oi;
-        /Gy;
-        /W4;
-        /WX;
+        /MP;                # multi processor build
+        /Oi;                # intrincic functions
+        /Gy;                # function level linking
+        /W4;                # warning level
+        /WX;                # warnings are errors
         ${DEFAULT_CXX_DEBUG_INFORMATION_FORMAT};
-        /Zc:__cplusplus;
+        /Zc:__cplusplus;    # fix bug to recognise __cplusplus
         ${DEFAULT_CXX_EXCEPTION_HANDLING}
     )
     target_link_options(${PROJECT_NAME} PRIVATE
         /DEBUG;
         /SUBSYSTEM:CONSOLE;
-        /OPT:REF;
-        /OPT:ICF
+        /OPT:REF;           # Remove unreferenced
+        /OPT:ICF            # identical COMDAT folding
     )
 endif()
 
@@ -91,11 +96,6 @@ if (GCC)
 endif()
 
 
-
-
-
-
-
 if(UNIX)
     target_link_libraries(${PROJECT_NAME} PRIVATE dl pthread)
 endif()
@@ -103,14 +103,7 @@ if(WIN32)
     target_link_libraries(${PROJECT_NAME} PRIVATE ws2_32 DbgHelp psapi)
 endif()
 
-if(MSVC)
-    target_link_options(${PROJECT_NAME} PRIVATE
-    /DEBUG;
-    /SUBSYSTEM:CONSOLE;
-    /OPT:REF;
-    /OPT:ICF
-    )
-endif()
+
 
 
 install(TARGETS ${PROJECT_NAME} 

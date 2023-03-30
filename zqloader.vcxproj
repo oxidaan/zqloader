@@ -148,6 +148,7 @@
     <ClInclude Include="event.h" />
     <ClInclude Include="loadbinary.h" />
     <ClInclude Include="pulsers.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="samplesender.h" />
     <ClInclude Include="spectrum_loader.h" />
     <ClInclude Include="spectrum_types.h" />
@@ -161,6 +162,12 @@
     <ClInclude Include="types.h" />
     <ClInclude Include="tzxloader.h" />
     <ClInclude Include="z80snapshot_loader.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="zqloader.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resource\zqloader.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

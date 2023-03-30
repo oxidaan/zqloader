@@ -36,6 +36,7 @@
     <ClInclude Include="tzxloader.h" />
     <ClInclude Include="z80snapshot_loader.h" />
     <ClInclude Include="tools.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="z80\zqloader.z80asm" />
@@ -51,5 +52,11 @@
     <Filter Include="z80asm">
       <UniqueIdentifier>{b98788d2-f3ca-4fc8-9d3b-198825e74b43}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="zqloader.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resource\zqloader.ico" />
   </ItemGroup>
 </Project>

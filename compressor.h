@@ -38,8 +38,8 @@ public:
 
     using DataBlock      = TDataBlock;
     using TData          = typename TDataBlock::value_type;         // usually std::byte
-    using iterator       = typename std::vector<TData>::iterator;
-    using const_iterator = typename std::vector<TData>::const_iterator;
+    using iterator       = typename TDataBlock::iterator;
+    using const_iterator = typename TDataBlock::const_iterator;
     struct RLE_Meta
     {
         TData   most;             // the value that occurs most
