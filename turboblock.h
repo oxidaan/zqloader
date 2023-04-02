@@ -54,13 +54,26 @@ public:
     /// CTOR, take an export file name that will be used to load symbols.
     /// TPath must be std::filesystem::path
     template <class TPath>
-    TurboBlocks(const TPath &p_symbol_file_name);
+    TurboBlocks(SpectrumLoader& p_spectrumloader, const TPath &p_symbol_file_name);
 
     /// DTOR
     ~TurboBlocks();
 
-    /// Set duration T state times for zero and one
+    TurboBlocks& Load(const std::filesystem::path& p_filename, std::string p_zxfilename);
+
+    /// Set durations in T states for zero and one pulses.
     TurboBlocks& SetDurations(int p_zero_duration, int p_one_duration);
+
+    TurboBlocks& SetBitLoopMax(uint8_t p_value)
+    {
+        m_bit_loop_max = p_value;
+        return *this;
+    }
+    TurboBlocks& SetBitOneThreshold(uint8_t p_value)
+    {
+        m_bit_one_threshold = p_value;
+        return *this;
+    }
 
     /// Set compression type.
     TurboBlocks& SetCompressionType(CompressionType p_compression_type)
@@ -99,17 +112,24 @@ public:
     /// no-op when there are no blocks.
     /// p_usr_address: when done loading all blocks end start machine code here as in RANDOMIZE USR xxxx
     /// p_clear_address: when done loading put stack pointer here, which is a bit like CLEAR xxxx
-    void MoveToLoader(SpectrumLoader& p_loader, uint16_t p_usr_address, uint16_t p_clear_address = 0);
+    void MoveToLoader(uint16_t p_usr_address, uint16_t p_clear_address = 0);
 
-    /// Convenience public access to Symbols as loaded by CTOR.
+    /// Convenience public read access to Symbols as loaded by CTOR.
     const Symbols& GetSymbols() const
     {
         return m_symbols;
     }
 
-
-
+    bool HandleTapBlock(DataBlock p_block, std::string p_zxfilename);
 private:
+    void SetByteToZqLoaderTap(DataBlock& p_block, const char* p_name, std::byte p_value) const
+    {
+        auto adr = 1 + m_symbols.GetSymbol(p_name);     // + 1 because of start byte
+        p_block[adr] = p_value ;
+    }
+
+
+    // Do 2 blocks overlap?
     template <class T1, class T2, class T3, class T4>
     static bool Overlaps(T1 p_start, T2 p_end, T3 p_start2, T4 p_end2)
     {
@@ -135,6 +155,9 @@ private:
     //    int m_one_duration = 280;
     int m_zero_duration = 118;      // @@ see zqloader.asm
     int m_one_duration = 293;       // @@ 175 more (3.5 cycle)
+    uint8_t m_bit_loop_max = 0;
+    uint8_t m_bit_one_threshold = 0;
+    SpectrumLoader& m_spectrumloader;
 
 };
 

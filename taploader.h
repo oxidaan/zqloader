@@ -12,24 +12,42 @@
 #include <iostream>
 #include <string>
 #include <filesystem>
-
+#include <functional>
 struct DataBlock;
 
 
 
 
 /// Loads tap files.
-/// For each tab block found calls virtual HandleTapBlock.
+/// For each tap block found calls virtual HandleTapBlock.
 /// See https://sinclair.wiki.zxnet.co.uk/wiki/TAP_format
+/// Base for TapToSpectrumLoader, TapToTurboBlocks.
 class TapLoader
 {
 public:
+    using HandleTapBlockFun = std::function<bool(DataBlock, std::string)>;
+
+    /// Load a tap file from given filename.
+    /// p_zxfilename: the ZX Spectrum file name, eg used to filter / only load certain 
+    /// program names.
     TapLoader& Load(const std::filesystem::path &p_filename, std::string p_zxfilename);
     
+    /// Load a tap file from given stream. Stops HandleTapBlock returns true.
     TapLoader& Load(std::istream& p_stream, std::string p_zxfilename);
-    
+
+    /// Load a data block as in TAP format from given stream.    
     DataBlock LoadTapBlock(std::istream& p_stream);
 
-    virtual bool HandleTapBlock(DataBlock p_block, std::string p_zxfilename) = 0;
+
+    bool HandleTapBlock(DataBlock p_block, std::string p_zxfilename);
+
+    /// Set callback when tapblock found
+    TapLoader& SetOnHandleTapBlock(HandleTapBlockFun p_fun)
+    {
+        m_OnHandleTapBlock = std::move(p_fun);
+        return *this;
+    }
+private:
+    HandleTapBlockFun m_OnHandleTapBlock;
 
 };

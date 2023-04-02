@@ -14,9 +14,10 @@
 #include "turboblock.h"
 #include "spectrum_types.h"     // ZxHeader
 
-/// A taploader that feeds its loaded data blocks to given 
-/// Turboblocks.
-class TapToTurboBlocks : public TapLoader
+/// Loads one or more tap blocks
+/// Tries to read data from BASIC blocks
+/// Feeds tab blocks to Turboblocks.
+class TapToTurboBlocks 
 {
 public:
     TapToTurboBlocks(TurboBlocks& p_tblocks) :
@@ -24,12 +25,12 @@ public:
     {}
 
 
-    /// Handle loaded data block:
+    /// Handle incomping loaded (tap) data block.
     /// When header: check name; store as last header.
     /// When data: based on last header header:
     ///     When basic: try get addresses like RANDOMIZE USR XXXXX
-    ///     When code: Add to list of blocks to (turbo) load
-    virtual bool HandleTapBlock(DataBlock p_block, std::string p_zxfilename) override;
+    ///     When code: Add to list of blocks to (turbo) load as given at CTOR.
+    bool HandleTapBlock(DataBlock p_block, std::string p_zxfilename);
 
     // Get MC start address as found in BASIC block as in RANDOMIZE USR xxxxx
     uint16_t GetUsrAddress() const

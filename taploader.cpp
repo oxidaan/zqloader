@@ -31,6 +31,15 @@ DataBlock TapLoader::LoadTapBlock(std::istream & p_stream)
     throw std::runtime_error("Error reading tap block");
 }
 
+bool TapLoader::HandleTapBlock(DataBlock p_block, std::string p_zxfilename)
+{
+    if (m_OnHandleTapBlock)
+    {
+        return m_OnHandleTapBlock(std::move(p_block), p_zxfilename);
+    }
+    return false;
+}
+
 /// Load a tap file from given filename.
 /// p_zxfilename: the ZX Spectrum file name, eg used to filter / only load certain 
 /// program names.
@@ -55,7 +64,8 @@ TapLoader& TapLoader::Load(const fs::path &p_filename, std::string p_zxfilename)
 }
 
 
-/// Load a tap file from given stream. Stops when tap block was handled.
+/// Load a tap file from given stream. Stops when tap block was handled: that 
+/// is when HandleTapBlock returns true.
 /// p_zxfilename: the ZX Spectrum file name, eg used to filter / only load certain 
 /// program names.
 inline TapLoader& TapLoader::Load(std::istream& p_stream, std::string p_zxfilename)

@@ -143,7 +143,7 @@ A number between -100 and 100: sets volume for left or right sound (stereo) chan
    Sample rate for audio. Default 0 meaning take device native sample rate. S/a miniaudio documentation.
 * zero_tstates = value
 * one_tstates = value  
-     The number of TStates a zero / one pulse will take when using the ZQloader/turboloader. Not giving this (or 0) uses a default that worked for me.
+     The number of TStates a zero / one pulse will take when using the ZQloader/turboloader. Not giving this (or 0) uses a default that worked for me. (118/293)
 * key = yes/no/error  
       When done wait for key: yes=always, no=never or only when an error occurred (which is the default).
 * --help

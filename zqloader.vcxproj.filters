@@ -15,6 +15,7 @@
     <ClCompile Include="z80snapshot_loader.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="tools.cpp" />
+    <ClCompile Include="taptospectrumloader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="byte_tools.h" />
@@ -29,7 +30,6 @@
     <ClInclude Include="spectrum_consts.h" />
     <ClInclude Include="symbols.h" />
     <ClInclude Include="taploader.h" />
-    <ClInclude Include="taptospectrumloader.h" />
     <ClInclude Include="taptoturboblocks.h" />
     <ClInclude Include="turboblock.h" />
     <ClInclude Include="types.h" />

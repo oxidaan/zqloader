@@ -103,7 +103,10 @@ public:
     SpectrumLoader& Run()
     {
         Reset();
-        m_sample_sender.Run();
+        if(m_pulsers.size())
+        {
+            m_sample_sender.Run();
+        }
         return *this;
     }
 

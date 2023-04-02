@@ -547,9 +547,10 @@ wait_for_first_edge:
 //          1  2  3  4  5  6# 7  8  9 10 11 12  (12)  # cycles (#INs done)
 //          0  0  0  0  0  1  1  1  1  1  1  1  t/o     (- = to soon)
 LOAD_BYTES:   
-//.nextbyte
-    ld D, ONE_MAX
-    ld E, ONE_MAX+2-ONE_MIN     // eg 12+2-6 = 8
+
+BIT_LOOP_MAX+*:     ld D, ONE_MAX
+BIT_ONE_THESHLD+*:  ld E, ONE_MAX+2-ONE_MIN     // eg 12+2-6 = 8
+
     ld B, 200                   // @Opt Mini sync
     call WAIT_FOR_EDGE          // @Opt Mini sync
     ret z                       // @Opt Mini sync
@@ -560,7 +561,7 @@ LOAD_BYTES:
 // Time between WAIT_FOR_EDGE calls: 42T
 // Min Time between IN's 42T + 69T = 111T
 // Max Time between IN's 82T + 69T = 151T
-// entire byte = 391T + 8 * 69 = 943T (~118T per bit)
+// entire byte = 391T + 8 * 69 = 943T (~118T per bit @@)
 .nextbit              
     READ_ONE_BIT
 //    jp nc, .nextbit           // @opt no unroll loop
@@ -794,6 +795,8 @@ SNAPSHOT_CODE_LEN EQU SNAPSHOT_CODE_END-SNAPSHOT_CODE_BEGIN
  EXPORT A_reg 
  EXPORT F_reg 
  EXPORT sizeof_header   // so can check at C++
+ EXPORT BIT_LOOP_MAX
+ EXPORT BIT_ONE_THESHLD
 
 
  // ===========================================================================

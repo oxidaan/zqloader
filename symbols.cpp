@@ -38,7 +38,7 @@ void Symbols::ReadSymbols(const fs::path &p_filename)
     std::ifstream fileread(p_filename);
     if (!fileread)
     {
-        throw std::runtime_error("File " + p_filename.string() + " not found.");
+        throw std::runtime_error("Symbol file " + p_filename.string() + " not found.");
     }
     std::string line;
     while (std::getline(fileread, line))

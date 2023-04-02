@@ -97,10 +97,10 @@ TzxLoader& TzxLoader::Load(std::istream& p_stream, std::string p_zxfilename)
         switch (id)
         {
         case TzxBlockType::StandardSpeedDataBlock:
-            done = LoadDataAsInTapFile(p_stream, p_zxfilename, 0x4 - 2);
+            done = HandleTapBlock(p_stream, p_zxfilename, 0x4 - 2);
             break;
         case TzxBlockType::TurboSpeedDataBlock:
-            done = LoadDataAsInTapFile(p_stream, p_zxfilename, 0x12 - 2);
+            done = HandleTapBlock(p_stream, p_zxfilename, 0x12 - 2);
             break;
         case TzxBlockType::Puretone:
             p_stream.ignore(4);
@@ -112,7 +112,7 @@ TzxLoader& TzxLoader::Load(std::istream& p_stream, std::string p_zxfilename)
             break;  
         }
         case TzxBlockType::PureDataBlock:
-            done = LoadDataAsInTapFile(p_stream, p_zxfilename, 0x0A - 2);
+            done = HandleTapBlock(p_stream, p_zxfilename, 0x0A - 2);
             break;
         case TzxBlockType::DirectRecordingBlock:
         {
@@ -221,12 +221,17 @@ TzxLoader& TzxLoader::Load(std::istream& p_stream, std::string p_zxfilename)
     return *this;
 }
 
-bool TzxLoader::LoadDataAsInTapFile(std::istream& p_stream, std::string p_zxfilename, size_t p_ignore)
+bool TzxLoader::HandleTapBlock(std::istream& p_stream, std::string p_zxfilename, size_t p_ignore)
 {
     // [2 byte len] - [spectrum data incl. checksum]
+    TapLoader taploader;
     p_stream.ignore(p_ignore);     // Pause after this block (ms.) {1000}
-    auto block = m_taploader.LoadTapBlock(p_stream);
-    return m_taploader.HandleTapBlock(std::move(block), p_zxfilename);
+    auto block = taploader.LoadTapBlock(p_stream);
+    if (m_OnHandleTapBlock)
+    {
+        return m_OnHandleTapBlock(std::move(block), p_zxfilename);
+    }
+    return false;
 }
 
 /// Make conversion from enum tags to string somewhat simpler

@@ -20,12 +20,12 @@
 /// or: https://worldofspectrum.net/TZXformat.html
 class TzxLoader
 {
+    using HandleTapBlockFun = std::function<bool(DataBlock, std::string)>;
 
 public:
-    /// CTOR taks a Taploader. Because TZX file often 'load data as in tap file'.
+    /// CTOR takes a Taploader. Because TZX file often 'load data as in tap file'.
     /// Taploader has a virtual function that handles the thus loaded tap blocks.
-    TzxLoader(TapLoader& p_taploader) :
-        m_taploader(p_taploader)
+    TzxLoader()
     {}
 
 
@@ -36,10 +36,16 @@ public:
     ///  Loads tzx file from given stream.
     TzxLoader& Load(std::istream& p_stream, std::string p_zxfilename);
 
+    /// Set callback when tapblock found
+    TzxLoader& SetOnHandleTapBlock(HandleTapBlockFun p_fun)
+    {
+        m_OnHandleTapBlock = std::move(p_fun);
+        return *this;
+    }
 private:
-    bool LoadDataAsInTapFile(std::istream& p_stream, std::string p_zxfilename, size_t p_ignore);
+    bool HandleTapBlock(std::istream& p_stream, std::string p_zxfilename, size_t p_ignore);
 private:
-    TapLoader& m_taploader;
+    HandleTapBlockFun m_OnHandleTapBlock;
 };
 
 

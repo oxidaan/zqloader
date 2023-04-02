@@ -8,11 +8,13 @@
 //==============================================================================
 
 #include "turboblock.h"
+#include "taploader.h"
 #include "pulsers.h"
 #include "compressor.h"
 #include <filesystem>
 namespace fs = std::filesystem;
 
+using namespace std::placeholders;
 
 
 #ifdef _MSC_VER
@@ -27,10 +29,6 @@ class TurboBlock
 {
     friend class TurboBlocks;
 public:
-    // What to do after loading a turboblock
-
-
-
 
 #pragma pack(push, 1)
     struct Header
@@ -53,7 +51,8 @@ public:
 
         friend std::ostream& operator <<(std::ostream& p_stream, const Header& p_header)
         {
-            p_stream << "length = " << p_header.m_length << std::endl
+            p_stream 
+                << "length = " << p_header.m_length << std::endl
                 << "load_address = " << p_header.m_load_address << std::endl
                 << "dest_address = " << p_header.m_dest_address << std::endl
                 << "compression_type = " << p_header.m_compression_type << std::endl
@@ -70,11 +69,17 @@ public:
             return p_stream;
         }
     };
+
 #pragma pack(pop)
     static_assert(sizeof(Header) == 15, "Check size of Header");
+
+
+
 public:
     TurboBlock(const TurboBlock&) = delete;
+
     TurboBlock(TurboBlock&&) = default;
+
     TurboBlock()
     {
         m_data.resize(sizeof(Header));
@@ -172,8 +177,6 @@ public:
         GetHeader().m_length = uint16_t(data->size());
         //GetHeader().m_length = uint16_t(compressed_data.size() + 2);       // @DEBUG should give ERROR
         m_data.insert(m_data.end(), data->begin(), data->end());          // append given data at m_data (after header)
-
-
 
 
         if (!m_overwrites_loader && GetHeader().m_load_address == 0 && GetHeader().m_dest_address != 0)
@@ -426,15 +429,24 @@ private:
 
 
 
-
+/// CTOR, take an export file name that will be used to load symbols.
 template<>
-TurboBlocks::TurboBlocks(const fs::path &p_symbol_file_name) :
-    m_symbols(p_symbol_file_name)
+TurboBlocks::TurboBlocks(SpectrumLoader& p_spectrumloader, const fs::path &p_symbol_file_name) :
+    m_symbols(p_symbol_file_name),
+    m_spectrumloader(p_spectrumloader)
 {
 }
 
 
 TurboBlocks::~TurboBlocks() = default;
+
+TurboBlocks& TurboBlocks::Load(const std::filesystem::path& p_filename, std::string p_zxfilename)
+{
+    TapLoader loader;
+    loader.SetOnHandleTapBlock(std::bind(&TurboBlocks::HandleTapBlock, this, _1, _2));
+    loader.Load(p_filename, p_zxfilename);
+    return *this;
+}
 
 
 /// Add given Datablock as TurboBlock at given address.
@@ -519,7 +531,7 @@ TurboBlocks& TurboBlocks::AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr
     return *this;
 }
 
-// Add given datablock with given start address
+/// Add given datablock with given start address
 void TurboBlocks::AddTurboBlock(DataBlock&& p_block, uint16_t p_dest_address)
 {
     TurboBlock tblock;
@@ -528,7 +540,7 @@ void TurboBlocks::AddTurboBlock(DataBlock&& p_block, uint16_t p_dest_address)
     AddTurboBlock(std::move(tblock));
 }
 
-// Add given turboblock
+/// Add given turboblock
 void TurboBlocks::AddTurboBlock(TurboBlock&& p_block)
 {
     if (m_turbo_blocks.size() > 0)
@@ -539,7 +551,7 @@ void TurboBlocks::AddTurboBlock(TurboBlock&& p_block)
 }
 
 
-void TurboBlocks::MoveToLoader(SpectrumLoader& p_loader, uint16_t p_usr_address, uint16_t p_clear_address)
+void TurboBlocks::MoveToLoader( uint16_t p_usr_address, uint16_t p_clear_address)
 {
     std::cout << std::endl;
     if (m_upper_block)
@@ -562,13 +574,27 @@ void TurboBlocks::MoveToLoader(SpectrumLoader& p_loader, uint16_t p_usr_address,
     for (auto& tblock : m_turbo_blocks)
     {
         auto next_pause = tblock.EstimateHowLongSpectrumWillTakeToDecompress(); // b4 because moved
-        std::move(tblock).MoveToLoader(p_loader, pause_before, m_zero_duration, m_one_duration);
+        std::move(tblock).MoveToLoader(m_spectrumloader, pause_before, m_zero_duration, m_one_duration);
         pause_before = next_pause;
     }
     m_turbo_blocks.clear();
 }
 
+bool TurboBlocks::HandleTapBlock(DataBlock p_block, std::string p_zxfilename)
+{
+    if (m_bit_loop_max)
+    {
+        SetByteToZqLoaderTap(p_block, "BIT_LOOP_MAX", std::byte(m_bit_loop_max));
+    }
+    if (m_bit_one_threshold)
+    {
+        SetByteToZqLoaderTap(p_block, "BIT_ONE_THESHLD", std::byte(m_bit_one_threshold));
+    }
+    m_spectrumloader.AddLeaderPlusData(std::move(p_block), 700, 1750ms);
+    return false;
+}
 
+/// Set durations in T states for zero and one pulses.
 TurboBlocks &TurboBlocks::SetDurations(int p_zero_duration, int p_one_duration)
 {
     if(p_zero_duration != 0)

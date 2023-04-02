@@ -28,7 +28,6 @@
 
 
 #include "spectrum_loader.h"
-#include "taptospectrumloader.h"
 #include "tzxloader.h"
 #include "taptoturboblocks.h"
 #include "z80snapshot_loader.h"
@@ -153,7 +152,47 @@ int main(int argc, char** argv)
         {
             filename = (cmdline.GetNumParameters() == 1) ? cmdline.GetParameter(1) : cmdline.GetParameter(cmdline.GetNumParameters() - 1);
         }
+
+        // Check if file exist if not try at current executable directory
+        if (!std::filesystem::exists(filename))
+        {
+            // try at current executable directory by default 
+            filename = fs::path(argv[0]).parent_path() / filename;
+            // (if still not exist will throw anyway)
+        }
          
+
+        // either last parameter if 2 or more parameters
+        // or turbofile="path/to/file" given
+        fs::path filename2 = cmdline.GetParameter("turbofile", "");
+        if (filename2.empty() && cmdline.GetNumParameters() >= 2)
+        {
+            filename2 = cmdline.GetLastParamer();
+        }
+
+        bool is_zqloader = ToLower(filename.stem().string()) == "zqloader";
+
+
+        if ((is_zqloader && filename2.empty()) || ToLower(filename2.stem().string()) == "zqloader")
+        {
+            throw std::runtime_error(1 + &*R"(
+When using zqloader.tap a 2nd filename is needed as runtime argument,
+with the program to be turboloaded. A game for example. 
+Else the ZX Spectrum will not do anything after loading the turbo loader,
+except waiting.
+)");
+        }
+        if (!is_zqloader && !filename2.empty())
+        {
+            throw std::runtime_error(1 + &*R"(
+A second filename argument and/or parameters are only usefull when using zqloader.tap 
+(which is the turbo loader) as (1st) file.
+)");
+        }
+
+        std::cout << "Processing file " << filename << std::endl;
+
+
         SampleSender sample_sender;
         auto vol1 = cmdline.GetParameter("volume_left", 100);
         auto vol2 = cmdline.GetParameter("volume_right", 100);
@@ -162,69 +201,50 @@ int main(int argc, char** argv)
         SpectrumLoader spectrumloader;
         spectrumloader.SetSampleSender(std::move(sample_sender));
 
-        // 1st file
-        {
-            std::ifstream fileread(filename, std::ios::binary);
-            if (!fileread)
-            {
-                // try at current executable directory by default 
-                filename = fs::path(argv[0]).parent_path() / filename;
-                fileread.open(filename, std::ios::binary);
-            }
-            if (!fileread)
-            {
-                throw std::runtime_error("File " + filename.string() + " not found.");
-            }
-            if (ToLower(filename.stem().string()) == "zqloader" && argc <= 2)
-            {
-                throw std::runtime_error(1 + &*R"(
-When using zqloader.tap a 2nd filename is needed as runtime argument,
-with the program to be turboloaded. A game for example. 
-Else the ZX Spectrum will not do anything after loading the turbo loader,
-except waiting.
-)");
-            }
-            std::cout << "Processing file " << filename << std::endl;
 
-            if (ToLower(filename.extension().string()) == ".tap" )
+        if(!is_zqloader)
+        {
+            if (ToLower(filename.extension().string()) == ".tap")
             {
-                TapToSpectrumLoader loader(spectrumloader);
-                loader.Load(filename, "");
+                TapLoader taploader;
+                taploader.SetOnHandleTapBlock([&](DataBlock p_block, std::string)
+                {
+                    spectrumloader.AddLeaderPlusData(std::move(p_block), 700, 1750ms);//.AddPause(100ms);
+                    return false;
+                }
+                );
+                taploader.Load(filename, "");
             }
             if (ToLower(filename.extension().string()) == ".tzx")
             {
-                TapToSpectrumLoader loader(spectrumloader);
-                TzxLoader taploader(loader);
-                taploader.Load(filename, "");
+                TzxLoader tzxloader;
+                tzxloader.SetOnHandleTapBlock([&](DataBlock p_block, std::string)
+                {
+                    spectrumloader.AddLeaderPlusData(std::move(p_block), 700, 1750ms);//.AddPause(100ms);
+                    return false;
+                }
+                );
+                tzxloader.Load(filename, "");
             }
-        }
-
-        // either last parameter if 2 or more parameters
-        // or turbofile="path/to/file" given
-        fs::path filename2 = cmdline.GetParameter("turbofile", "");
-        if (filename2.empty())
-        {
-            filename2 = cmdline.GetLastParamer();
-        }
-
-        if (!filename2.empty())
-        {
-            if (ToLower(filename.stem().string()) != "zqloader")
+            else
             {
-                throw std::runtime_error(1 + &*R"(
-A second filename argument is only usefull when using zqloader.tap 
-(which is the turbo loader) as 1st file.");
-)");
+                throw std::runtime_error("Unknown file type for filename: " + filename.string() + " (extension not tap / tzx)");
             }
+        }
+        else
+        { 
             fs::path filename_exp = filename;
             filename_exp.replace_extension("exp");      // zqloader.exp (symbols)
+            TurboBlocks tblocks(spectrumloader, filename_exp);
+            tblocks.Load(filename, "");
 
-            TurboBlocks tblocks(filename_exp);
             tblocks.SetCompressionType(CompressionType::automatic);
             auto zero_tstates = cmdline.GetParameter("zero_tstates", 0);       // 0 is default
             auto one_tstates = cmdline.GetParameter("one_tstates", 0);         // 0 is default
-            tblocks.SetDurations(zero_tstates, one_tstates);
-            std::cout << "Processing turbo file " << filename2 << std::endl;
+            auto bit_loop_max = cmdline.GetParameter<uint8_t>("bit_loop_max", 0);       // 0 is default
+            auto bit_one_threshold = cmdline.GetParameter<uint8_t>("bit_one_threshold", 0);         // 0 is default
+            tblocks.SetDurations(zero_tstates, one_tstates).SetBitLoopMax(bit_loop_max).SetBitOneThreshold(bit_one_threshold);
+            std::cout << "Processing zqloader turbo file " << filename2 << std::endl;
 /*
             if (false)      // test
             {
@@ -239,16 +259,27 @@ A second filename argument is only usefull when using zqloader.tap
 */
             if (ToLower(filename2.extension().string()) == ".tap")
             {
-                TapToTurboBlocks loader(tblocks);
+                TapToTurboBlocks tab_to_turbo_blocks(tblocks);
+                TapLoader loader;
+                loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string p_zxfilename)
+                {
+                    return tab_to_turbo_blocks.HandleTapBlock(std::move(p_block), p_zxfilename);
+                }
+                );                
                 loader.Load(filename2, "");
-                tblocks.MoveToLoader(spectrumloader, loader.GetUsrAddress(), loader.GetClearAddress());
+                tblocks.MoveToLoader(tab_to_turbo_blocks.GetUsrAddress(), tab_to_turbo_blocks.GetClearAddress());
             }
             else if (ToLower(filename2.extension().string()) == ".tzx")
             {
-                TapToTurboBlocks loader(tblocks);
-                TzxLoader tzxloader(loader);
-                tzxloader.Load(filename2, "");
-                tblocks.MoveToLoader(spectrumloader, loader.GetUsrAddress(), loader.GetClearAddress());
+                TapToTurboBlocks tab_to_turbo_blocks(tblocks);
+                TzxLoader loader;
+                loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string p_zxfilename)
+                {
+                    return tab_to_turbo_blocks.HandleTapBlock(std::move(p_block), p_zxfilename);
+                }
+                );
+                loader.Load(filename2, "");
+                tblocks.MoveToLoader(tab_to_turbo_blocks.GetUsrAddress(), tab_to_turbo_blocks.GetClearAddress());
             }
             else if (ToLower(filename2.extension().string()) == ".z80")
             {
@@ -260,15 +291,20 @@ A second filename argument is only usefull when using zqloader.tap
                 DataBlock regblock;
                 regblock.LoadFromFile(snapshot_regs_filename);
                 z80loader.Load(filename2).SetRegBlock(std::move(regblock)).MoveToTurboBlocks(tblocks);
-                tblocks.MoveToLoader(spectrumloader, z80loader.GetUsrAddress());
+                tblocks.MoveToLoader(z80loader.GetUsrAddress());
                 //                tblocks.MoveToLoader(spectrumloader, 1);        // @DEBUG
             }
             else if (ToLower(filename2.extension().string()) == ".bin")
             {
                 // @DEBUG
                 auto adr = Test(tblocks, filename2);
-                tblocks.MoveToLoader(spectrumloader, adr);
+                tblocks.MoveToLoader(adr);
             }
+            else
+            {
+                throw std::runtime_error("Unknown file type for filename: " + filename2.string() + " (extension not tap / tzx / z80)");
+            }
+
         }
         auto start = std::chrono::steady_clock::now();
         spectrumloader.Run();
