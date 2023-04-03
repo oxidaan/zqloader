@@ -67,7 +67,7 @@ int Key()
 void Version()
 {
     std::cout << 1 + &*R"(
-ZQLoader version 0.12
+ZQLoader version 0.13
 (C) 2023 Daan Scherft[Oxidaan].
 https://github.com/oxidaan/zqloader
 This project uses the miniaudio library by David Read. (https://miniaud.io/)
@@ -115,6 +115,14 @@ More options can be given with syntax: option=value, or just option value or opt
     one_tstates = value     The number of TStates a zero / one pulse will take when using the 
                             zqloader/turboloader. Not giving this (or 0) uses a default that 
                             worked for me.
+    bit_one_threshold       A time value in 50xTStates used at Z80 turboloader indicating the
+                            time between edges when it is considered a 'one' - below this time
+                            it is considered a 'zero'. Related to 'one_tstates' above.
+                            Not giving this (or 0) uses a default that worked for me (4)
+    bit_loop_max            A time value in 50xTstates used at Z80 turboloader indicating the
+                            maximum time between edges treated as valid 'one' value. Above this 
+                            a timeout error will occur.
+                            Not giving this (or 0) uses a default that worked for me (12)
     key = yes/no/error      When done wait for key: yes=always, no=never or only when an error
                             occurred (which is the default).
     )" << std::endl;
@@ -231,19 +239,20 @@ A second filename argument and/or parameters are only usefull when using zqloade
                 throw std::runtime_error("Unknown file type for filename: " + filename.string() + " (extension not tap / tzx)");
             }
         }
-        else
-        { 
+        else    // is zqloader
+        {   
             fs::path filename_exp = filename;
             filename_exp.replace_extension("exp");      // zqloader.exp (symbols)
             TurboBlocks tblocks(spectrumloader, filename_exp);
-            tblocks.Load(filename, "");
 
             tblocks.SetCompressionType(CompressionType::automatic);
             auto zero_tstates = cmdline.GetParameter("zero_tstates", 0);       // 0 is default
             auto one_tstates = cmdline.GetParameter("one_tstates", 0);         // 0 is default
-            auto bit_loop_max = cmdline.GetParameter<uint8_t>("bit_loop_max", 0);       // 0 is default
-            auto bit_one_threshold = cmdline.GetParameter<uint8_t>("bit_one_threshold", 0);         // 0 is default
-            tblocks.SetDurations(zero_tstates, one_tstates).SetBitLoopMax(bit_loop_max).SetBitOneThreshold(bit_one_threshold);
+            auto bit_loop_max = cmdline.GetParameter<int>("bit_loop_max", 0);       // 0 is default
+            auto bit_one_threshold = cmdline.GetParameter<int>("bit_one_threshold", 0);         // 0 is default
+            tblocks.SetDurations(zero_tstates, one_tstates).
+                    SetBitLoopMax(bit_loop_max).SetBitOneThreshold(bit_one_threshold);
+            tblocks.Load(filename, "");
             std::cout << "Processing zqloader turbo file " << filename2 << std::endl;
 /*
             if (false)      // test

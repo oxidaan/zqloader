@@ -12,6 +12,7 @@
 #include "pulsers.h"
 #include "compressor.h"
 #include <filesystem>
+#include "spectrum_loader.h"        // CalculateChecksum
 namespace fs = std::filesystem;
 
 using namespace std::placeholders;
@@ -582,16 +583,43 @@ void TurboBlocks::MoveToLoader( uint16_t p_usr_address, uint16_t p_clear_address
 
 bool TurboBlocks::HandleTapBlock(DataBlock p_block, std::string p_zxfilename)
 {
-    if (m_bit_loop_max)
+    ZxBlockType type = ZxBlockType(p_block[0]);
+    if(type == ZxBlockType::data)
     {
-        SetByteToZqLoaderTap(p_block, "BIT_LOOP_MAX", std::byte(m_bit_loop_max));
+        if (m_bit_loop_max)
+        {
+            SetByteToZqLoaderTap(p_block, "BIT_LOOP_MAX", std::byte(m_bit_loop_max));
+        }
+        if (m_bit_one_threshold)
+        {
+            auto val = (m_bit_loop_max ? m_bit_loop_max : 12) + 2 - (m_bit_one_threshold ? m_bit_one_threshold: 4);
+            SetByteToZqLoaderTap(p_block, "BIT_ONE_THESHLD", std::byte(val));
+        }
+
     }
-    if (m_bit_one_threshold)
+    else if (type == ZxBlockType::header)
     {
-        SetByteToZqLoaderTap(p_block, "BIT_ONE_THESHLD", std::byte(m_bit_one_threshold));
+        // can here (like otla) change the name as zx spectrum sees it
     }
     m_spectrumloader.AddLeaderPlusData(std::move(p_block), 700, 1750ms);
     return false;
+}
+
+void TurboBlocks::SetByteToZqLoaderTap(DataBlock& p_block, const char* p_name, std::byte p_value) const
+{
+    auto adr = 1 + m_symbols.GetSymbol(p_name);     // + 1 because of start byte
+    auto asm_upper_start = m_symbols.GetSymbol("ASM_UPPER_START");
+    if (adr >= asm_upper_start)
+    {
+        // correct when its in the upper regions.
+        adr -= asm_upper_start;
+        auto asm_lower_end = m_symbols.GetSymbol("ASM_LOWER_END");     // + 1 because of start byte
+        adr += asm_lower_end;
+    }
+    std::cout << p_name << ": " << int(p_block[adr]) << " -> " << int(p_value) << std::endl;
+    p_block[adr] = p_value;
+    p_block[p_block.size() - 1] = 0_byte;       // Checksum, recalculate
+    p_block[p_block.size() - 1] = CalculateChecksum(0_byte, p_block);
 }
 
 /// Set durations in T states for zero and one pulses.

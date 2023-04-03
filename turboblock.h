@@ -64,12 +64,12 @@ public:
     /// Set durations in T states for zero and one pulses.
     TurboBlocks& SetDurations(int p_zero_duration, int p_one_duration);
 
-    TurboBlocks& SetBitLoopMax(uint8_t p_value)
+    TurboBlocks& SetBitLoopMax(int p_value)
     {
         m_bit_loop_max = p_value;
         return *this;
     }
-    TurboBlocks& SetBitOneThreshold(uint8_t p_value)
+    TurboBlocks& SetBitOneThreshold(int p_value)
     {
         m_bit_one_threshold = p_value;
         return *this;
@@ -122,11 +122,7 @@ public:
 
     bool HandleTapBlock(DataBlock p_block, std::string p_zxfilename);
 private:
-    void SetByteToZqLoaderTap(DataBlock& p_block, const char* p_name, std::byte p_value) const
-    {
-        auto adr = 1 + m_symbols.GetSymbol(p_name);     // + 1 because of start byte
-        p_block[adr] = p_value ;
-    }
+    void SetByteToZqLoaderTap(DataBlock& p_block, const char* p_name, std::byte p_value) const;
 
 
     // Do 2 blocks overlap?
@@ -155,8 +151,8 @@ private:
     //    int m_one_duration = 280;
     int m_zero_duration = 118;      // @@ see zqloader.asm
     int m_one_duration = 293;       // @@ 175 more (3.5 cycle)
-    uint8_t m_bit_loop_max = 0;
-    uint8_t m_bit_one_threshold = 0;
+    int m_bit_loop_max = 0;
+    int m_bit_one_threshold = 0;
     SpectrumLoader& m_spectrumloader;
 
 };

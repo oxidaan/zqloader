@@ -24,6 +24,17 @@ class SampleSender;
 
 
 
+// Calculate a ZX Spectrum standard tap block checksum
+inline std::byte CalculateChecksum(std::byte p_init_val, const DataBlock& p_data)
+{
+    std::byte retval = p_init_val;
+    for (const std::byte& b : p_data)
+    {
+        retval ^= b;
+    }
+    return retval;
+}
+
 /// Main ZX spectrum loader class, stores a series of 'pulsers' that generates audio pulses
 /// that the ZX spectrum tapeloader routines can understand.
 /// When 'Run' plays the attached pulser classes thus loading (typically a complete 

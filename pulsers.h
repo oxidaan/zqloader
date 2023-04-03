@@ -421,7 +421,7 @@ private:
     }
     void CalcChecksum()
     {
-        m_checksum = CalculateChecksum();
+        m_checksum = CalculateChecksum(std::byte(m_type), m_data);         // type is included in checksum calc   
     }
 
     std::byte* GetDataPtr()
@@ -429,16 +429,7 @@ private:
         return m_data.data();
     }
 
-    // Spectrum checksum
-    std::byte CalculateChecksum() const
-    {
-        std::byte retval{ std::byte(m_type) };       // type is included in checksum calc   
-        for (const std::byte& b : m_data)
-        {
-            retval ^= b;
-        }
-        return retval;
-    }
+
 
 
 

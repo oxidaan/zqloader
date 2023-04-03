@@ -797,6 +797,8 @@ SNAPSHOT_CODE_LEN EQU SNAPSHOT_CODE_END-SNAPSHOT_CODE_BEGIN
  EXPORT sizeof_header   // so can check at C++
  EXPORT BIT_LOOP_MAX
  EXPORT BIT_ONE_THESHLD
+ EXPORT ASM_LOWER_END
+ EXPORT ASM_UPPER_START
 
 
  // ===========================================================================

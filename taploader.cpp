@@ -16,7 +16,7 @@
 namespace fs = std::filesystem;
 
 /// Load a data block as in TAP format from given stream.
-/// Includes type and checksum bytes in the block read.
+/// Includes type (first) and checksum bytes (last) in the block read.
 /// See https://sinclair.wiki.zxnet.co.uk/wiki/TAP_format
 DataBlock TapLoader::LoadTapBlock(std::istream & p_stream) 
 {
