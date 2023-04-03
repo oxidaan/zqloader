@@ -616,7 +616,7 @@ void TurboBlocks::SetByteToZqLoaderTap(DataBlock& p_block, const char* p_name, s
         auto asm_lower_end = m_symbols.GetSymbol("ASM_LOWER_END");     // + 1 because of start byte
         adr += asm_lower_end;
     }
-    std::cout << p_name << ": " << int(p_block[adr]) << " -> " << int(p_value) << std::endl;
+    // std::cout << p_name << ": " << int(p_block[adr]) << " -> " << int(p_value) << std::endl;
     p_block[adr] = p_value;
     p_block[p_block.size() - 1] = 0_byte;       // Checksum, recalculate
     p_block[p_block.size() - 1] = CalculateChecksum(0_byte, p_block);

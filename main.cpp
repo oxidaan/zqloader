@@ -147,9 +147,9 @@ int main(int argc, char** argv)
             Help();
             return 0;    
         }
+        Version();
         if (cmdline.TryGetParameter("--version") || cmdline.TryGetParameter("-v"))
         {
-            Version();
             return 0;
         }
 
