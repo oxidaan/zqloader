@@ -93,7 +93,7 @@ Use CMake, see above.
 
 Instructions
 ---
-You need a real ZX-spectrum. Connect the ZX-spectrums EAR input to your host computers sound output. At the host computer set sound to maximum.  
+You need a real ZX-spectrum 48K. Connect the ZX-spectrums EAR input to your host computers sound output. At the host computer set sound to maximum.  
 At Windows, make sure *Audio Enhancements* are switched off. 
 Eg at `Settings -> System -> Sound -> Speakers -> Advanced` 
 
@@ -137,7 +137,7 @@ Arguments:
 
 More options can be given with syntax:
 
-`option=value`, or just `option value` or `option="some value" or ``--option=value`:
+`option=value`, or just `option value` or `option="some value" or `--option=value`:
 
 * volume_left = value            
 * volume_right = value    
