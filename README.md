@@ -86,6 +86,7 @@ Installing
 ---
 **Windows**  
 A Windows installer is available [here](https://github.com/oxidaan/zqloader/releases). After installation it *should* add menu items to TAP/TZX/Z*) files `Load with ZQLoader`. If it does not try `Open with` -> `Choose another app`. At some point `Load with ZQ Loader` should be there in the explorer context menu.
+
 **Linux**  
 Use CMake, see above.
 
@@ -99,7 +100,13 @@ Eg at `Settings -> System -> Sound -> Speakers -> Advanced`
 Switch off `Audio Enhancements` there.
 
 Make sure no other sound is playing.
-At the host type:
+
+At the ZX Spectrum type:
+```
+LOAD ""
+```
+
+Then at the host type:
 ```
 path/to/zqloader path/to/zqloader.tap path/to/turbofile
 ```
@@ -115,10 +122,6 @@ zqloader samplerate=48000 volume_left=-100 volume_right=-100 z80/zqloader.tap c:
 ```
 
 
-Then at the ZX Spectrum type:
-```
-LOAD ""
-``` 
 ZQloader commandline options
 ---
 
