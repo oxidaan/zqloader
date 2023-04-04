@@ -137,7 +137,7 @@ Arguments:
 
 More options can be given with syntax:
 
-`option=value`, or just `option value` or `option="some value"`:
+`option=value`, or just `option value` or `option="some value" or ``--option=value`:
 
 * volume_left = value            
 * volume_right = value    
@@ -147,7 +147,7 @@ A number between -100 and 100: sets volume for left or right sound (stereo) chan
 * zero_tstates = value
 * one_tstates = value  
      The number of TStates a zero / one pulse will take when using the ZQloader/turboloader. Not giving this (or 0) uses a default that worked for me. (118/293)
-* bit_one_threshold =value      
+* bit_one_threshold = value      
     A time value in 50xTStates used at Z80 turboloader indicating the  time between edges when it is considered a 'one' - below this time it is considered a 'zero'. Related to 'one_tstates' above. Not giving this (or 0) uses a default that worked for me (4)
 * bit_loop_max = value           
     A time value in 50xTstates used at Z80 turboloader indicating the maximum time between edges treated as valid 'one' value. Above this a timeout error will occur. Not giving this (or 0) uses a default that worked for me (12)
