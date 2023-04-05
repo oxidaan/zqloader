@@ -93,7 +93,7 @@ Use CMake, see above.
 
 Instructions
 ---
-You need a real ZX-spectrum. Connect the ZX-spectrums EAR input to your host computers sound output. At the host computer set sound to maximum.  
+You need a real ZX-spectrum 48K. Connect the ZX-spectrums EAR input to your host computers sound output. At the host computer set sound to maximum.  
 At Windows, make sure *Audio Enhancements* are switched off. 
 Eg at `Settings -> System -> Sound -> Speakers -> Advanced` 
 
@@ -137,7 +137,7 @@ Arguments:
 
 More options can be given with syntax:
 
-`option=value`, or just `option value` or `option="some value"`:
+`option=value`, or just `option value` or `option="some value" or `--option=value`:
 
 * volume_left = value            
 * volume_right = value    
@@ -147,14 +147,12 @@ A number between -100 and 100: sets volume for left or right sound (stereo) chan
 * zero_tstates = value
 * one_tstates = value  
      The number of TStates a zero / one pulse will take when using the ZQloader/turboloader. Not giving this (or 0) uses a default that worked for me. (118/293)
-* bit_one_threshold       
-    A time value in 50xTStates used at Z80 turboloader indicating the  time between edges when it is considered a 'one' - below this time it is considered a 'zero'. Related to 'one_tstates' above.
-    Not giving this (or 0) uses a default that worked for me (4)
- *bit_loop_max            
-    A time value in 50xTstates used at Z80 turboloader indicating the  maximum time between edges treated as valid 'one' value. Above this 
-    a timeout error will occur. Not giving this (or 0) uses a default that worked for me (12)
+* bit_one_threshold = value      
+    A time value in 50xTStates used at Z80 turboloader indicating the  time between edges when it is considered a 'one' - below this time it is considered a 'zero'. Related to 'one_tstates' above. Not giving this (or 0) uses a default that worked for me (4)
+* bit_loop_max = value           
+    A time value in 50xTstates used at Z80 turboloader indicating the maximum time between edges treated as valid 'one' value. Above this a timeout error will occur. Not giving this (or 0) uses a default that worked for me (12)
 * key = yes/no/error  
-      When done wait for key: yes=always, no=never or only when an error occurred (which is the default).
+  When done wait for key: yes=always, no=never or only when an error occurred (which is the default).
 * --help
 * --version  
    Show help or version.
