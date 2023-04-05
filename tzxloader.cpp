@@ -93,34 +93,63 @@ TzxLoader& TzxLoader::Load(std::istream& p_stream, std::string p_zxfilename)
         {
             break;
         }
-        std::cout << id << std::endl;
+        std::cout << id;
         switch (id)
         {
         case TzxBlockType::StandardSpeedDataBlock:
-            done = HandleTapBlock(p_stream, p_zxfilename, 0x4 - 2);
+        {
+            p_stream.ignore(0x2); 
+            uint16_t len = LoadBinary< uint16_t>(p_stream);
+            std::cout << " len = " << len << ' ';
+            done = HandleTapBlock(p_stream, p_zxfilename, len);
             break;
+        }
         case TzxBlockType::TurboSpeedDataBlock:
-            done = HandleTapBlock(p_stream, p_zxfilename, 0x12 - 2);
+        {
+            p_stream.ignore(0x0f );
+            auto len1 = LoadBinary<std::uint8_t>(p_stream);     // bit of weird 24 bit length
+            auto len2 = LoadBinary<std::uint8_t>(p_stream);
+            auto len3 = LoadBinary<std::uint8_t>(p_stream);
+            auto len = 0x10000 * len3 + 0x100 * len2 + len1;
+            std::cout << " len = " << len << ' ';
+            done = HandleTapBlock(p_stream, p_zxfilename, len);
             break;
+        }
         case TzxBlockType::Puretone:
-            p_stream.ignore(4);
+        {
+            auto len1 = LoadBinary<std::uint16_t>(p_stream);
+            auto len2 = LoadBinary<std::uint16_t>(p_stream);
+            (void)len2;
+            std::cout << ' ' << int(len1) << " T states ";
             break;
+        }
         case TzxBlockType::PulseSequence:
         {
             auto len = LoadBinary<std::uint8_t>(p_stream);
+            std::cout << ' ' << int(len) << " pulses ";
             p_stream.ignore(2 * len);
             break;  
         }
         case TzxBlockType::PureDataBlock:
-            done = HandleTapBlock(p_stream, p_zxfilename, 0x0A - 2);
+        {
+            p_stream.ignore(0x07);
+            int len1 = LoadBinary<std::uint8_t>(p_stream);     // bit of weird 24 bit length
+            int len2 = LoadBinary<std::uint8_t>(p_stream);
+            int len3 = LoadBinary<std::uint8_t>(p_stream);
+            int len = 0x10000 * len3 + 0x100 * len2 + len1;
+            std::cout << " len = " << len << ' ';
+            done = HandleTapBlock(p_stream, p_zxfilename, len);
             break;
+        }
         case TzxBlockType::DirectRecordingBlock:
         {
             p_stream.ignore(5);
             auto len1 = LoadBinary<std::uint8_t>(p_stream);     // bit of weird 24 bit length
             auto len2 = LoadBinary<std::uint8_t>(p_stream);
             auto len3 = LoadBinary<std::uint8_t>(p_stream);
-            p_stream.ignore(0xffff * len1 + 0xff * len2 + len3);
+            auto len = 0x10000 * len3 + 0x100 * len2 + len1;
+            std::cout << " len = " << len;
+            p_stream.ignore(len);
             break;
         }
         case TzxBlockType::CSWRecordingBlock:
@@ -141,7 +170,8 @@ TzxLoader& TzxLoader::Load(std::istream& p_stream, std::string p_zxfilename)
         case TzxBlockType::GroupStart:
         {
             auto len = LoadBinary<std::uint8_t>(p_stream);
-            p_stream.ignore(len);
+            auto s2 = LoadBinary<std::string>(p_stream, len);
+            std::cout << "  " << s2 << std::endl;
             break;
         }
         case TzxBlockType::GroupEnd:
@@ -176,17 +206,14 @@ TzxLoader& TzxLoader::Load(std::istream& p_stream, std::string p_zxfilename)
         case TzxBlockType::Setsignallevel:
             p_stream.ignore(5);
             break;
+        case TzxBlockType::Messageblock:
+            p_stream.ignore(1);     
+            // no break
         case TzxBlockType::Textdescription:
         {
             auto len = LoadBinary<std::uint8_t>(p_stream);
-            p_stream.ignore(len);
-            break;
-        }
-        case TzxBlockType::Messageblock:
-        {
-            p_stream.ignore(1);
-            auto len = LoadBinary<std::uint8_t>(p_stream);
-            p_stream.ignore(len);
+            auto txt = LoadBinary<std::string>(p_stream, len);
+            std::cout << "  " << txt << std::endl;
             break;
         }
         case TzxBlockType::Archiveinfo:
@@ -217,16 +244,15 @@ TzxLoader& TzxLoader::Load(std::istream& p_stream, std::string p_zxfilename)
             std::cout << "TODO: TZX:" << id << std::endl;       // TODO!
 
         }
+        std::cout << std::endl;
     }
     return *this;
 }
 
-bool TzxLoader::HandleTapBlock(std::istream& p_stream, std::string p_zxfilename, size_t p_ignore)
+bool TzxLoader::HandleTapBlock(std::istream& p_stream, std::string p_zxfilename, int p_length)
 {
-    // [2 byte len] - [spectrum data incl. checksum]
     TapLoader taploader;
-    p_stream.ignore(p_ignore);     // Pause after this block (ms.) {1000}
-    auto block = taploader.LoadTapBlock(p_stream);
+    auto block = taploader.LoadTapBlock(p_stream, p_length);
     if (m_OnHandleTapBlock)
     {
         return m_OnHandleTapBlock(std::move(block), p_zxfilename);

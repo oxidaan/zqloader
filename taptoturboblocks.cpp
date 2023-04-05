@@ -12,7 +12,7 @@
 #include <iostream>
 #include "byte_tools.h"
 
-/// virtual
+/// call back
 /// Handle loaded data block:
 /// When header: check name; store as last header.
 /// When data: based on last header header:

@@ -23,7 +23,7 @@ TData LoadBinary(std::istream& p_stream)
 }
 /// Load a std::string binary from given stream.
 template <class TData>
-std::string LoadBinary(std::istream& p_stream, size_t p_len)
+TData LoadBinary(std::istream& p_stream, size_t p_len)
 {
     std::vector<char>buf;
     buf.resize(p_len + 1);

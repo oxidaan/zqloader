@@ -43,7 +43,7 @@ public:
         return *this;
     }
 private:
-    bool HandleTapBlock(std::istream& p_stream, std::string p_zxfilename, size_t p_ignore);
+    bool HandleTapBlock(std::istream& p_stream, std::string p_zxfilename, int p_length);
 private:
     HandleTapBlockFun m_OnHandleTapBlock;
 };

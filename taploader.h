@@ -38,6 +38,10 @@ public:
     /// Load a data block as in TAP format from given stream.    
     DataBlock LoadTapBlock(std::istream& p_stream);
 
+    /// Load a data block as in TAP format from given stream, 
+    /// but not the length: length already given.
+    DataBlock LoadTapBlock(std::istream& p_stream, int p_length);
+
 
     bool HandleTapBlock(DataBlock p_block, std::string p_zxfilename);
 

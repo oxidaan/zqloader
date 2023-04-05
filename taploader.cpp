@@ -16,20 +16,31 @@
 namespace fs = std::filesystem;
 
 /// Load a data block as in TAP format from given stream.
+///  [2 byte len] - [spectrum data incl. checksum]
 /// Includes type (first) and checksum bytes (last) in the block read.
 /// See https://sinclair.wiki.zxnet.co.uk/wiki/TAP_format
-DataBlock TapLoader::LoadTapBlock(std::istream & p_stream) 
+DataBlock TapLoader::LoadTapBlock(std::istream& p_stream)
 {
     auto len = LoadBinary< uint16_t>(p_stream);
+    return LoadTapBlock(p_stream, len);
+}
+
+/// Load a data block as in TAP format from given stream.
+/// Load a data block as in TAP format from given stream, 
+/// but not the length: length already given.
+DataBlock TapLoader::LoadTapBlock(std::istream& p_stream, int p_len)
+{
     if (p_stream)
     {
         DataBlock block;
-        block.resize(len);
-        p_stream.read(reinterpret_cast<char*>(block.data()), len);
+        block.resize(p_len);
+        p_stream.read(reinterpret_cast<char*>(block.data()), p_len);
         return block;
     }
     throw std::runtime_error("Error reading tap block");
 }
+
+
 
 bool TapLoader::HandleTapBlock(DataBlock p_block, std::string p_zxfilename)
 {
