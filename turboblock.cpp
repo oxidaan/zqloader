@@ -430,7 +430,8 @@ private:
 
 
 
-/// CTOR, take an export file name that will be used to load symbols.
+/// CTOR using given SpectrumLoader.
+/// Take an export file name that will be used to load symbols.
 template<>
 TurboBlocks::TurboBlocks(SpectrumLoader& p_spectrumloader, const fs::path &p_symbol_file_name) :
     m_symbols(p_symbol_file_name),
@@ -441,6 +442,7 @@ TurboBlocks::TurboBlocks(SpectrumLoader& p_spectrumloader, const fs::path &p_sym
 
 TurboBlocks::~TurboBlocks() = default;
 
+/// Load at normal speed, typically loads zqloader.tap.
 TurboBlocks& TurboBlocks::Load(const std::filesystem::path& p_filename, std::string p_zxfilename)
 {
     TapLoader loader;
@@ -532,7 +534,7 @@ TurboBlocks& TurboBlocks::AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr
     return *this;
 }
 
-/// Add given datablock with given start address
+// Add given datablock with given start address
 void TurboBlocks::AddTurboBlock(DataBlock&& p_block, uint16_t p_dest_address)
 {
     TurboBlock tblock;
@@ -541,7 +543,7 @@ void TurboBlocks::AddTurboBlock(DataBlock&& p_block, uint16_t p_dest_address)
     AddTurboBlock(std::move(tblock));
 }
 
-/// Add given turboblock
+// Add given turboblock
 void TurboBlocks::AddTurboBlock(TurboBlock&& p_block)
 {
     if (m_turbo_blocks.size() > 0)
@@ -552,6 +554,10 @@ void TurboBlocks::AddTurboBlock(TurboBlock&& p_block)
 }
 
 
+/// Move all added turboblocks to SpectrumLoader as given at CTOR.
+/// no-op when there are no blocks.
+/// p_usr_address: when done loading all blocks end start machine code here as in RANDOMIZE USR xxxx
+/// p_clear_address: when done loading put stack pointer here, which is a bit like CLEAR xxxx
 void TurboBlocks::MoveToLoader( uint16_t p_usr_address, uint16_t p_clear_address)
 {
     std::cout << std::endl;
@@ -581,6 +587,8 @@ void TurboBlocks::MoveToLoader( uint16_t p_usr_address, uint16_t p_clear_address
     m_turbo_blocks.clear();
 }
 
+// Handle the tap block for zqloader.tap
+// patch certain parameters, then move to spectrumloader (normal speed)
 bool TurboBlocks::HandleTapBlock(DataBlock p_block, std::string p_zxfilename)
 {
     ZxBlockType type = ZxBlockType(p_block[0]);

@@ -130,7 +130,6 @@ inline uint16_t TapToTurboBlocks::TryReadNumberFromBasic(const DataBlock& p_basi
 // Try to find (first) USR start address in given BASIC block
 // eg RANDOMIZE USR XXXXX
 // or RANDOMIZE USR VAL "XXXXX"
-
 inline uint16_t TapToTurboBlocks::TryFindUsr(const DataBlock& p_basic_block)
 {
     auto values = TryFindInBasic(p_basic_block, [](const DataBlock& p_basic_block, int cnt)
@@ -147,7 +146,6 @@ inline uint16_t TapToTurboBlocks::TryFindUsr(const DataBlock& p_basic_block)
 // Try to find (first) CLEAR XXXXX address in given BASIC block
 // eg CLEAR XXXXX
 // or CLEAR VAL "XXXXX"
-
 inline uint16_t TapToTurboBlocks::TryFindClear(const DataBlock& p_basic_block)
 {
     auto values = TryFindInBasic(p_basic_block, [](const DataBlock& p_basic_block, int cnt)
@@ -158,13 +156,12 @@ inline uint16_t TapToTurboBlocks::TryFindClear(const DataBlock& p_basic_block)
 }
 
 // Try to find all LOAD "" CODE XXXXX addresses in given BASIC block
-
 inline std::vector<uint16_t> TapToTurboBlocks::TryFindLoadCode(const DataBlock& p_basic_block)
 {
     return TryFindInBasic(p_basic_block, [](const DataBlock& p_basic_block, int cnt)
         {
             return cnt > 0 &&
             p_basic_block[cnt] == 0xAF_byte &&       // CODE
-        p_basic_block[cnt - 1] == std::byte('"');    // [LOAD "]" CODE
+            p_basic_block[cnt - 1] == std::byte('"');    // [LOAD "]" CODE
         });
 }

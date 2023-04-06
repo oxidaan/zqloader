@@ -12,7 +12,6 @@
 
 #include "datablock.h"
 #include "symbols.h"        // Symbols member
-#include <cstdint>
 #include <iosfwd>
 #include <memory>           // std::unique_ptr
 #include <chrono>
@@ -51,7 +50,8 @@ public:
         // all other values are like RANDOMIZE USR xxxxx so start MC there.
     };
 public:
-    /// CTOR, take an export file name that will be used to load symbols.
+    /// CTOR using given SpectrumLoader.
+    /// Take an export file name that will be used to load symbols.
     /// TPath must be std::filesystem::path
     template <class TPath>
     TurboBlocks(SpectrumLoader& p_spectrumloader, const TPath &p_symbol_file_name);
@@ -59,16 +59,20 @@ public:
     /// DTOR
     ~TurboBlocks();
 
+    /// Load at normal speed, typically loads zqloader.tap.
     TurboBlocks& Load(const std::filesystem::path& p_filename, std::string p_zxfilename);
 
     /// Set durations in T states for zero and one pulses.
     TurboBlocks& SetDurations(int p_zero_duration, int p_one_duration);
 
+    /// Set ZQLoader parameter
     TurboBlocks& SetBitLoopMax(int p_value)
     {
         m_bit_loop_max = p_value;
         return *this;
     }
+
+    /// Set ZQLoader parameter
     TurboBlocks& SetBitOneThreshold(int p_value)
     {
         m_bit_one_threshold = p_value;
@@ -108,8 +112,7 @@ public:
     }
 
 
-    /// Move all added turboblocks to given SpectrumLoader.
-    /// no-op when there are no blocks.
+    /// Move all added turboblocks to SpectrumLoader as given at CTOR.
     /// p_usr_address: when done loading all blocks end start machine code here as in RANDOMIZE USR xxxx
     /// p_clear_address: when done loading put stack pointer here, which is a bit like CLEAR xxxx
     void MoveToLoader(uint16_t p_usr_address, uint16_t p_clear_address = 0);
@@ -120,8 +123,9 @@ public:
         return m_symbols;
     }
 
-    bool HandleTapBlock(DataBlock p_block, std::string p_zxfilename);
 private:
+    bool HandleTapBlock(DataBlock p_block, std::string p_zxfilename);
+
     void SetByteToZqLoaderTap(DataBlock& p_block, const char* p_name, std::byte p_value) const;
 
 

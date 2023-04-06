@@ -16,8 +16,8 @@
 
 #include "types.h"
 #include "samplesender.h"
-#include "spectrum_types.h"
 #include "datablock.h"      // Datablock used
+#include <cstddef>          // std::byte
 
 class Pulser;
 class SampleSender;
@@ -149,14 +149,7 @@ private:
         return *(m_pulsers[m_current_pulser]);
     }
 
-    SpectrumLoader& Init(SampleSender& p_sample_sender)
-    {
-        p_sample_sender.Init().
-            SetOnGetDurationWait(std::bind(&SpectrumLoader::GetDurationWait, this)).
-            SetOnGetEdge(std::bind(&SpectrumLoader::GetEdge, this)).
-            SetOnNextSample(std::bind(&SpectrumLoader::Next, this));
-        return *this;
-    }
+    SpectrumLoader& Init(SampleSender& p_sample_sender);
 
 private:
     Pulsers m_pulsers;

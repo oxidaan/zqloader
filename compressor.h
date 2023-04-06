@@ -168,8 +168,8 @@ public:
 
 private:
 
-    /// Compress block between given iterators to given output iterator.
-    /// RLE meta data given here as parameter.
+    // Compress block between given iterators to given output iterator.
+    // RLE meta data given here as parameter.
     void Compress(const_iterator p_begin, const_iterator p_end, DataBlock& out_buf, iterator& out_it, const RLE_Meta& p_max_min)
     {
         const auto& most             = p_max_min.most; // alias
@@ -265,8 +265,8 @@ private:
 
 
 
-    /// Decompress block between given iterators to given output iterator.
-    /// RLE meta data is given as parameters here.
+    // Decompress block between given iterators to given output iterator.
+    // RLE meta data is given as parameters here.
     void DeCompress(const_iterator p_begin, const_iterator p_end, DataBlock& out_buf, iterator out_it, const RLE_Meta& p_max_min)
     {
         const auto& most             = p_max_min.most; // alias

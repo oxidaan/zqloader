@@ -32,18 +32,17 @@ public:
     /// program names.
     TapLoader& Load(const std::filesystem::path &p_filename, std::string p_zxfilename);
     
-    /// Load a tap file from given stream. Stops HandleTapBlock returns true.
+    /// Load a tap file from given stream. Stops when HandleTapBlock returns true.
     TapLoader& Load(std::istream& p_stream, std::string p_zxfilename);
 
     /// Load a data block as in TAP format from given stream.    
     DataBlock LoadTapBlock(std::istream& p_stream);
 
     /// Load a data block as in TAP format from given stream, 
-    /// but not the length: length already given.
+    /// but not the length: length already given (when parsing TZX files)
     DataBlock LoadTapBlock(std::istream& p_stream, int p_length);
 
 
-    bool HandleTapBlock(DataBlock p_block, std::string p_zxfilename);
 
     /// Set callback when tapblock found
     TapLoader& SetOnHandleTapBlock(HandleTapBlockFun p_fun)
@@ -51,6 +50,8 @@ public:
         m_OnHandleTapBlock = std::move(p_fun);
         return *this;
     }
+private:
+    bool HandleTapBlock(DataBlock p_block, std::string p_zxfilename);
 private:
     HandleTapBlockFun m_OnHandleTapBlock;
 

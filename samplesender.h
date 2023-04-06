@@ -9,9 +9,9 @@
 
 #pragma once
 
-#include <functional>
-#include "types.h"
-#include "event.h"
+#include <functional>           // std::function
+#include "types.h"              // Doublesec
+#include "event.h"              // Event (member)
 
 struct ma_device;
 
@@ -34,11 +34,11 @@ public:
 
     SampleSender(bool);
 
-    SampleSender& Init();
 
 
     SampleSender(SampleSender&&);
     SampleSender& operator = (SampleSender&&);
+
 
 
     /// Set callback to get wait duration.
@@ -62,6 +62,9 @@ public:
         return *this;
     }
 
+    /// Intialize miniadio when not done so already.
+    SampleSender& Init();
+
     /// Start SampleSender / start miniaudio thread.
     SampleSender& Start();
 
@@ -76,7 +79,6 @@ public:
     /// Run SampleSender (miniadio thread) so start, wait, stop.
     SampleSender& Run()
     {
-        Reset();
         Start();
         Wait();
         Stop();
@@ -128,37 +130,7 @@ private:
     // Get next single sound sample, 
     // called in miniaudio device thread (from DataCallback)
     // GetDurationWait -> GetEdge -> OnNextSample
-    float GetNextSample(uint32_t p_samplerate)
-    {
-        Doublesec sample_period = 1s / double(p_samplerate);
-        m_sample_time += sample_period;
-        // Get duration to wait for next edge change based on what we need to do
-        Doublesec time_to_wait = GetDurationWait();
-        if (m_sample_time > time_to_wait)
-        {
-            // Get value what edge needs to become
-            Edge edge = GetEdge();
-            if (edge == Edge::toggle)
-            {
-                m_edge = !m_edge;
-            }
-            else if (edge == Edge::one)
-            {
-                m_edge = true;
-            }
-            else if (edge == Edge::zero)
-            {
-                m_edge = false;
-            }
-            // m_sample_time = time_to_wait - m_sample_time;
-            m_sample_time = 0s;
-            if (OnNextSample())
-            {
-                m_done = true;
-            }
-        }
-        return m_edge ? 1.0f : -1.0f;
-    }
+    float GetNextSample(uint32_t p_samplerate);
     Doublesec GetDurationWait() const
     {
         if (m_OnGetDurationWait)

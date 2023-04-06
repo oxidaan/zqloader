@@ -276,7 +276,7 @@ void Z80SnapShotLoader::MoveToTurboBlocks(TurboBlocks& p_turbo_blocks)
 }
 
 
-/// Fill in register data to register block (eg snapshotregs.bin)
+// Fill in register data to register block (eg snapshotregs.bin)
 inline void Z80SnapShotLoader::Z80SnapShotHeaderToSnapShotRegs(const Symbols& p_symbols)
 {
     p_symbols.SetByte(m_reg_block, "flags_and_border", (m_z80_snapshot_header.flags_and_border >> 1) & 0xb00000111);

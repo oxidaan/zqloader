@@ -32,13 +32,13 @@ public:
     ///     When code: Add to list of blocks to (turbo) load as given at CTOR.
     bool HandleTapBlock(DataBlock p_block, std::string p_zxfilename);
 
-    // Get MC start address as found in BASIC block as in RANDOMIZE USR xxxxx
+    /// Get MC start address as found in BASIC block as in RANDOMIZE USR xxxxx
     uint16_t GetUsrAddress() const
     {
         return m_usr == 0 ? int(TurboBlocks::ReturnToBasic) : m_usr;
     }
 
-    // Get CLEAR address as found in BASIC block as in CLEAR xxxxx
+    /// Get CLEAR address as found in BASIC block as in CLEAR xxxxx
     uint16_t GetClearAddress() const
     {
         return m_clear;
@@ -64,7 +64,7 @@ private:
             if (seen)
             {
                 auto val = TryReadNumberFromBasic(p_basic_block, cnt);
-                if (val >= 16384 && val < 65536)
+                if (val >= 16384 )  // && val < 65536)
                 {
                     retval.push_back(val);
                     seen = 0;

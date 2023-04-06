@@ -42,7 +42,7 @@ DataBlock TapLoader::LoadTapBlock(std::istream& p_stream, int p_len)
 
 
 
-bool TapLoader::HandleTapBlock(DataBlock p_block, std::string p_zxfilename)
+inline bool TapLoader::HandleTapBlock(DataBlock p_block, std::string p_zxfilename)
 {
     if (m_OnHandleTapBlock)
     {

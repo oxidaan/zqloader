@@ -19,7 +19,7 @@
 
 
 template <class TString>
-TString ToLower(TString p_string)
+std::string ToLower(TString p_string)
 {
     std::string s = std::move(p_string);
     std::transform(s.begin(), s.end(), s.begin(),
@@ -28,7 +28,7 @@ TString ToLower(TString p_string)
 }
 
 template <class TString>
-TString ToUpper(TString p_string)
+std::string ToUpper(TString p_string)
 {
     std::string s = std::move(p_string);
     std::transform(s.begin(), s.end(), s.begin(),

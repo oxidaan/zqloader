@@ -241,19 +241,21 @@ A second filename argument and/or parameters are only usefull when using zqloade
         }
         else    // is zqloader
         {   
+            std::cout << "Processing zqloader turbo file " << filename2 << std::endl;
+
             fs::path filename_exp = filename;
             filename_exp.replace_extension("exp");      // zqloader.exp (symbols)
-            TurboBlocks tblocks(spectrumloader, filename_exp);
 
-            tblocks.SetCompressionType(CompressionType::automatic);
             auto zero_tstates = cmdline.GetParameter("zero_tstates", 0);       // 0 is default
             auto one_tstates = cmdline.GetParameter("one_tstates", 0);         // 0 is default
             auto bit_loop_max = cmdline.GetParameter<int>("bit_loop_max", 0);       // 0 is default
             auto bit_one_threshold = cmdline.GetParameter<int>("bit_one_threshold", 0);         // 0 is default
-            tblocks.SetDurations(zero_tstates, one_tstates).
-                    SetBitLoopMax(bit_loop_max).SetBitOneThreshold(bit_one_threshold);
-            tblocks.Load(filename, "");
-            std::cout << "Processing zqloader turbo file " << filename2 << std::endl;
+
+            TurboBlocks tblocks(spectrumloader, filename_exp);
+            tblocks.SetCompressionType(CompressionType::automatic).
+                    SetDurations(zero_tstates, one_tstates).
+                    SetBitLoopMax(bit_loop_max).SetBitOneThreshold(bit_one_threshold).
+                    Load(filename, "");
 /*
             if (false)      // test
             {

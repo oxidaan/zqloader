@@ -84,3 +84,12 @@ Edge SpectrumLoader::GetEdge() const
     Pulser& current = GetCurrentBlock();
     return current.GetEdge();
 }
+
+SpectrumLoader &SpectrumLoader::Init(SampleSender &p_sample_sender)
+{
+    p_sample_sender.Init().
+            SetOnGetDurationWait(std::bind(&SpectrumLoader::GetDurationWait, this)).
+            SetOnGetEdge(std::bind(&SpectrumLoader::GetEdge, this)).
+            SetOnNextSample(std::bind(&SpectrumLoader::Next, this));
+    return *this;
+}
