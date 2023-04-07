@@ -438,7 +438,7 @@
                     "{95C0C507-CBF0-42B8-B119-07219E384A4A}:_D06284CE01AD4AC0A35DFA3D7F0E1012"
                     {
                     "Command" = "8:&Load with ZQLoader"
-                    "Verb" = "8:Load with ZQLoader"
+                    "Verb" = "8:ZQLoaderVerb"
                     "Arguments" = "8:z80\\zqloader.tap \"%1\""
                     "Order" = "3:0"
                     }
@@ -461,7 +461,7 @@
                     "{95C0C507-CBF0-42B8-B119-07219E384A4A}:_43130DE0B4094CFA94DFF09CDAAB188D"
                     {
                     "Command" = "8:&Load with ZQLoader"
-                    "Verb" = "8:Load with ZQLoader"
+                    "Verb" = "8:ZQLoaderVerb"
                     "Arguments" = "8:z80\\zqloader.tap \"%1\""
                     "Order" = "3:0"
                     }
@@ -484,7 +484,7 @@
                     "{95C0C507-CBF0-42B8-B119-07219E384A4A}:_F4BB42CD6F304751873F52E58E40E249"
                     {
                     "Command" = "8:&Load with ZQLoader"
-                    "Verb" = "8:Load with ZQLoader"
+                    "Verb" = "8:ZQLoaderVerb"
                     "Arguments" = "8:z80\\zqloader.tap \"%1\""
                     "Order" = "3:0"
                     }
@@ -544,7 +544,7 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:ZQLoader"
         "ProductCode" = "8:{F2F9BD1B-CB84-42CC-8E85-C36F72695BFE}"
-        "PackageCode" = "8:{E8B065C6-11F1-47EB-823D-A1590DBC0302}"
+        "PackageCode" = "8:{884B9032-4612-4775-AA35-0EC9215F6CD8}"
         "UpgradeCode" = "8:{2B674A83-1BC1-4D53-ABD1-3A75DC4C7100}"
         "AspNetVersion" = "8:2.0.50727.0"
         "RestartWWWService" = "11:FALSE"
