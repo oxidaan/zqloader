@@ -124,29 +124,20 @@ ASM_LOWER_BEGIN:
         push HL                 // #PP2
         push BC                 // #PP5
     exx
+    
+    
+  
+//============================================================================
+// Load one turbo block, then decompresses block.
+// Loads header first. Header determines target location, compression type etc.
+// When error prints error and returns.
+// When loaded ok header indicates what to do:
+//   continue to next block or
+//   return to BASIC or
+//   jump to start address as in RANDOMIZE USR xxxxx.
+//============================================================================
 next_block:
 LOAD:    
-  
-
-//============================================================================
-// Load Header, then data.
-// HL' is destination of header.
-// Return:
-//  c=1 z=d  carry set: ok
-//  c=0 z=0  key pressed
-//  c=0 z=1  Timeout or checksum error 
-// General register usage:
-// A For IN etc.
-// carry: edge found; B is time measured.
-//          no carry: no edge found:
-//              z= 1 timeout, z=0 break pressed    
-// B  = edge counter    
-// C  = prev. edge (bit 5) + border color (bit 0-3)
-// HL' = target address to read, will be modified
-// DE' = length to read, will be zero when OK
-// C' = checksum
-// H  = major counter (leader)/checksum / xor value for C.
-// L  = byte being loaded
 
     // Intialize edge plus border color -> C
     // So get intial value from port->C
@@ -159,18 +150,12 @@ LOAD:
     in A,($FE)                  // Get initial value; bit 0 is space, bit 6 is ear
     and   0b01000000            // mask ear
     or    0b00001010            // ear zero border red 010 <-> 101 cyan + also set mic and/or ear
-//    ld b, 0b00001010            // ear zero border red 010 <-> 101 cyan + also set mic and/or ear
-//    jr z, .earzero              // ear zero
-//    ld b, 0b00001010            // ear one border red 010 <-> 101 cyan + also set mic and/or ear
-//.earzero
-//    or  B                       //  0b00000010 or  0b00011010 set mic + ear same as edge
     ld C, A                     // initialize c with result: 0E0EEBBB
     ld H, 0b01000111            // The C xor value, see WAIT_FOR_EDGE
 
 
     // Initialize for loading header
     exx                     
-    //    ld HL, header           // location of header @(HL++)
         ld HL, header-1         // location of header @ (++HL)
         ld DE, sizeof_header    // length of header 
         ld C, sizeof_header     // checksum - use header length as init. value.
@@ -534,7 +519,7 @@ wait_for_first_edge:
 // HL': (increases)
 // DE': (walks to zero)
 // C': Checksum
-// H must be 0b01000111 
+// H: must be 0b01000111 
 // L: Now/Last loaded byte
 // B: timing at WAIT_FOR_EDGE
 // C: last IN value to check changes; border color at WAIT_FOR_EDGE
@@ -556,7 +541,6 @@ BIT_ONE_THESHLD+*:  ld E, ONE_MAX+2-ONE_MIN     // eg 12+2-6 = 8
     ret z                       // @Opt Mini sync
 
 .nextbyte    
-//   ld L,1            // @ no unroll loop
 
 // Time between WAIT_FOR_EDGE calls: 42T
 // Min Time between IN's 42T + 69T = 111T
@@ -564,11 +548,9 @@ BIT_ONE_THESHLD+*:  ld E, ONE_MAX+2-ONE_MIN     // eg 12+2-6 = 8
 // entire byte = 391T + 8 * 69 = 943T (~118T per bit @@)
 .nextbit              
     READ_ONE_BIT
-//    jp nc, .nextbit           // @opt no unroll loop
 
 .nextbit2             
     READ_ONE_BIT
-//    jr nc, .nextbit2          // @opt no unroll loop2 / @correct first bit
 
     READ_ONE_BIT
 
@@ -592,12 +574,9 @@ BIT_ONE_THESHLD+*:  ld E, ONE_MAX+2-ONE_MIN     // eg 12+2-6 = 8
     // store loaded byte L ->(HL')
     ld A, L
     exx
-//        inc HL                  // @Opt (++HL) / spreading / @ no unroll loop
         ld (HL), A              // HL'= storage pointer
         add C                   // C' is checksum
         ld C, A                 // DE'= byte count
-       // inc HL                  // @Opt (HL++) spreading / @ no unroll loop
-      //  dec de                  // spreading / @ no unroll loop
         ld A, D                 // check DE zero
         or E
     exx
@@ -605,7 +584,7 @@ BIT_ONE_THESHLD+*:  ld E, ONE_MAX+2-ONE_MIN     // eg 12+2-6 = 8
     jp nz, .nextbyte            // 61T since WAIT_FOR_EDGE; 61+62 = 123 since last in
     // done!
 load_done    
-    cp D                        // D != 0 for sure (not so D') so this unsets z
+    cp D                        // D != 0 for sure so this unsets z
     ret
 
 //============================================================================
@@ -627,13 +606,13 @@ load_done
 //  z=0 OK
 wait_for_edge_loop:    
     dec B                       // Dec. cycle count (carry not touched) 43 since in
-    ret z                       // 5/11 t/o, note carry still not set    (c=0 z=1)
+    ret z                       // 5/11T t/o, note carry still not set    (c=0 z=1)
 WAIT_FOR_EDGE:        
     ld A,$7F 	                // Read from port 0x7FFE, read BREAK and EAR. 49 + 16 since prev. IN is 59 
-    in A,($FE)                  //  bit 0 is !BREAK, bit 6 is ear
-    xor C                       //  detect change at ear (also reset carry)
-    and 0b01000000              // mask ear 31 since in
-    jr z, wait_for_edge_loop    // when loop: 43 since in
+    in A,($FE)                  // bit 0 is !BREAK, bit 6 is ear
+    xor C                       // detect change at ear (also reset carry)
+    and 0b01000000              // mask ear 
+    jr z, wait_for_edge_loop    
 
     // -- Once here: change seen --
 
@@ -642,7 +621,7 @@ WAIT_FOR_EDGE:
     xor H                       // H = 01000111 or 01011111
     ld C,A
     out ($FE),A                 // toggle border color      // 000EMBBB
-    ret                         // += 51 (c=1 z=0)
+    ret                         // += 51T (c=1 z=0)
 
 //============================================================================
 //============================================================================
