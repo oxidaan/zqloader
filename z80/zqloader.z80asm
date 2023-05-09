@@ -71,7 +71,7 @@ BASIC_START:
             LINE : db	clear : NUM2(CLEAR) :LEND       
             LINE : db	print, usr, '(', peek : NUM2(PROG) : db '+' : NUM2(256) : db '*',  peek : NUM2(PROG + 1) : db '+' : NUM2(ASM_START) : db ')' : LEND   
  //           LINE : db load, '"','"' : LEND
-	        LINE : db	rem                             
+	    LINE : db	rem                             
     ENDMODULE
 
 // ===========================================================================
