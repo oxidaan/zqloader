@@ -10,7 +10,7 @@
 #pragma once
 
 
-#include "types.h"
+#include "types.h"                  // Edge enum
 #include <vector>
 #include "datablock.h"              // DataBlock
 #include "byte_tools.h"             // eg literal for std::byte
