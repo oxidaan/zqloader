@@ -16,7 +16,7 @@ SampleSender::SampleSender() = default;
 SampleSender::SampleSender(SampleSender&&) = default;
 SampleSender& SampleSender::operator = (SampleSender&&) = default;
 
-// CTOR calls Init
+/// CTOR with bool calls Init
 SampleSender::SampleSender(bool)
 {
     Init();
@@ -105,8 +105,8 @@ void SampleSender::data_callback(ma_device * pDevice, void* pOutput, const void*
 }
 
 
-// Get next sound samples, 
-// called in miniaudio device thread
+/// Get next sound samples, 
+/// called in miniaudio device thread
 void SampleSender::DataCallback(ma_device* pDevice, void* pOutput, uint32_t frameCount)
 {
     auto sampleRate = pDevice->sampleRate;
@@ -129,6 +129,9 @@ void SampleSender::DataCallback(ma_device* pDevice, void* pOutput, uint32_t fram
     }
 }
 
+/// Get next sample (audio value), depending on attached Pulsers.
+/// This is typically 1.0 or -1.0 depending on edge; s/a GetEdge.
+/// (any volume setting not used here)
 float SampleSender::GetNextSample(uint32_t p_samplerate)
 {
     Doublesec sample_period = 1s / double(p_samplerate);
