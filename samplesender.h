@@ -35,8 +35,10 @@ public:
     SampleSender(bool);
 
 
-
+    /// Move CTOR
     SampleSender(SampleSender&&);
+    
+    /// Move assign
     SampleSender& operator = (SampleSender&&);
 
 
@@ -98,6 +100,7 @@ public:
         return *this;
     }
 
+    /// Set sample rate, when not set use device default.
     SampleSender& SetSampleRate(uint32_t p_sample_rate)
     {
         m_sample_rate = p_sample_rate;
