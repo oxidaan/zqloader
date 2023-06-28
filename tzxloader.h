@@ -15,7 +15,7 @@
 
 
 /// Loads TZX files.
-/// Result ends up at virtual function at given TapLoader, see CTOR.
+/// Found blocks are handled through function set at SetOnHandleTapBlock.
 /// See: http://k1.spdns.de/Develop/Projects/zasm/Info/TZX%20format.html
 /// or: https://worldofspectrum.net/TZXformat.html
 class TzxLoader
@@ -23,17 +23,15 @@ class TzxLoader
     using HandleTapBlockFun = std::function<bool(DataBlock, std::string)>;
 
 public:
-    /// CTOR takes a Taploader. Because TZX file often 'load data as in tap file'.
-    /// Taploader has a virtual function that handles the thus loaded tap blocks.
+    /// CTOR.
     TzxLoader()
     {}
 
 
-    /// Loads given tzx file.
-    /// TPath must be std::filesystem::path
+    /// Loads given tzx file from given file. Ignores until given zxfilename is found.
     TzxLoader& Load(const std::filesystem::path &p_filename, std::string p_zxfilename);
 
-    ///  Loads tzx file from given stream.
+    ///  Loads tzx file from given stream. Ignores until given zxfilename is found.
     TzxLoader& Load(std::istream& p_stream, std::string p_zxfilename);
 
     /// Set callback when tapblock found
