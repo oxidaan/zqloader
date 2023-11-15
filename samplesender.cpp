@@ -10,6 +10,7 @@
 #include "samplesender.h"
 #include <miniaudio.h>
 #include <iostream>
+#include <thread>
 
 // CTOR
 SampleSender::SampleSender() = default;
