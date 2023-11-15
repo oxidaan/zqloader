@@ -7,14 +7,15 @@ This loader is capable of loading a 48K game in about *25-30 seconds*. This time
 
 The idea is that when using a computer to generate the loading-sounds a much higher speed can be achieved as compared to the old tapes. After all the accuracy when generating loading sounds from a computer is much higher than those old wobbly tape recorders.   
 
-The loader is coded into a basic `REM` statement to have it loaded in one step, thus avoiding the need to load an additional machine code block (which would take extra time). At the ZX Spectrum all you have to type is `LOAD ""`.
+The loader is coded into a BASIC `REM` statement to have it loaded in one step, thus avoiding the need to load an additional machine code block (which would take extra time). At the ZX Spectrum all you have to type is `LOAD ""`.
 
-To speed up even more data (can be) compressed before loading.
+To speed up even more data is (can be) compressed before loading.
 
-The project code is portable and should be able to run under both Windows and Linux. (For Linux I briefly tried with WSL2/TODO)
+The project code is portable and runs under both Windows and Linux.
 
 Obviously this project has lots in common with [Otla](https://github.com/sweetlilmre/otla). Actually I was at 2/3 of developing this when I found out about Otla....  
 However Otla seems barely maintained and uses CppBuilder - I think. Unlike Otla this project can also be compiled for **Linux**. And unlike Otla it uses compression to speed up even more.
+
 
 Project
 ----
@@ -39,7 +40,7 @@ More about the [C++ ZQloader...]
 
 Compression
 ---
-It uses a simple RLE compression algorithm that only reduces size with 20-40% thereabout. This is not that much (eg [ZX0](https://github.com/einar-saukas/ZX0) should do much better). But essential is it can be decompressed at the ZX spectrum at he same memory block - so decompressed data will overwrite compressed data during decompression. ZX0 can do this also but seems to always need to have some minimal extra space at the end (see `delta` at [ZX0 readme](https://github.com/einar-saukas/ZX0#readme)). **TODO** I really want to try and use ZX0 at some point.  
+It uses a simple RLE compression algorithm that only reduces size with 20-40% thereabout. This is not that much (eg [ZX0](https://github.com/einar-saukas/ZX0) should do much better). But essential is it can be decompressed at the ZX spectrum at he same memory block - so decompressed data will overwrite compressed data during decompression. ZX0 can do this also but seems to always need to have some minimal extra space at the end (see `delta` at [ZX0 readme](https://github.com/einar-saukas/ZX0#readme)). Also I've found compressing takes long with ZX0, thus spoiling the entire idea of a quick loader.  
 The RLE compression algorithm compresses the most used byte value (usually this is 0) by writing an escape code, then the number of 'most used value'-s. Further it compresses a sequence of 3 or more the same bytes (of any value) by writing another escape code, then that byte value, then the number of these bytes.
 
 Limitations/TODO's
@@ -57,6 +58,8 @@ The latest version of ZQloader can now recognize this situation and then copy th
 * Want to add code to load .SNA snapshots.
 
 * Add a user interface! Maybe with QT. It is now only commandline...
+
+* The file associations when set for Windows is not working very well. In Windows I'd like to have an explorer contect menu entry for TAP/Z80/TZX files `Load with ZQ-Loader`. This sometimes works, sometimes not, not sure. The installer was made with the 'Visual Studio Windows Installer Projects' extension. This tool is really wobbly imho.
 
 Building
 ---
