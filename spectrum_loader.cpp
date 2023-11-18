@@ -52,7 +52,7 @@ SpectrumLoader& SpectrumLoader::AddPause(std::chrono::milliseconds p_duration)
 }
 
 // CallBack; runs in miniaudio thread
-// Move to next pulse.
+// Move to next pulse. Return true when done.
 bool SpectrumLoader::Next()
 {
     Pulser& current = GetCurrentBlock();
@@ -78,7 +78,8 @@ Doublesec SpectrumLoader::GetDurationWait() const
 
 // Get edge 
 // CallBack; runs in miniaudio thread
-// depending on what is to be sent: (1/0/sync/leader).
+// Get edge depending on what is to be sent: (1/0/sync/leader).
+// Eg a datapulser will return Edge::one when a 1 needs to be send etc.
 Edge SpectrumLoader::GetEdge() const
 {
     Pulser& current = GetCurrentBlock();

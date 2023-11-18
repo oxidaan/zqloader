@@ -16,7 +16,7 @@ using namespace std::chrono_literals;       // never do using namespace in inclu
 using Doublesec = std::chrono::duration<double>;
 
 
-// Edge type, used a lot by SampleSender (miniadio) and Pulsers.
+/// Edge type, used a lot by SampleSender (miniaudio) and Pulsers.
 enum class Edge
 {
     one,

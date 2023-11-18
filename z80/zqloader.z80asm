@@ -570,7 +570,7 @@ BIT_ONE_THESHLD+*:  ld E, ONE_MAX+2-ONE_MIN     // eg 12+2-6 = 8
 
     READ_ONE_BIT
 
-    READ_ONE_BIT_NO_RETZ	# spreading
+    READ_ONE_BIT_NO_RETZ	// spreading
     
 
     // -- We now have a new byte in L --

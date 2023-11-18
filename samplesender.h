@@ -18,7 +18,7 @@ struct ma_device;
 /// This class maintains / wraps miniaudio.
 /// Uses to send (sound) samples (as pulses) using miniadio. 
 /// Forms connection between miniaudio and the 'Pulser' classes, using call-backs.
-/// Uses call-backs set with:
+/// Used call-backs are set with:
 /// SetOnGetDurationWait
 /// SetOnNextSample
 /// SetOnGetEdge
@@ -43,21 +43,26 @@ public:
 
 
 
-    /// Set callback to get wait duration.
+    /// Set callback to get wait duration (in seconds/DoubleSec)_
+    /// This should get duration to wait for next edge change based 
+    /// on what we need to do.
     SampleSender& SetOnGetDurationWait(GetDurationFun p_fun)
     {
         m_OnGetDurationWait = std::move(p_fun);
         return *this;
     }
 
-    /// Set callback to acquire sample
+    /// Set callback to move to next sample.
+    /// Given function should move to next sample. Return true when done.
     SampleSender& SetOnNextSample(NextSampleFun p_fun)
     {
         m_OnNextSample = std::move(p_fun);
         return *this;
     }
 
-    /// Set callback when edge seen.
+    /// Set callback to get value what edge needs to become.
+    /// Given function should return an Egde enum (eg One/Zero/Toggle)
+    /// So what needs to be done with the sound output binary signal.
     SampleSender& SetOnGetEdge(GetEdgeFun p_fun)
     {
         m_OnGetEdge = std::move(p_fun);
@@ -134,6 +139,8 @@ private:
     // called in miniaudio device thread (from DataCallback)
     // GetDurationWait -> GetEdge -> OnNextSample
     float GetNextSample(uint32_t p_samplerate);
+
+    // Get duration to wait for next edge change based on what we need to do.
     Doublesec GetDurationWait() const
     {
         if (m_OnGetDurationWait)
@@ -142,6 +149,8 @@ private:
         }
         return 0ms;
     }
+
+    /// Get value what edge needs to become eg toggle/one/zero.
     Edge GetEdge() const
     {
         if (m_OnGetEdge)
@@ -150,6 +159,7 @@ private:
         }
         return Edge::no_change;
     }
+
     bool OnNextSample()
     {
         if (m_OnNextSample)
@@ -158,9 +168,7 @@ private:
         }
         return false;
     }
-
-
-    
+   
 private:
     Event m_event;
     bool m_done = false;

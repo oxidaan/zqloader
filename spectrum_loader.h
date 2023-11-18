@@ -131,6 +131,7 @@ public:
 
 private:
     // CallBack; runs in miniaudio thread
+    // Move to next pulse.
     bool Next();
 
 
@@ -144,6 +145,7 @@ private:
     // depending on what is to be sent: (1/0/sync/leader).
     Edge GetEdge() const;
 
+    // Get current pulser (aka block)
     Pulser& GetCurrentBlock() const
     {
         return *(m_pulsers[m_current_pulser]);
