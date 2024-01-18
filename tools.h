@@ -82,7 +82,7 @@ public:
     /// Return given default when not found.
     std::string GetParameter(std::string_view p_param, const char* p_default) noexcept
     {
-        auto opt = TryGetParameter(p_param);
+        auto opt = TryGetParameter<std::string>(p_param);
         if (opt.has_value())
         {
             return opt.value();
@@ -95,7 +95,23 @@ public:
     template <class TData>
     TData GetParameter(std::string_view p_param, TData p_default) noexcept
     {
-        auto opt = TryGetParameter(p_param);
+        auto opt = TryGetParameter<TData>(p_param);
+        if (opt.has_value())
+        {
+            return opt.value();
+        }
+        return p_default;
+    }
+
+
+    /// Get value of given named commandine parameter. 
+    /// Return nullopt when not found.
+    std::optional<std::string> TryGetParameter(std::string_view p_command) const noexcept;
+
+    template <class TData>
+    std::optional<TData> TryGetParameter(std::string_view p_command) const noexcept
+    {
+        auto opt = TryGetParameter(p_command);
         if (opt.has_value())
         {
             std::stringstream ss(opt.value());
@@ -103,12 +119,14 @@ public:
             ss >> d;
             return d;
         }
-        return p_default;
+        return std::nullopt;
     }
 
-    /// Get value of given named commandine parameter. 
-    /// Return nullopt when not found.
-    std::optional<std::string> TryGetParameter(std::string_view p_command) const noexcept;
+    ///  Convenience
+    bool HasParameter(std::string_view p_param) const noexcept
+    {
+        return TryGetParameter(p_param).has_value();
+    }
 
 private:
     std::string GetCmdLine(int p_first = 0) const noexcept;
@@ -279,3 +297,4 @@ TInt1 Random(TInt1 p_min, TInt2 p_max)
     std::uniform_int_distribution distrib(p_min, TInt1(p_max));
     return distrib(GetSeededRandomEngine());
 }
+

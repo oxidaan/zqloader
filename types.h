@@ -17,10 +17,11 @@ using Doublesec = std::chrono::duration<double>;
 
 
 /// Edge type, used a lot by SampleSender (miniaudio) and Pulsers.
-enum class Edge
+/// Also used at tzx/SymDef hence needs size 8 bits.
+enum class Edge : uint8_t
 {
-    one,
-    zero,
+    toggle,
     no_change,
-    toggle
+    zero,
+    one,
 };

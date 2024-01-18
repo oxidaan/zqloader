@@ -198,11 +198,12 @@
     <ClCompile Include="datablock.cpp" />
     <ClCompile Include="enumstreamer.cpp" />
     <ClCompile Include="miniaudio.cpp" />
+    <ClCompile Include="pulsers.cpp" />
     <ClCompile Include="samplesender.cpp" />
+    <ClCompile Include="sampletowav.cpp" />
     <ClCompile Include="spectrum_loader.cpp" />
     <ClCompile Include="symbols.cpp" />
     <ClCompile Include="taploader.cpp" />
-    <ClCompile Include="taptospectrumloader.cpp" />
     <ClCompile Include="taptoturboblocks.cpp" />
     <ClCompile Include="test.cpp" />
     <ClCompile Include="tools.cpp" />
@@ -248,6 +249,7 @@
     <ClInclude Include="pulsers.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="samplesender.h" />
+    <ClInclude Include="sampletowav.h" />
     <ClInclude Include="spectrum_loader.h" />
     <ClInclude Include="spectrum_types.h" />
     <ClInclude Include="spectrum_consts.h" />

@@ -14,18 +14,19 @@
 #include "turboblock.h"
 #include "spectrum_types.h"     // ZxHeader
 
-/// Loads one or more tap blocks
-/// Tries to read data from BASIC blocks
-/// Feeds tab blocks to Turboblocks.
+/// Loads one or more tap blocks.
+/// Tries to read data from BASIC blocks (eg USR start address)
+/// HandleTapBlock function feeds incoming tab blocks to the TurboBlocks as given at CTOR.
 class TapToTurboBlocks 
 {
 public:
+    // CTOR taking TurboBlocks as sink.
     TapToTurboBlocks(TurboBlocks& p_tblocks) :
         m_tblocks(p_tblocks)
     {}
 
 
-    /// Handle incomping loaded (tap) data block.
+    /// Handle incoming loaded (tap) data block.
     /// When header: check name; store as last header.
     /// When data: based on last header header:
     ///     When basic: try get addresses like RANDOMIZE USR XXXXX
@@ -33,12 +34,14 @@ public:
     bool HandleTapBlock(DataBlock p_block, std::string p_zxfilename);
 
     /// Get MC start address as found in BASIC block as in RANDOMIZE USR xxxxx
+    /// (As earlier found with TryFindUsr)
     uint16_t GetUsrAddress() const
     {
         return m_usr == 0 ? int(TurboBlocks::ReturnToBasic) : m_usr;
     }
 
     /// Get CLEAR address as found in BASIC block as in CLEAR xxxxx
+    /// (As earlier found with TryFindClear)
     uint16_t GetClearAddress() const
     {
         return m_clear;
@@ -51,12 +54,14 @@ private:
     static uint16_t TryReadNumberFromBasic(const DataBlock& p_basic_block, int p_cnt);
 
 
-    // Try to find one ore more numbers after giving code in given BASIC block.
-    // p_check_fun must match a cpde pattern to search for, then looks for following numbers.
+    // Try to find one ore more numbers in given BASIC block.
+    // p_check_fun must return true when matching a certain pattern to search for (depeding on what to search for)
+    // then looks for the number that follows.
+    // Used by TryFindUsr / TryFindClear / TryFindLoadCode.
     template <class TCheckFun>
     static std::vector<uint16_t> TryFindInBasic(const DataBlock& p_basic_block, TCheckFun p_check_fun)
     {
-        int seen = 0;       // seen code 
+        int seen = 0;       // When >0 recently saw pattern to search for
         std::vector<uint16_t> retval;
         for (int cnt = 0; cnt < p_basic_block.size(); cnt++)
         {

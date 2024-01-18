@@ -32,6 +32,8 @@
 #include "taptoturboblocks.h"
 #include "z80snapshot_loader.h"
 #include "turboblock.h"
+#include "samplesender.h"
+#include "sampletowav.h"
 #include "tools.h"
 #include <iostream>
 #include <fstream>
@@ -63,6 +65,19 @@ int Key()
 }
 #endif
 
+inline std::ofstream OpenFileToWrite(fs::path p_filename, bool p_allow_overwrite)
+{
+    if (!p_allow_overwrite && std::filesystem::exists(p_filename))
+    {
+        throw std::runtime_error("File to write (" + p_filename.string() + ") already exists. Please remove first.");
+    }
+    std::ofstream filewrite(p_filename, std::ios::binary);
+    if (!filewrite)
+    {
+        throw std::runtime_error("Could not open file " + p_filename.string() + " for writing");
+    }
+    return filewrite;
+}
 
 void Version()
 {
@@ -115,16 +130,30 @@ More options can be given with syntax: option=value, or just option value or opt
     one_tstates = value     The number of TStates a zero / one pulse will take when using the 
                             zqloader/turboloader. Not giving this (or 0) uses a default that 
                             worked for me.
-    bit_one_threshold       A time value in 50xTStates used at Z80 turboloader indicating the
+    bit_one_threshold = value
+                            A time value in 50xTStates used at Z80 turboloader indicating the
                             time between edges when it is considered a 'one' - below this time
                             it is considered a 'zero'. Related to 'one_tstates' above.
                             Not giving this (or 0) uses a default that worked for me (4)
-    bit_loop_max            A time value in 50xTstates used at Z80 turboloader indicating the
+    bit_loop_max = value    A time value in 50xTstates used at Z80 turboloader indicating the
                             maximum time between edges treated as valid 'one' value. Above this 
                             a timeout error will occur.
                             Not giving this (or 0) uses a default that worked for me (12)
+
+    outputfile="path/to/filename.wav"
+                            When a wav file is given: write result to given WAV (audio) file instead of 
+                            playing sound.
+    outputfile="path/to/filename.tzx"
+    --overwrite or -o       When given allows overwriting above output file when already exists, else gives
+                            error on that case.
+                            When a tzx file given: write result as tzx file instead of playing sound. **
+    --wav or -w             Write a wav file as above with same as turbo (2nd) filename but with wav extension.
+    --tzx or -t             Write a tzx file as above with same as turbo (2nd) filename but with tzx extension.
+
     key = yes/no/error      When done wait for key: yes=always, no=never or only when an error
                             occurred (which is the default).
+    **) tzx files is experimental and not fully tested. It uses 'ID 19 - Generalized Data Block' a lot but I
+        can't find a tool that can actually play it.
     )" << std::endl;
  //   Version();
 }
@@ -142,13 +171,13 @@ int main(int argc, char** argv)
             Help();
             throw std::runtime_error("Please give a .tap or .tzx filename as runtime argument.");
         }
-        if ( cmdline.TryGetParameter("--help") || cmdline.TryGetParameter("-h"))
+        if ( cmdline.HasParameter("help") || cmdline.HasParameter("h"))
         {
             Help();
             return 0;    
         }
         Version();
-        if (cmdline.TryGetParameter("--version") || cmdline.TryGetParameter("-v"))
+        if (cmdline.HasParameter("version") || cmdline.HasParameter("v"))
         {
             return 0;
         }
@@ -201,23 +230,17 @@ A second filename argument and/or parameters are only usefull when using zqloade
         std::cout << "Processing file " << filename << std::endl;
 
 
-        SampleSender sample_sender;
-        auto vol1 = cmdline.GetParameter("volume_left", 100);
-        auto vol2 = cmdline.GetParameter("volume_right", 100);
-        auto samplerate = cmdline.GetParameter("samplerate", 0);
-        sample_sender.SetVolume(vol1, vol2).SetSampleRate(samplerate);
         SpectrumLoader spectrumloader;
-        spectrumloader.SetSampleSender(std::move(sample_sender));
-
 
         if(!is_zqloader)
         {
+            // filename is tap/tzx file to be normal loaded into the ZX Spectrum.
             if (ToLower(filename.extension().string()) == ".tap")
             {
                 TapLoader taploader;
                 taploader.SetOnHandleTapBlock([&](DataBlock p_block, std::string)
                 {
-                    spectrumloader.AddLeaderPlusData(std::move(p_block), 700, 1750ms);//.AddPause(100ms);
+                    spectrumloader.AddLeaderPlusData(std::move(p_block), g_tstate_quick_zero, 1750ms);//.AddPause(100ms);
                     return false;
                 }
                 );
@@ -228,7 +251,7 @@ A second filename argument and/or parameters are only usefull when using zqloade
                 TzxLoader tzxloader;
                 tzxloader.SetOnHandleTapBlock([&](DataBlock p_block, std::string)
                 {
-                    spectrumloader.AddLeaderPlusData(std::move(p_block), 700, 1750ms);//.AddPause(100ms);
+                    spectrumloader.AddLeaderPlusData(std::move(p_block), g_tstate_quick_zero, 1750ms);//.AddPause(100ms);
                     return false;
                 }
                 );
@@ -241,6 +264,7 @@ A second filename argument and/or parameters are only usefull when using zqloade
         }
         else    // is zqloader
         {   
+            // filename2 is the tap/tzx/z80 file to be turbo-loaded into the ZX Spectrum.
             std::cout << "Processing zqloader turbo file " << filename2 << std::endl;
 
             fs::path filename_exp = filename;
@@ -317,8 +341,52 @@ A second filename argument and/or parameters are only usefull when using zqloade
             }
 
         }
-        auto start = std::chrono::steady_clock::now();
-        spectrumloader.Run();
+
+        // When outputfile="path/to/filename" given: 
+        // Convert to wav file instead of outputting sound
+        fs::path outputfilename = cmdline.GetParameter("outputfile", "");
+        if(outputfilename.empty() && !filename2.empty() && ToLower(filename2.extension().string()) != ".wav" &&
+            (cmdline.HasParameter("wav") || cmdline.HasParameter("w")))
+        {
+            outputfilename = filename2;
+            outputfilename.replace_extension("wav");
+        }
+        if (outputfilename.empty() && !filename2.empty() && ToLower(filename2.extension().string()) != ".tzx" &&
+            (cmdline.HasParameter("tzx") || cmdline.HasParameter("t")))
+        {
+            outputfilename = filename2;
+            outputfilename.replace_extension("tzx");
+        }
+        auto vol1 = cmdline.GetParameter("volume_left", 100);
+        auto vol2 = cmdline.GetParameter("volume_right", 100);
+        auto samplerate = cmdline.GetParameter("samplerate", 0);
+        auto start = std::chrono::steady_clock::now();      // to measure duration only
+        if(outputfilename.empty())
+        {
+            // normal, so play as sound
+            SampleSender sample_sender(true);
+            spectrumloader.Attach(sample_sender);
+            sample_sender.SetVolume(vol1, vol2).SetSampleRate(samplerate);
+            sample_sender.Run();
+        }
+        else if (ToLower(outputfilename.extension().string()) == ".wav")
+        {
+            // Write to wav file
+            std::ofstream filewrite = OpenFileToWrite(outputfilename, cmdline.HasParameter("overwrite") || cmdline.HasParameter("o"));
+            SampleToWav wav_writer;
+            spectrumloader.Attach(wav_writer);
+            wav_writer.SetVolume(vol1, vol2).SetSampleRate(samplerate);
+            wav_writer.WriteToFile(filewrite);
+            std::cout << "Written " << outputfilename << " with size: " << wav_writer.GetSize() << " and duration: " << wav_writer.GetDuration().count() << "s"  << std::endl;
+        }
+        else if (ToLower(outputfilename.extension().string()) == ".tzx")
+        {
+            // Write to tzx file
+            std::ofstream filewrite = OpenFileToWrite(outputfilename, cmdline.HasParameter("overwrite") || cmdline.HasParameter("o"));
+            spectrumloader.WriteTzxFile(filewrite);
+            std::cout << "Written " << outputfilename << std::endl;
+        }
+
         auto end = std::chrono::steady_clock::now();
         auto dura = end - start;
         std::cout << "Took: " << std::dec << std::chrono::duration_cast<std::chrono::seconds>(dura).count() << " s" << std::endl;

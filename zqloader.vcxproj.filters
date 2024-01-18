@@ -15,7 +15,8 @@
     <ClCompile Include="z80snapshot_loader.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="tools.cpp" />
-    <ClCompile Include="taptospectrumloader.cpp" />
+    <ClCompile Include="sampletowav.cpp" />
+    <ClCompile Include="pulsers.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="byte_tools.h" />
@@ -37,6 +38,7 @@
     <ClInclude Include="z80snapshot_loader.h" />
     <ClInclude Include="tools.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="sampletowav.h" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="z80\zqloader.z80asm" />

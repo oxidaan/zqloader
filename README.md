@@ -154,8 +154,19 @@ A number between -100 and 100: sets volume for left or right sound (stereo) chan
     A time value in 50xTStates used at Z80 turboloader indicating the  time between edges when it is considered a 'one' - below this time it is considered a 'zero'. Related to 'one_tstates' above. Not giving this (or 0) uses a default that worked for me (4)
 * bit_loop_max = value           
     A time value in 50xTstates used at Z80 turboloader indicating the maximum time between edges treated as valid 'one' value. Above this a timeout error will occur. Not giving this (or 0) uses a default that worked for me (12)
+*  outputfile="path/to/filename.wav"  
+When a wav file is given: write result to given WAV (audio) file instead of playing sound.
+*  outputfile="path/to/filename.tzx"  
+When a tzx file given: write result as tzx file instead of playing sound. *)
+*   --wav or -w             
+Write a wav file as above with same as turbo (2nd) filename but with wav extension.
+* --tzx or -t             
+Write a tzx file as above with same as turbo (2nd) filename but with tzx extension.
 * key = yes/no/error  
   When done wait for key: yes=always, no=never or only when an error occurred (which is the default).
 * --help
 * --version  
    Show help or version.
+
+*) tzx files is experimental and not fully tested. It uses `ID 19 - Generalized Data Block` a lot but I
+        can't find a tool that can actually play it.   

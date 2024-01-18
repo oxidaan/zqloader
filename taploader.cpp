@@ -25,7 +25,7 @@ DataBlock TapLoader::LoadTapBlock(std::istream& p_stream)
     return LoadTapBlock(p_stream, len);
 }
 
-/// Load a data block as in TAP format from given stream.
+
 /// Load a data block as in TAP format from given stream, 
 /// but not the length: length already given.
 DataBlock TapLoader::LoadTapBlock(std::istream& p_stream, int p_len)
@@ -85,7 +85,7 @@ inline TapLoader& TapLoader::Load(std::istream& p_stream, std::string p_zxfilena
     while (p_stream.peek() && p_stream.good() && !done)
     {
         auto block = LoadTapBlock(p_stream);
-        done =       HandleTapBlock(std::move(block), p_zxfilename);        // pure virtual
+        done =       HandleTapBlock(std::move(block), p_zxfilename);   
     }
     return *this;
 }

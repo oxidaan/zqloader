@@ -42,6 +42,7 @@ std::optional<std::string> CommandLine::TryGetParameter(std::string_view p_comma
         }
         if (p_command.length() == 1 && s.length() > 1 && s[0] == '-' && s[1] != '-')
         {
+            // Commandline given single - followed by letters eg -abcd = flags: mere presence of letter indicates 'true'
             if (s.find(p_command) != std::string::npos)
             {
                 return "1";

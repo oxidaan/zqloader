@@ -1,7 +1,7 @@
 // ==============================================================================
 // PROJECT:         zqloader
 // FILE:            datablock.h
-// DESCRIPTION:     Definition struct DataBlock
+// DESCRIPTION:     Definition of struct DataBlock
 //
 // Copyright (c) 2023 Daan Scherft [Oxidaan]
 // This project uses the MIT license. See LICENSE.txt for details.

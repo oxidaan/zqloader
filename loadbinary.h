@@ -31,3 +31,10 @@ TData LoadBinary(std::istream& p_stream, size_t p_len)
     buf[p_len] = 0;
     return buf.data();
 }
+/// Write data binary to given stream.
+template <class TData>
+void WriteBinary(std::ostream& p_stream, const TData &p_data)
+{
+    p_stream.write(reinterpret_cast<const char*>(&p_data), sizeof(TData));
+}
+

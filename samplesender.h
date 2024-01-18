@@ -32,6 +32,7 @@ public:
     SampleSender();
     ~SampleSender();
 
+    /// CTOR with bool calls Init (so intialize miniaudio)
     SampleSender(bool);
 
 
@@ -61,7 +62,7 @@ public:
     }
 
     /// Set callback to get value what edge needs to become.
-    /// Given function should return an Egde enum (eg One/Zero/Toggle)
+    /// Given function should return an Edge enum (eg One/Zero/Toggle)
     /// So what needs to be done with the sound output binary signal.
     SampleSender& SetOnGetEdge(GetEdgeFun p_fun)
     {
@@ -69,7 +70,7 @@ public:
         return *this;
     }
 
-    /// Intialize miniadio when not done so already.
+    /// Intialize miniaudio when not done so already.
     SampleSender& Init();
 
     /// Start SampleSender / start miniaudio thread.
@@ -92,7 +93,7 @@ public:
         return *this;
     }
 
-    /// Set volume. When negative basically inverts.
+    /// Set volume. When negative basically inverts. 100 is max.
     SampleSender& SetVolume(int p_volume_left, int p_volume_right)
     {
         if (p_volume_left  > 100 || p_volume_left  < -100 ||

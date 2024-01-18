@@ -15,9 +15,10 @@
 #include <functional>       // std::bind
 
 #include "types.h"
-#include "samplesender.h"
 #include "datablock.h"      // Datablock used
+#include "spectrum_consts.h"
 #include <cstddef>          // std::byte
+#include <filesystem>       //  std::filesystem::path 
 
 class Pulser;
 class SampleSender;
@@ -59,20 +60,6 @@ public:
 
 
 
-    /// Set (miniaudio) sample sender, and Init.
-    SpectrumLoader& SetSampleSender(SampleSender&& p_sample_sender)
-    {
-        m_sample_sender = std::move(p_sample_sender);
-        return Init(m_sample_sender);
-    }
-
-    SpectrumLoader& Init()
-    {
-        m_sample_sender = SampleSender() ;
-        return Init(m_sample_sender);
-    }
-
-
     /// Reset SpectrumLoader.
     SpectrumLoader& Reset()
     {
@@ -97,45 +84,42 @@ public:
 
     /// Convenience: add ZX Spectrum standard data block.
     /// This is raw data so should already include startbyte + checksum
-    SpectrumLoader& AddData(DataBlock p_data, int p_pulslen = 855);
+    SpectrumLoader& AddData(DataBlock p_data, int p_pulslen = g_tstate_zero);
 
     /// Convenience: add ZX Spectrum standard pause (eg before 2nd leader)
     SpectrumLoader& AddPause(std::chrono::milliseconds p_duration = 500ms);
 
     /// Convenience: add ZX Spectrum standard leader+sync+data block.
     /// This is raw data which (should) already include startbyte + checksum
-    SpectrumLoader& AddLeaderPlusData(DataBlock p_data, int p_pulslen = 855, std::chrono::milliseconds p_leader_duration = 3000ms)
+    SpectrumLoader& AddLeaderPlusData(DataBlock p_data, int p_pulslen = g_tstate_zero, std::chrono::milliseconds p_leader_duration = 3000ms)
     {
         return AddLeader(p_leader_duration).AddSync().AddData(std::move(p_data), p_pulslen);
     }
 
 
-    /// Run SpectrumLoader. Play added pulser-blocks.
-    SpectrumLoader& Run()
+    SpectrumLoader& WriteTzxFile(std::ostream& p_file);
+
+    // Set the call backs
+    // TSampleSender is SampleSender or SampleToWav
+    template<class TSampleSender>
+    SpectrumLoader& Attach(TSampleSender& p_sample_sender)
     {
         Reset();
-        if(m_pulsers.size())
-        {
-            m_sample_sender.Run();
-        }
+        p_sample_sender.SetOnGetDurationWait(std::bind(&SpectrumLoader::GetDurationWait, this)).
+                        SetOnGetEdge(std::bind(&SpectrumLoader::GetEdge, this)).
+                        SetOnNextSample(std::bind(&SpectrumLoader::Next, this));
         return *this;
-    }
-
-    /// Mainly for debugging.
-    bool GetLastEdge() const
-    {
-        return m_sample_sender.GetLastEdge();
     }
 
 
 
 private:
     // CallBack; runs in miniaudio thread
-    // Move to next pulse.
+    // Move to next pulse. Return true when (completely) done.
     bool Next();
 
 
-    // Get duration to wait (in seconds)
+    // Get duration to wait (in seconds) (until next edge)
     // CallBack; runs in miniaudio thread
     // depending on what is to be sent: (1/0/sync/leader).
     Doublesec GetDurationWait() const;
@@ -151,11 +135,10 @@ private:
         return *(m_pulsers[m_current_pulser]);
     }
 
-    SpectrumLoader& Init(SampleSender& p_sample_sender);
+
 
 private:
     Pulsers m_pulsers;
     size_t m_current_pulser = 0;
-    SampleSender m_sample_sender;
 
 };

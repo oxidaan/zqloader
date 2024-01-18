@@ -10,6 +10,8 @@
 #include "turboblock.h"
 #include "taploader.h"
 #include "pulsers.h"
+#include "spectrum_consts.h"        // SCREEN_END
+#include "spectrum_types.h"         // ZxBlockType
 #include "compressor.h"
 #include <filesystem>
 #include "spectrum_loader.h"        // CalculateChecksum
@@ -265,7 +267,6 @@ private:
         PausePulser().SetLength(500).SetEdge(Edge::toggle).MoveToLoader(p_loader);      // extra mini sync before
 
         DataPulser()        // data
-            .SetBlockType(ZxBlockType::raw)
             //            .SetStartBitDuration(380)
             .SetZeroPattern(p_zero_duration)          // works with ONE_MAX 12 ONE_MIN 4
             .SetOnePattern(p_one_duration)
@@ -442,11 +443,14 @@ TurboBlocks::TurboBlocks(SpectrumLoader& p_spectrumloader, const fs::path &p_sym
 
 TurboBlocks::~TurboBlocks() = default;
 
-/// Load at normal speed, typically loads zqloader.tap.
+/// Load given tap file at normal speed, typically loads zqloader.tap.
 TurboBlocks& TurboBlocks::Load(const std::filesystem::path& p_filename, std::string p_zxfilename)
 {
     TapLoader loader;
-    loader.SetOnHandleTapBlock(std::bind(&TurboBlocks::HandleTapBlock, this, _1, _2));
+    loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string p_zxfilename)
+    {   
+        return HandleTapBlock(std::move(p_block), p_zxfilename);
+    });
     loader.Load(p_filename, p_zxfilename);
     return *this;
 }
@@ -529,7 +533,7 @@ TurboBlocks& TurboBlocks::AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr
     }
     else
     {
-        AddTurboBlock(std::move(data_block), p_start_adr);
+        AddTurboBlock(std::move(data_block), p_start_adr);  
     }
     return *this;
 }
@@ -543,7 +547,7 @@ void TurboBlocks::AddTurboBlock(DataBlock&& p_block, uint16_t p_dest_address)
     AddTurboBlock(std::move(tblock));
 }
 
-// Add given turboblock
+// Add given turboblock at end
 void TurboBlocks::AddTurboBlock(TurboBlock&& p_block)
 {
     if (m_turbo_blocks.size() > 0)
@@ -603,16 +607,17 @@ bool TurboBlocks::HandleTapBlock(DataBlock p_block, std::string p_zxfilename)
             auto val = (m_bit_loop_max ? m_bit_loop_max : 12) + 2 - (m_bit_one_threshold ? m_bit_one_threshold: 4);
             SetByteToZqLoaderTap(p_block, "BIT_ONE_THESHLD", std::byte(val));
         }
-
     }
     else if (type == ZxBlockType::header)
     {
         // can here (like otla) change the name as zx spectrum sees it
     }
-    m_spectrumloader.AddLeaderPlusData(std::move(p_block), 700, 1750ms);
+    m_spectrumloader.AddLeaderPlusData(std::move(p_block), g_tstate_quick_zero, 1750ms);
     return false;
 }
 
+
+/// Set a byte to the TAP block that contains ZQLoader Z80. To set parameters to ZQLoader.
 void TurboBlocks::SetByteToZqLoaderTap(DataBlock& p_block, const char* p_name, std::byte p_value) const
 {
     auto adr = 1 + m_symbols.GetSymbol(p_name);     // + 1 because of start byte
@@ -641,6 +646,6 @@ TurboBlocks &TurboBlocks::SetDurations(int p_zero_duration, int p_one_duration)
     {
         m_one_duration = p_one_duration;
     }
-    std::cout << "Around " << (1000ms / m_tstate_dur) / ((m_zero_duration + m_one_duration) / 2) << " bps" << std::endl;
+    std::cout << "Around " << (1000ms / g_tstate_dur) / ((m_zero_duration + m_one_duration) / 2) << " bps" << std::endl;
     return *this;
 }

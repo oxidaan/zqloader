@@ -23,7 +23,7 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, std::string p_zxfilenam
     bool done = false;
     ZxBlockType type = ZxBlockType(p_block[0]);
     // kick of type and checksum
-    DataBlock block = DataBlock(p_block.begin() + 1, p_block.end() - 1);
+    DataBlock block = p_block.size() >= 2 ? DataBlock(p_block.begin() + 1, p_block.end() - 1) : std::move(p_block);
     if (type == ZxBlockType::header)
     {
         if (block.size() != sizeof(ZxHeader))

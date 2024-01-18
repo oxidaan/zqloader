@@ -33,6 +33,8 @@ set(SOURCE
     tools.cpp
     turboblock.cpp
     tzxloader.cpp
+    sampletowav.cpp
+    pulsers.cpp
 )
 
 if(MSVC)

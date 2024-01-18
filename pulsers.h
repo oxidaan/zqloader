@@ -11,12 +11,10 @@
 
 
 #include "types.h"                  // Edge enum
-#include <vector>
 #include "datablock.h"              // DataBlock
 #include "byte_tools.h"             // eg literal for std::byte
-#include "spectrum_consts.h"        // TODO doesn't belong here m_tstate_dur
-#include "spectrum_types.h"         // TODO doesn't belong here ZxBlockType
-#include "spectrum_loader.h"
+#include <ostream>                  // std::ostream
+
 
 /// A pulser is used by miniaudio te create an audio stream.
 /// Encodes binary data to a series of (audio) pulses that can be loaded by
@@ -30,10 +28,10 @@ class Pulser
 {
 public:
     virtual ~Pulser() {}
-    virtual bool Next() = 0;
-    virtual int GetTstate() const = 0;
-    virtual Edge GetEdge() const = 0;
-
+    virtual int GetTstate() const = 0;      // Get # TStates to wait    
+    virtual Edge GetEdge() const = 0;       // What to do after wait
+    virtual bool Next() = 0;                // move to next pulse/edge, return true when done.
+    virtual void WriteAsTzxBlock(std::ostream& p_stream) const = 0;
 protected:
     unsigned m_pulsnum = 0;                         // increased after each edge
 
@@ -53,22 +51,16 @@ public:
     PausePulser(PausePulser&&) = default;
 
     /// Set length of pause in milliseconds.
-    PausePulser& SetLength(std::chrono::milliseconds p_duration)
-    {
-        m_duration = p_duration;
-        return *this;
-    }
+    PausePulser& SetLength(std::chrono::milliseconds p_duration);
+
 
     /// Set length of pause in T-states.
-    PausePulser& SetLength(int p_states)
-    {
-        m_duration_in_tstates = p_states;
-        return *this;
-    }
+    PausePulser& SetLength(int p_states);
 
-    /// Set edge value (so sound wave on/off) during pause. 
+
+    /// Set edge value (so sound wave on/off) after pause. 
     /// Can be used to force it to a predefined value for blocks to follow.
-    /// Egde::toggle will toggle once at first call.
+    /// Egde::toggle will toggle the wave value.
     /// Note: Pauses first, then sets edge to value as given here.
     PausePulser& SetEdge(Edge p_edge)
     {
@@ -81,11 +73,12 @@ public:
     {
         p_loader.AddPulser(std::move(*this));
     }
+    void WriteAsTzxBlock(std::ostream& p_stream) const override;
 
 protected:
     bool AtEnd() const
     {
-        return m_duration_in_tstates ? true : Clock::now() > (m_timepoint + m_duration);
+        return true;
     }
     virtual bool Next() override
     {
@@ -113,7 +106,6 @@ protected:
 private:
     int m_duration_in_tstates = 0;
     Edge m_edge = Edge::no_change;
-    std::chrono::milliseconds m_duration = 0ms;
     std::chrono::time_point<Clock> m_timepoint;
 };
 
@@ -133,7 +125,7 @@ public:
 
     /// Set tone pattern using one ore more given T-state durations.
     /// These form one pattern.
-    /// Audio output edge well be toggled after here given each given T state.
+    /// Audio output edge well be toggled after each here given T state.
     template<typename ... TParams>
     TonePulser& SetPattern(int p_first, TParams ... p_rest)
     {
@@ -143,36 +135,10 @@ public:
     }
 
     /// Set length in # of pulses that is # complete patterns.
-    TonePulser& SetLength(unsigned p_max_pulses)
-    {
-        unsigned pattsize = unsigned(m_pattern.size());
-        if (pattsize)
-        {
-            m_max_pulses = pattsize * p_max_pulses;
-        }
-        else
-        {
-            m_max_pulses = p_max_pulses;
-        }
-        return *this;
-    }
+    TonePulser& SetLength(unsigned p_max_pulses);
 
     /// Set length in milliseconds, rounds up to complete patterns.
-    TonePulser& SetLength(std::chrono::milliseconds p_duration)
-    {
-        auto pat_dur = GetPatternDuration();
-        if (pat_dur)
-        {
-            m_max_pulses = unsigned(p_duration / (m_tstate_dur * pat_dur));
-            unsigned pattsize = unsigned(m_pattern.size());
-            m_max_pulses += pattsize - (m_max_pulses % pattsize);    // round up to next multiple of pattsize
-        }
-        else
-        {
-            throw std::runtime_error("Cannot set length to time when pattern is unknown. Call SetPattern first.");
-        }
-        return *this;
-    }
+    TonePulser& SetLength(std::chrono::milliseconds p_duration);
     
     /// Convenience, move me to given loader.
     template<class TLoader>
@@ -180,6 +146,7 @@ public:
     {
         p_loader.AddPulser(std::move(*this));
     }
+    void WriteAsTzxBlock(std::ostream& p_stream) const override;
 private:
     void SetPattern()
     {
@@ -285,7 +252,6 @@ public:
     DataPulser& SetData(DataBlock p_data)
     {
         m_data = std::move(p_data);
-        CalcChecksum();
         return *this;
     }
 
@@ -296,19 +262,14 @@ public:
         p_loader.AddPulser(std::move(*this));
     }
 
-    /// Set block type
-    DataPulser& SetBlockType(ZxBlockType p_type)
-    {
-        m_type = p_type;
-        return *this;
-    }
 
+    void WriteAsTzxBlock(std::ostream& p_stream) const override;
 
 protected:
-
+    /// Get # TStates to wait
     virtual int GetTstate() const override
     {
-        if (m_puls_duration == 0)       // not in 'pulse mode'
+        if (!IsPulseMode())       // not in 'pulse mode' (so normal)
         {
             if (NeedStartSync())
             {
@@ -323,28 +284,28 @@ protected:
                 return m_zero_pattern[m_pulsnum];
             }
         }
-        // Here in 'pulse mode'
-        auto bitnum = m_bitnum % 10;    // 0 -> 9
-        if (bitnum == 0)
-        {
-            return m_start_duration;
-        }
-        else if (bitnum == 9)
-        {
-            return m_stop_duration;
-        }
         else
         {
+            // Here in 'pulse mode' (so rs232 like)
+            auto bitnum = m_bitnum % 10;    // 0 -> 9
+            if (bitnum == 0)
+            {
+                return m_start_duration;
+            }
+            else if (bitnum == 9)
+            {
+                return m_stop_duration;
+            }
             return m_puls_duration;
         }
     }
     virtual Edge GetEdge() const override
     {
-        if (m_puls_duration == 0)   // not in 'pulse mode'
+        if (!IsPulseMode())
         {
             return Edge::toggle;
         }
-        // Here in 'pulse mode'
+        // Here in 'pulse mode' (rs232 like)
         if (GetCurrentBit())
         {
             return Edge::one;
@@ -375,13 +336,20 @@ protected:
         return AtEnd();
     }
 private:
+    // When true is in 'pulse' mode, so rs232 like: no toggles but
+    // fixed one for 1 and zero for 0.
+    // Else false: normal mode.
+    bool IsPulseMode() const
+    {
+        return m_puls_duration != 0;
+    }
 
     bool NeedStartSync() const
     {
-        return m_puls_duration == 0 &&      // else in pulse mode, has its own start bits
+        return !IsPulseMode() &&            // else in pulse mode, has its own start bits
             m_need_start_sync &&            // else just done
             m_start_duration &&             // master switch using start sync at all
-            m_bitnum % 8 == 0;              // only at first bit
+            m_bitnum % 8 == 0;              // only at very first bit
     }
 
     void SetOnePattern() {}
@@ -389,40 +357,18 @@ private:
 
     std::byte GetByte(unsigned p_index) const
     {
-        if (m_type == ZxBlockType::header ||
-            m_type == ZxBlockType::data)
-        {
-            if (p_index == 0)
-            {
-                return std::byte(m_type);
-            }
-            else if (p_index <= m_data.size())
-            {
-                return m_data[p_index - 1];
-            }
-            else
-            {
-                return m_checksum;
-            }
-        }
-        else
-        {
-            return m_data[p_index];
-        }
+        return m_data[p_index];
     }
     void SetSize(size_t p_size)
     {
         m_data.resize(p_size);
     }
+    // Data size in bytes
     size_t GetTotalSize() const
     {
-        return (m_type == ZxBlockType::raw) ? m_data.size() :
-            m_data.size() + 1 + 1;   // + type byte + checksum
+        return m_data.size();
     }
-    void CalcChecksum()
-    {
-        m_checksum = CalculateChecksum(std::byte(m_type), m_data);         // type is included in checksum calc   
-    }
+
 
     std::byte* GetDataPtr()
     {
@@ -452,7 +398,7 @@ private:
     }
     bool GetCurrentBit() const
     {
-        if (m_puls_duration == 0)
+        if (!IsPulseMode())
         {
             auto bytenum = m_bitnum / 8;
             auto bitnum = m_bitnum % 8;    // 0 -> 7
@@ -463,7 +409,7 @@ private:
         }
         else
         {
-            // in puls mode needs start and stop bit for synchronisation
+            // in puls mode (rs232) needs start and stop bit for synchronisation
             auto bytenum = m_bitnum / 10;
             auto bitnum = m_bitnum % 10;    // 0 -> 9
             if (bitnum == 0)
@@ -486,13 +432,11 @@ private:
 private:
     unsigned m_bitnum = 0;          // bitnum from start in block to be send.
     bool m_need_start_sync = true;
-    ZxBlockType m_type;             // returned as first byte unless raw
     DataBlock m_data;
-    std::byte m_checksum{};         // returned as last byte unless raw
 
     std::vector<int> m_zero_pattern;
     std::vector<int> m_one_pattern;
-    int m_puls_duration = 0;        // when !0 go to puls mode (! toggle)
+    int m_puls_duration = 0;        // when !0 go to puls mode (! toggle), then this duration of each pulse.
     int m_start_duration = 0;       // default s/a m_puls_duration
     int m_stop_duration = 0;        // default s/a m_puls_duration
     bool m_start_bit = true;        // value for start bit. Stopbit is always !m_start_bit
@@ -520,8 +464,11 @@ public:
     {
         p_loader.AddPulser(std::move(*this));
     }
+    void WriteAsTzxBlock(std::ostream&) const override
+    {}
 
 protected:
+
     virtual bool Next() override
     {
         return true;

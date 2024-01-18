@@ -18,10 +18,9 @@ struct DataBlock;
 
 
 
-/// Loads tap files.
+/// Loads tap files (from file).
 /// For each tap block found calls virtual HandleTapBlock.
 /// See https://sinclair.wiki.zxnet.co.uk/wiki/TAP_format
-/// Base for TapToSpectrumLoader, TapToTurboBlocks.
 class TapLoader
 {
 public:
@@ -44,7 +43,7 @@ public:
 
 
 
-    /// Set callback when tapblock found
+    /// Set callback when tapblock found.
     TapLoader& SetOnHandleTapBlock(HandleTapBlockFun p_fun)
     {
         m_OnHandleTapBlock = std::move(p_fun);

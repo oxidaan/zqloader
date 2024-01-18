@@ -29,6 +29,7 @@ SampleSender::~SampleSender()
 {
     if (m_device)
     {
+        Wait();
         Stop();
         ma_device_uninit(m_device.get());
     }
@@ -78,6 +79,7 @@ SampleSender& SampleSender::Wait()
     if (m_is_running)
     {
         m_event.wait();
+        std::this_thread::sleep_for(500ms); // otherwise stops before all data was send
     }
     return *this;
 }
@@ -87,8 +89,6 @@ SampleSender& SampleSender::Stop()
 {
     if (m_is_running)
     {
-        Wait();
-        std::this_thread::sleep_for(500ms); // otherwise stops before all data was send
         ma_device_stop(m_device.get());
         m_is_running = false;
     }
