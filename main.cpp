@@ -82,7 +82,7 @@ inline std::ofstream OpenFileToWrite(fs::path p_filename, bool p_allow_overwrite
 void Version()
 {
     std::cout << 1 + &*R"(
-ZQLoader version 0.9
+ZQLoader version 1.1
 (C) 2023 Daan Scherft[Oxidaan].
 https://github.com/oxidaan/zqloader
 This project uses the miniaudio library by David Read. (https://miniaud.io/)
@@ -144,11 +144,11 @@ More options can be given with syntax: option=value, or just option value or opt
                             When a wav file is given: write result to given WAV (audio) file instead of 
                             playing sound.
     outputfile="path/to/filename.tzx"
-    --overwrite or -o       When given allows overwriting above output file when already exists, else gives
-                            error on that case.
                             When a tzx file given: write result as tzx file instead of playing sound. **
     --wav or -w             Write a wav file as above with same as turbo (2nd) filename but with wav extension.
     --tzx or -t             Write a tzx file as above with same as turbo (2nd) filename but with tzx extension.
+    --overwrite or -o       When given allows overwriting above output file when already exists, else gives
+                            error in that case. Eg: -wo create wav file, overwrite previous one.
 
     key = yes/no/error      When done wait for key: yes=always, no=never or only when an error
                             occurred (which is the default).

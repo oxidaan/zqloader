@@ -96,13 +96,12 @@ Use CMake, see above.
 
 Instructions
 ---
-You need a real ZX-spectrum 48K. Connect the ZX-spectrums EAR input to your host computers sound output. At the host computer set sound to maximum.  
+You need a *real* ZX-spectrum 48K. Connect the ZX-spectrums EAR input to your host computers sound output. At the host computer set sound to maximum.  
 At Windows, make sure *Audio Enhancements* are switched off. 
-Eg at `Settings -> System -> Sound -> Speakers -> Advanced` 
-
+Eg at `Settings -> System -> Sound -> Speakers -> Advanced`   
 Switch off `Audio Enhancements` there.
 
-Make sure no other sound is playing.
+Make sure no other sound is playing...
 
 At the ZX Spectrum type:
 ```
@@ -158,15 +157,17 @@ A number between -100 and 100: sets volume for left or right sound (stereo) chan
 When a wav file is given: write result to given WAV (audio) file instead of playing sound.
 *  outputfile="path/to/filename.tzx"  
 When a tzx file given: write result as tzx file instead of playing sound. *)
-*   --wav or -w             
-Write a wav file as above with same as turbo (2nd) filename but with wav extension.
-* --tzx or -t             
-Write a tzx file as above with same as turbo (2nd) filename but with tzx extension.
+                           When a tzx file given: write result as tzx file instead of playing sound. **
+*  wav or -w  
+            Write a wav file as above with same as turbo (2nd) filename but with wav extension.
+* tzx or -t  
+            Write a tzx file as above with same as turbo (2nd) filename but with tzx extension.
+*  overwrite or -o  
+       When given allows overwriting above output file when already exists, else gives error in that case. Eg: `-wo` create wav file, overwrite previous one.
 * key = yes/no/error  
   When done wait for key: yes=always, no=never or only when an error occurred (which is the default).
 * --help
 * --version  
    Show help or version.
 
-*) tzx files is experimental and not fully tested. It uses `ID 19 - Generalized Data Block` a lot but I
-        can't find a tool that can actually play it.   
+*) tzx files is experimental and not fully tested. It uses `ID 19 - Generalized Data Block` a lot but I can't find a tool that can actually play it.   
