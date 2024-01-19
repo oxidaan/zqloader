@@ -12,7 +12,6 @@
 #include <cstdint>         // uint16_t
 #include <filesystem>       // std::filesystem
 #include <iostream>
-#include <fstream>
 #include "turboblock.h"
 #include "byte_tools.h"
 #include "tools.h"

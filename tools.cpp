@@ -9,7 +9,6 @@
 
 #include "tools.h"
 #include <string>
-#include <exception>
 #include <sstream>
 #ifdef _WIN32
 #include <windows.h>

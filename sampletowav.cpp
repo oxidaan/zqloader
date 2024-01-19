@@ -8,7 +8,6 @@
 //==============================================================================
 
 #include "sampletowav.h"
-#include <fstream>
 #include <cstring>      // memcpy
 #include <iostream>
 

@@ -11,7 +11,7 @@
 #include "loadbinary.h"
 #include "pulsers.h"
 #include "spectrum_consts.h"        // g_tstate_dur
-#include <fstream>
+
 
 /// Convenience: add ZX Spectrum standard leader.
 

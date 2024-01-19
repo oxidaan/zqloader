@@ -10,11 +10,10 @@
 
 
 
-#include "samplesender.h"
+
 #include "spectrum_types.h"
-#include "tzxloader.h"
-#include "compressor.h"
 #include "turboblock.h"
+#include "types.h"
 
 #include <iostream>
 /// Make conversion from enum tags to string somewhat simpler

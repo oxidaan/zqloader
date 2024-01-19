@@ -7,6 +7,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zqloader", "zqloader.vcxpro
 EndProject
 Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "zqloader_installer", "zqloader_installer\zqloader_installer.vdproj", "{F857A3A6-3474-4A12-B924-2912F6E0EAAB}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{B76F9B81-52DE-400D-83E7-12BECFEC4B89}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64

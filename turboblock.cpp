@@ -595,6 +595,7 @@ void TurboBlocks::MoveToLoader( uint16_t p_usr_address, uint16_t p_clear_address
 // patch certain parameters, then move to spectrumloader (normal speed)
 bool TurboBlocks::HandleTapBlock(DataBlock p_block, std::string p_zxfilename)
 {
+    (void)p_zxfilename;
     ZxBlockType type = ZxBlockType(p_block[0]);
     if(type == ZxBlockType::data)
     {

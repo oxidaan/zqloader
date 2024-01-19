@@ -11,7 +11,7 @@
 
 #include "pulsers.h"
 #include "spectrum_consts.h"        // g_tstate_dur
-#include <iostream>
+
 
 
 /// Set length of pause in T-states.

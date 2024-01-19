@@ -10,7 +10,7 @@
 #pragma once
 
 
-#include "taploader.h"
+#include "datablock.h"
 #include "turboblock.h"
 #include "spectrum_types.h"     // ZxHeader
 
@@ -50,12 +50,12 @@ private:
 
     // read a number from basic either as VAL "XXXXX" or a 2 byte int.
     // 0 when failed/not found. 
-    // (note when it is truly 0 makes no sence like RANDOMIZE USR 0, CLEAR 0, LOAD "" CODE 0) 
+    // (note when it is truly 0 makes no sense like RANDOMIZE USR 0, CLEAR 0, LOAD "" CODE 0) 
     static uint16_t TryReadNumberFromBasic(const DataBlock& p_basic_block, int p_cnt);
 
 
     // Try to find one ore more numbers in given BASIC block.
-    // p_check_fun must return true when matching a certain pattern to search for (depeding on what to search for)
+    // p_check_fun must return true when matching a certain pattern to search for (depending on what to search for)
     // then looks for the number that follows.
     // Used by TryFindUsr / TryFindClear / TryFindLoadCode.
     template <class TCheckFun>

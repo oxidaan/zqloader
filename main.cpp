@@ -13,7 +13,7 @@
 // At MSVC
 // Properties -> C/C++ -> Language -> C++ Language Standard -> ISO c++17 Standard
 // also set at C / C++ -> Command Line -> Additional options : /Zc:__cplusplus
-// plus C / C++ -> Preprocessor -> Use standard comforming preprocessor
+// plus C / C++ -> Preprocessor -> Use standard conforming preprocessor
 #error "Need c++17 or more"
 #endif
 
