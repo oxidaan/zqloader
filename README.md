@@ -41,7 +41,8 @@ More about the [C++ ZQloader...]
 Compression
 ---
 It uses a simple RLE compression algorithm that only reduces size with 20-40% thereabout. This is not that much (eg [ZX0](https://github.com/einar-saukas/ZX0) should do much better). But essential is it can be decompressed at the ZX spectrum at he same memory block - so decompressed data will overwrite compressed data during decompression. ZX0 can do this also but seems to always need to have some minimal extra space at the end (see `delta` at [ZX0 readme](https://github.com/einar-saukas/ZX0#readme)). Also I've found compressing takes long with ZX0, thus spoiling the entire idea of a quick loader.  
-The RLE compression algorithm compresses the most used byte value (usually this is 0) by writing an escape code, then the number of 'most used value'-s. Further it compresses a sequence of 3 or more the same bytes (of any value) by writing another escape code, then that byte value, then the number of these bytes.
+The RLE compression algorithm compresses the most used byte value (usually this is 0) by writing an escape code, then the number of 'most used value'-s. Further it compresses a sequence of 3 or more the same bytes (of any value) by writing another escape code, then that byte value, then the number of these bytes.  
+
 The compression is most effective when loading a snapshot. This is because when loading a snapshot, often large parts of the memory are zero which can be compressed effectively. Therfore loading a 48kb snapshot containing a 32kb game takes only little more as loading just the 32kb game itself: around 30 seconds.
 
 Limitations/TODO's
