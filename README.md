@@ -34,7 +34,7 @@ zqloader.exe coded in C++ (17)
 Runs on the host computer. It uses [miniaudio](https://github.com/mackron/miniaudio) to generated loading sounds.  
 First it uploads the ZQloader machine code (described above) itself to the ZX spectrum. It uses traditional ROM speed for that.
 
-After that it will read a TAP or TZX file. It will recognize a basic loader, taking the start address from that (as in `RANDOMIZE USR XXXX`) (also read `CLEAR` value, if any). Then it will load 1 or more code blocks, which can be a spash screen or machine code, compress them, and send these at turbo speed into the ZX spectrum. 
+After that it will read a TAP, TZX or Z80 (snapshot) file. For TAP or TZX files it will recognize a basic loader, taking the start address from that (as in `RANDOMIZE USR XXXX`) (also read `CLEAR` value, if any). Then it will load 1 or more code blocks, which can be a spash screen or machine code, compress them, and send these at turbo speed into the ZX spectrum. 
 More about the [C++ ZQloader...]
 
 
