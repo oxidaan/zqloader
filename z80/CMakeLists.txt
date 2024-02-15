@@ -6,7 +6,7 @@ find_program(WHERE_IS_SJASMPLUS sjasmplus)
 get_filename_component(SJASMPLUS_PATH  ${WHERE_IS_SJASMPLUS}  DIRECTORY)       # default for PATH_TO_SJASMPLUS
 set(PATH_TO_SJASMPLUS ${SJASMPLUS_PATH} CACHE PATH "Location of sjasmplus (directory)")
 
-# The directory location of the binary is not necessary the location of the sjasmplus examples.
+# The directory location of the found binary is not necessary the location of the sjasmplus examples.
 # Try the cached variable PATH_TO_SJASMPLUS first.
 # Or give with cmake -DPATH_TO_SJASMPLUS=path/to/sjasmplus
 if (IS_DIRECTORY ${PATH_TO_SJASMPLUS}/examples)
@@ -14,7 +14,11 @@ if (IS_DIRECTORY ${PATH_TO_SJASMPLUS}/examples)
 endif()
 
 if (NOT IS_DIRECTORY ${SJASMPLUS_PATH}/examples)
-    message(FATAL_ERROR "Please give directory of sjasmplus as parameter PATH_TO_SJASMPLUS; examples must be there (now: ${SJASMPLUS_PATH})\nEg: cmake -DPATH_TO_SJASMPLUS=path/to/sjasmplus")
+    message(FATAL_ERROR "Sjasmplus examples not found.
+Please give directory of sjasmplus as parameter PATH_TO_SJASMPLUS; examples must be there (now: ${SJASMPLUS_PATH})
+Eg: cmake -DPATH_TO_SJASMPLUS=path/to/sjasmplus
+(Or completely remove sjasmplus to skip z80 assembly)")
+
 else()
     message("sjasmplus examples found at ${SJASMPLUS_PATH}/examples")
 endif()
@@ -30,8 +34,7 @@ add_custom_command(
     COMMAND  "sjasmplus"
     ARGS 
     "--fullpath"
-#    "-i${PATH_TO_SJASMPLUS}/examples/TapLib"           # TapLib not (yet) used (anymore)
-    "-i${PATH_TO_SJASMPLUS}/examples/BasicLib"          # BasicLib, needed to generate BASIC
+    "-i${SJASMPLUS_PATH}/examples/BasicLib"             # BasicLib, needed to generate BASIC
     "--exp=zqloader.exp"                                # export file, has symbols
     "--lst"                                             # lst file, not really needed
     "--syntax=abf"
