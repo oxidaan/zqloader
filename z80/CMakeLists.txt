@@ -14,7 +14,7 @@ if (IS_DIRECTORY ${PATH_TO_SJASMPLUS}/examples)
 endif()
 
 if (NOT IS_DIRECTORY ${SJASMPLUS_PATH}/examples)
-    message("Please give directory of sjasmplus as parameter PATH_TO_SJASMPLUS; examples must be there (now: ${SJASMPLUS_PATH})\nEg: cmake -DPATH_TO_SJASMPLUS=path/to/sjasmplus")
+    message(FATAL_ERROR "Please give directory of sjasmplus as parameter PATH_TO_SJASMPLUS; examples must be there (now: ${SJASMPLUS_PATH})\nEg: cmake -DPATH_TO_SJASMPLUS=path/to/sjasmplus")
 else()
     message("sjasmplus examples found at ${SJASMPLUS_PATH}/examples")
 endif()
