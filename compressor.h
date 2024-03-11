@@ -27,7 +27,7 @@
 /// 'code_for_most', then number of repeats (#repeats cannot be 'code_for_most')
 /// (A single byte value 'most' is left untouched).
 /// 3 or more sequential of any value are compressed by prefixing
-/// 'code_for_triples'; then that byte value; then number of repeats (#repeats cannot be 'code_for_triples')
+/// 'code_for_triples'; then that byte value; then number of repeats (#repeats cannot be 'code_for_triples') 
 /// 'code_for_most' and 'code_for_triples' are stored 2x.
 /// Larger blocks (eg repeat more than max value for TData) are just created as two blocks.
 ///
@@ -219,9 +219,9 @@ private:
             }
             if (prev_count > TData{ 0 })
             {
-                Write(code_for_triples);
-                Write(prev);
-                Write(prev_count);
+                Write(code_for_triples);         
+                Write(prev);                // Note prev can not be code_for_triples
+                Write(prev_count);           
                 prev_count = TData{ 0 };
             }
         };
@@ -231,19 +231,19 @@ private:
             auto b = Read();
             if (b == most)
             {
-                WriteTriples();                   // so flush 2nd max if there
+                WriteTriples();                   // so flush any 'triples' if present
                 if (max_count == GetMax<TData>()) // flush when overflow
                 {
-                    WriteMax();                   // max1count now 0
+                    WriteMax();                   // max_count now 0
                 }
                 ++max_count;
             }
             else if (b == prev && b != code_for_most && b != code_for_triples)
             {
-                WriteMax();         // so flush 1st max if there
-                if (prev_count == GetMax<TData>())
-                {                   // flush when overflow
-                    WriteTriples(); // max2count now 0
+                WriteMax();                            // so flush any 'max' if present
+                if (prev_count == GetMax<TData>())     // flush when overflow
+                {                   
+                    WriteTriples();                    // prev_count now 0
                 }
                 ++prev_count;
             }
