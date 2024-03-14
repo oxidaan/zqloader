@@ -465,7 +465,8 @@ wait_for_first_edge:
     // Intialize using header just read.
     // Initialize length as from header read.
     // Initialize load location as from header just read.
-    // when 0 (at least ixh), load into basic at REM ie load_address_at_basic
+    // when m_load_address zero: load into basic at REM ie load_address_at_basic
+    // when m_length zero: nothing more to load.
     exx
         ld DE, (m_length)       // now has length of data to be received 
         ld HL, (m_load_address) // m_load_address
@@ -479,7 +480,7 @@ wait_for_first_edge:
         or E
     exx
     jr z, load_done             // length zero nothing more to do, but need to unset z
-
+    // -> continue directly at LOAD_BYTES
 
 //============================================================================
 
