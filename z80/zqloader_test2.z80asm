@@ -1,12 +1,15 @@
+// Test snapshot registers
+// Eg at a simulator create a z80 snapshot when "Press Space..." appears.
+// Then load z80 snapshot at real spectrum - check register values. (should be same as at simulator / and see values here below)
 
  DEVICE ZXSPECTRUM48
- DEFINE tape_file_name    "qloader_test2.tap"
+ DEFINE tape_file_name    "zqloader_snapshot_test.tap"
  DEFINE basic_name        "qloadertst"
 
 CHAN_OPEN               EQU  0x1601         
 PROG                    EQU 23635       // Zx spectrum system variable PROG indicates start address of basic
 SCR_CT                  EQU 23692       // avoid Scroll?
-CLEAR                  equ 32768       // CLEAR
+CLEAR                   EQU 32768       // CLEAR
 
 /*
 BASIC_LEN EQU BASIC_END-BASIC_START     // length of total basic inc mc-rem for SAVETAP
@@ -33,23 +36,24 @@ line_useval = 1   ;; Use VAL for numbers
 */
  
  ORG 30000 
+    jp 0            // to test at ZX spectrum if PC is OK
 ASM_START:
     ld A, 2                 
     call CHAN_OPEN          // rst 10 goes to screen
     ld DE, TEXT_START
     call PRINT     
     di
-    ld (DebugSp), SP        //  keep
-    ld SP,50000
+    ld (DebugSp), SP        //  keep c350
+    ld SP, 50000            // 0xc350
     exx                     
         // I think BC', DE', HL' must be saved for save return to BASIC (or before ei)
         push DE                  // #PP1
         push HL                  // #PP2
         push BC                  // #PP5
     exx
-    push IY
+    push IY                     // #PP7
 
-    ld A,0x12
+    ld A,0x12                   // note **      
     ld BC, 0x1234
     ld DE, 0x2345
     ld HL, 0x3456
@@ -58,26 +62,50 @@ ASM_START:
     ld DE, 0x5678
     ld HL, 0x6789
     exx
+    ld IX, 0x4321       // -> AF'
+    push IX             // #PP8
     ex AF, AF'
-    ld A, 0x23
+    pop AF              // #PP8
     ex AF, AF'
     ld IX, 0x789A
     ld IY, 0x89AB
 
+
+    // snapshot is created at 1 of the 4 instructions below
 wait_for_key
   	ld A,$7F 	        // Read from port 0xBFFE, read ENTER to break
 	in A,($FE)          //  bit 0 is !BREAK,
-    rrca                // check for keye pressed, when C: no key
+    rrca                // check for space key pressed, when C: no key
     jr c, wait_for_key
 
+    // When here we are at zxspctrum after loading snapshot 
+    // ** Note: we cannot not really test A actually. Is always 'in A' value.
+
+    ld(SpToDe), SP        //  to print SP
+
+    call PRINT_HEX_A      // note **
+    
+    // print DE first since used as text address
+    push DE     // keep because used here as text at PRINTXX address  #PP3
+    ld DE, TEXT_DE
+    call PRINT
+    pop DE     // #PP3
+    ld A, D
+    call PRINT_HEX_A
+    ld A, E
     call PRINT_HEX_A
 
+    // DE is now free to use
 
-
-    ld A,D
+    // This will test SP itself
+    ld DE, TEXT_SP
+    call PRINT
+    ld DE, (SpToDe)
+    ld A, D
     call PRINT_HEX_A
-    ld A,E
+    ld A, E
     call PRINT_HEX_A
+    
 
     ld DE, TEXT_BC
     call PRINT    
@@ -85,6 +113,9 @@ wait_for_key
     call PRINT_HEX_A
     ld A,C
     call PRINT_HEX_A
+
+
+
 
     ld DE, TEXT_HL
     call PRINT    
@@ -126,12 +157,15 @@ wait_for_key
     exx
     call PRINT_HEX_A
 
-    ld DE, TEXT_Aa
+    ld DE, TEXT_AFa
     call PRINT    
+    ex AF, AF'      // ld DE, AF'
+    push AF
     ex AF, AF'
-    ld B, A
-    ex AF, AF'
-    ld A, B
+    pop DE
+    ld A, D
+    call PRINT_HEX_A
+    ld A, E
     call PRINT_HEX_A
 
     ld DE, TEXT_IX
@@ -158,8 +192,22 @@ wait_for_key
     ld A, I
     call PRINT_HEX_A
 
+    // wait for key release!
+wait_for_key2
+  	ld A,$7F 	        // Read from port 0xBFFE, read ENTER to break
+	in A,($FE)          //  bit 0 is !BREAK,
+    rrca                // check for space key pressed, when C: no key
+    jr nc, wait_for_key2
+
+    // wait for key again!
+wait_for_key3
+  	ld A,$7F 	        // Read from port 0xBFFE, read ENTER to break
+	in A,($FE)          //  bit 0 is !BREAK,
+    rrca                // check for space key pressed, when C: no key
+    jr c, wait_for_key3
+ 
 end_to_basic:
-    pop IY
+    pop IY              // #PP7
     exx
         pop BC          // #PP5
         pop HL          // #PP2
@@ -169,7 +217,9 @@ end_to_basic:
     ei                  // #di1
     ret   
 DebugSp: DS 2
+SpToDe : DS 2
 
+// does /should not change any register
 PRINT_HEX_A:
     push DE
     push AF
@@ -235,31 +285,33 @@ PRINTCHAR
 
 
 TEXT_START:    
-    DC "Key...\r"        // \r is a newline
+    DC "Create snapshot now.\rThen press space at ZX...\r"        // \r is a newline
 TEXT_A:    
-    DC " A="        // \r is a newline
+    DC " A="       
 TEXT_BC:    
-    DC " BC="        // \r is a newline
+    DC " BC="      
 TEXT_DE:    
-    DC " DE="        // \r is a newline
+    DC " DE="      
 TEXT_HL:    
-    DC " HL="        // \r is a newline
-TEXT_Aa:    
-    DC " Aa="        // \r is a newline
+    DC " HL="      
+TEXT_AFa:    
+    DC " AFa="      
 TEXT_BCa:    
-    DC " BCa="        // \r is a newline
+    DC " BCa="     
 TEXT_DEa:    
-    DC " DEa="        // \r is a newline
+    DC " DEa="     
 TEXT_HLa:    
-    DC " HLa="        // \r is a newline
+    DC " HLa="     
 TEXT_IX:    
-    DC " IX="        // \r is a newline
+    DC " IX="      
 TEXT_IY:    
-    DC " IY="        // \r is a newline
+    DC " IY="      
 TEXT_I:    
-    DC " I="        // \r is a newline
+    DC " I="       
 TEXT_R:    
-    DC " R="        // \r is a newline
+    DC " R="       
+TEXT_SP
+    DC " SP="
 ASM_END
 /*
  MODULE basic1
@@ -269,9 +321,11 @@ ASM_END
 BASIC_END:
 */
 
- DISPLAY "-- Creating file: ", tape_file_name
- EMPTYTAP tape_file_name
+// DISPLAY "-- Creating file: ", tape_file_name
+// EMPTYTAP tape_file_name
 // SAVETAP <filename>,    BASIC,<filenameintapeheader>,<start>,     <length> [,<autorunline>[,<lengthwithoutvars>]]
- SAVETAP    tape_file_name,CODE,basic_name,        ASM_START, ASM_END-ASM_START, ASM_START
+ //SAVETAP    tape_file_name, CODE, basic_name,        ASM_START, ASM_END-ASM_START, ASM_START
 
- SAVESNA   "qloader_test2.sna", ASM_START
+ IF __ERRORS__ == 0
+    SAVESNA   "zqloader_snapshottest.sna", ASM_START
+ ENDIF

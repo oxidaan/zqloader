@@ -22,7 +22,7 @@ SpectrumLoader::~SpectrumLoader() = default;
 
 SpectrumLoader& SpectrumLoader::AddLeader(std::chrono::milliseconds p_duration)
 {
-    TonePulser().SetPattern(g_tstate_leader).
+    TonePulser().SetPattern(spectrum::g_tstate_leader).
         SetLength(p_duration).
         MoveToLoader(*this);
     return *this;
@@ -32,7 +32,7 @@ SpectrumLoader& SpectrumLoader::AddLeader(std::chrono::milliseconds p_duration)
 /// https://worldofspectrum.org/faq/reference/48kreference.htm
 SpectrumLoader& SpectrumLoader::AddSync()
 {
-    TonePulser().SetPattern(g_tstate_sync1, g_tstate_sync2).MoveToLoader(*this);
+    TonePulser().SetPattern(spectrum::g_tstate_sync1, spectrum::g_tstate_sync2).MoveToLoader(*this);
     return *this;
 }
 
@@ -90,7 +90,7 @@ bool SpectrumLoader::Next()
 Doublesec SpectrumLoader::GetDurationWait() const
 {
     Pulser& current = GetCurrentBlock();
-    return current.GetTstate() * g_tstate_dur;
+    return current.GetTstate() * spectrum::g_tstate_dur;
 }
 
 // Get edge 

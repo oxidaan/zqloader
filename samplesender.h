@@ -32,8 +32,6 @@ public:
     SampleSender();
     ~SampleSender();
 
-    /// CTOR with bool calls Init (so intialize miniaudio)
-    SampleSender(bool);
 
 
     /// Move CTOR
@@ -106,7 +104,7 @@ public:
         return *this;
     }
 
-    /// Set sample rate, when not set use device default.
+    /// Set sample rate (hz), when not set use device default.
     SampleSender& SetSampleRate(uint32_t p_sample_rate)
     {
         m_sample_rate = p_sample_rate;

@@ -1,13 +1,16 @@
+// Loads a datablock, calculate CRC, returns CRC to BASIC
+// See test.cpp.
+
 //   .model Spectrum48
     DEVICE ZXSPECTRUM48
 //    INCLUDE "TapLib.asm"
 
-    DEFINE tape_file_name    "qloader_test.tap"
-    DEFINE bin_file_name    "qloader_test.bin"
-    DEFINE basic_name "qloadertst"
+    DEFINE tape_file_name   "zqloader_test.tap"
+    DEFINE bin_file_name    "zqloader_test.bin"
+    DEFINE basic_name       "zqloadertst"
 start:
-    ld DE, datablock - start    // length
-    ADD HL, DE                  // When called from qloader HL contains PC at start
+    ld DE, length - start       // length
+    ADD HL, DE                  // When called from zqloader HL contains PC at start (=start)
     ld B, (HL)
     inc HL
     ld C, (HL)                  // BC is now length
@@ -20,9 +23,9 @@ start:
     ld IXL, A        // IX is now polynome
     inc HL
 
-    //LD B, IXH       //  @DEBUG
-    //LD C, IXL       //  @DEBUG     return poly to BASIC
-    //ret
+//    LD B, IXH       //  @DEBUG
+//    LD C, IXL       //  @DEBUG     return poly to BASIC
+//    jr END_TO_BASIC //  @DEBUG
   
 
     ld D, H         // DE is now data ptr
@@ -31,7 +34,7 @@ start:
    // ld B,(HL)           //  @DEBUG return first 2 bytes to BASIC
    // inc HL      
    // ld C,(HL)
-   // ret
+   // jr END_TO_BASIC
     
  
 CRC16:
@@ -65,6 +68,14 @@ CRC16:
     // Return CRC to basic
     ld B, H
     ld C, L
+END_TO_BASIC:
+    // Return to basic; must match zqloader.asm
+    exx
+        pop BC                  // #PP5 see zqloader.asm
+        pop HL                  // #PP2 see zqloader.asm
+        pop DE                  // #PP1 see zqloader.asm
+    exx  
+    ei                          // #di1 see zqloader.asm
     ret
 
 datablock:
@@ -76,14 +87,15 @@ end:
 
  DISPLAY "start = ",/A,start   
  DISPLAY "datablock = ",/A,datablock   
+
 // ===========================================================================
+ IF __ERRORS__ == 0
     DISPLAY "-- Creating file: ", tape_file_name
     EMPTYTAP tape_file_name
     // SAVETAP <filename>,    BASIC,<filenameintapeheader>,<start>,     <length> [,<autorunline>[,<lengthwithoutvars>]]
     SAVETAP    tape_file_name,CODE,basic_name,        start, end-start
- 
-// ===========================================================================
 
     DISPLAY "-- Creating file: ", bin_file_name, " with length = ",/A, end-start
     SAVEBIN bin_file_name, start, end-start
+ ENDIF
 

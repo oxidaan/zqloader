@@ -101,11 +101,11 @@
     <CustomBuild />
     <CustomBuild />
     <CustomBuild>
-      <Command>cmd /c "for /F %%i in ('where sjasmplus') do cd "%(FullPath)\..\" &amp; sjasmplus --fullpath -i%%i/../examples/BasicLib --exp="%(FullPath)\..\%(Filename).exp" --syntax=abf --color=on "%(FullPath)" "</Command>
       <Message>Performing Z80 assembly with sjasmplus</Message>
       <Outputs>z80\%(Filename).tap;z80\%(Filename).exp;z80\snapshotregs.bin</Outputs>
       <VerifyInputsAndOutputsExist>false</VerifyInputsAndOutputsExist>
       <LinkObjects>false</LinkObjects>
+      <Command>cmd /c "for /F %%i in ('where sjasmplus') do cd "%(FullPath)\..\" &amp; sjasmplus --fullpath -i%%i/../examples/BasicLib --exp="%(FullPath)\..\%(Filename).exp" --syntax=abf "%(FullPath)" "</Command>
     </CustomBuild>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
@@ -158,11 +158,11 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <CustomBuild>
-      <Command>cmd /c "for /F %%i in ('where sjasmplus') do cd "%(FullPath)\..\" &amp; sjasmplus --fullpath -i%%i/../examples/BasicLib --exp="%(FullPath)\..\%(Filename).exp" --syntax=abf --color=on "%(FullPath)" "</Command>
       <Message>Performing Z80 assembly with sjasmplus</Message>
       <Outputs>z80\%(Filename).tap;z80\%(Filename).exp;z80\snapshotregs.bin</Outputs>
       <VerifyInputsAndOutputsExist>false</VerifyInputsAndOutputsExist>
       <LinkObjects>false</LinkObjects>
+      <Command>cmd /c "for /F %%i in ('where sjasmplus') do cd "%(FullPath)\..\" &amp; sjasmplus --fullpath -i%%i/../examples/BasicLib --exp="%(FullPath)\..\%(Filename).exp" --syntax=abf "%(FullPath)" "</Command>
     </CustomBuild>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
@@ -207,7 +207,7 @@
     <ClCompile Include="taptoturboblocks.cpp" />
     <ClCompile Include="test.cpp" />
     <ClCompile Include="tools.cpp" />
-    <ClCompile Include="turboblock.cpp" />
+    <ClCompile Include="turboblocks.cpp" />
     <ClCompile Include="tzxloader.cpp" />
     <ClCompile Include="z80snapshot_loader.cpp" />
     <ClCompile Include="main.cpp" />
@@ -218,10 +218,8 @@
   <ItemGroup>
     <None Include="README.md" />
     <CustomBuild Include="z80\zqloader.z80asm">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">false</DeploymentContent>
       <FileType>Document</FileType>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">false</ExcludedFromBuild>
       <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</VerifyInputsAndOutputsExist>
       <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">true</VerifyInputsAndOutputsExist>
@@ -231,13 +229,24 @@
       <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">true</TreatOutputAsContent>
       <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</TreatOutputAsContent>
       <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">true</TreatOutputAsContent>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">cmd /c "for /F %%i in ('where sjasmplus') do cd "%(FullPath)\..\" &amp; del z80\%(Filename).tap &amp; sjasmplus --fullpath -i%%i/../examples/BasicLib --exp="%(FullPath)\..\%(Filename).exp" --syntax=abf "%(FullPath)" "</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">cmd /c "for /F %%i in ('where sjasmplus') do cd "%(FullPath)\..\" &amp; del z80\%(Filename).tap &amp; sjasmplus --fullpath -i%%i/../examples/BasicLib --exp="%(FullPath)\..\%(Filename).exp" --syntax=abf "%(FullPath)" "</Command>
     </CustomBuild>
     <CustomBuild Include="z80\zqloader_test.z80asm">
       <FileType>Document</FileType>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">true</ExcludedFromBuild>
+      <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</VerifyInputsAndOutputsExist>
+      <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</VerifyInputsAndOutputsExist>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">z80\%(Filename).bin</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">z80\%(Filename).bin</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="z80\zqloader_test2.z80asm">
+      <FileType>Document</FileType>
+      <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</VerifyInputsAndOutputsExist>
+      <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</VerifyInputsAndOutputsExist>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">z80\zqloader_snapshottest.sna</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">z80\zqloader_snapshottest.sna</Outputs>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
@@ -257,7 +266,7 @@
     <ClInclude Include="taploader.h" />
     <ClInclude Include="taptoturboblocks.h" />
     <ClInclude Include="tools.h" />
-    <ClInclude Include="turboblock.h" />
+    <ClInclude Include="turboblocks.h" />
     <ClInclude Include="types.h" />
     <ClInclude Include="tzxloader.h" />
     <ClInclude Include="z80snapshot_loader.h" />

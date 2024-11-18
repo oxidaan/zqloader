@@ -15,6 +15,10 @@
 //    --lst --syntax=abf --color=on       \
 //    path/to/zqloader/z80/zqloader\z80\zqloader.z80asm  
 
+// Must match value at compressor.h:
+    DEFINE DO_COMRESS_PAIRS
+
+
     DEVICE ZXSPECTRUM48
 
     DEFINE tape_file_name    "zqloader.tap"         // main output is a TAP file
@@ -23,6 +27,8 @@
 
 //----------------------------------------------------------------------------
 
+// Some Spectum variables
+ROM_CLS                 EQU 0x0daf      // cls, also opens print channel 2
 CHAN_OPEN               EQU 0x1601         
 PROG                    EQU 23635       // Zx spectrum system variable PROG indicates start address of basic
 SCR_CT                  EQU 23692       // avoid Scroll?
@@ -32,16 +38,16 @@ SCREEN_END              EQU 16384+6*1024
 
 
 //----------------------------------------------------------------------------
-CLEAR                   EQU 24500       // CLEAR used at basic below. Eg horace (H.spiders: 24575)   min:24290
-
+CLEAR                   EQU 24435       // CLEAR used at basic below. Eg horace (H.spiders: 24575)   min:24290
+STACK_SIZE              EQU 10          // estimated size of stack this code needs
 //----------------------------------------------------------------------------
 LEADER_MIN_EDGES        EQU 200         // Minimum edges a leader need to have to be accepted
 
 LEADER_MAX              EQU 12          // a valid leader pulse is between LEADER_MAX and LEADER_MIN
-LEADER_MIN              EQU 8           // 
+LEADER_MIN              EQU 8           
 
 SYNC_MAX                EQU LEADER_MIN-1 //  a sync is between SYNC_MIN and SYNC_MAX
-SYNC_MIN                EQU 4           //
+SYNC_MIN                EQU 4           
 
 ONE_MAX                 EQU 12          // max cycles a 1 should take, else error (can be overwritten at c++)
 ONE_MIN                 EQU 4           // boundary #cycles between 0 and 1 (can be overwritten at c++)
@@ -49,82 +55,86 @@ ONE_MIN                 EQU 4           // boundary #cycles between 0 and 1 (can
 
 //----------------------------------------------------------------------------
 
-ASM_LOWER_LEN   EQU ASM_LOWER_END - ASM_LOWER_BEGIN     // length of lower code 
-ASM_UPPER_LEN   EQU ASM_END - ASM_UPPER_BEGIN           // length of code to be moved to upper for org/disp 0xffff - ASM_UPPER_LEN
 
 // ===========================================================================
+// Basic including REM statement.
 // ===========================================================================
  
 
 // Write basic numbers shorter; consequence: visible text allways "0". Spares space.
 NUM2   MACRO	value
-      db "0"
+      db    "0"
 	  db	#0E,0,0
 	  dw	value
 	  db	#00
       ENDM
 
+// CLEAR 24500
+// PRINT USR(PEEK(23635) + 256 * PEEK(23636) + [ASM_START]
+// REM [machine code here]
+
+TOTAL_START:        // = PROG
 BASIC_START:
     MODULE basic1
         INCLUDE	"BasicLib.asm" 
             LINE : db	clear : NUM2(CLEAR) :LEND       
             LINE : db	print, usr, '(', peek : NUM2(PROG) : db '+' : NUM2(256) : db '*',  peek : NUM2(PROG + 1) : db '+' : NUM2(ASM_START) : db ')' : LEND   
- //           LINE : db load, '"','"' : LEND
+//            LINE : db load, '"','"' : LEND      //   @DEBUG
             LINE : db	rem                             
     ENDMODULE
-
+BASIC_END
+BASIC_LEN EQU BASIC_END - BASIC_START
 // ===========================================================================
 
-BASIC_LEN EQU BASIC_END-BASIC_START                     // length of total basic inc mc-rem for SAVETAP
 
+    DISPLAY "TOTAL_START = ",/A,TOTAL_START             // usually 0
+    DISPLAY "TOTAL_END = ", /A, TOTAL_END               // end of all s/a TOTAL_LEN since TOTAL_START is zero
+    DISPLAY "TOTAL_LEN = ",/A,TOTAL_LEN                 // total length of BASIC including MC code-REM (so total length)
     DISPLAY "BASIC_START = ",/A,BASIC_START             // usually 0
-    DISPLAY "BASIC_LEN = ",/A,BASIC_LEN                 // total length of BASIC including MC code-REM (so total length)
-    DISPLAY "BASIC_END = ",/A,BASIC_END                 // end of BASIC s/a BASIC_LEN since BASIC_START is zero
+    DISPLAY "BASIC_END = ", /A, BASIC_END               // end of BASIC s/a BASIC_LEN since BASIC_START is zero
+    DISPLAY "BASIC_LEN = ",/A,BASIC_LEN                 // total length of BASIC excluding REM end of line
     DISPLAY "ASM_START = ",/A,ASM_START                 // offset of MC code from BASIC_START
     DISPLAY "ASM_END = ",/A,ASM_END                     // len/end of total mc
-    DISPLAY "ASM_LOWER_BEGIN = ",/A,ASM_LOWER_BEGIN     // offset of lower from start of basic
-    DISPLAY "ASM_LOWER_LEN = ",/A,ASM_LOWER_LEN         // length of lower
-    DISPLAY "ASM_UPPER_LEN = ",/A,ASM_UPPER_LEN         // length of upper (copied to upper)
-    DISPLAY "ASM_UPPER_BEGIN = ",/A,ASM_UPPER_BEGIN     // offset of upper begin eg 376
-    DISPLAY "ASM_UPPER_START = ",/A,ASM_UPPER_START     // start of upper begin eg 65253
+    DISPLAY "ASM_LEN = ",/A,ASM_LEN                     // len/end of total mc
+    DISPLAY "ASM_UPPER_START_OFFSET = ",/A, ASM_UPPER_START_OFFSET      // offset of upper from start of basic (that needs to be kept)
+    DISPLAY "ASM_UPPER_START = ",/A, ASM_UPPER_START    // upper start after DISP
+    DISPLAY "ASM_UPPER_END = ",/A, ASM_UPPER_END        // must be 0xffff+1
+    DISPLAY "ASM_UPPER_LEN = ",/A, ASM_UPPER_LEN        // length of upper (copied to upper)
+    DISPLAY "ASM_CONTROL_CODE_START = ", /A, ASM_CONTROL_CODE_START     // offset of control code from start of basic (that needs to be kept)
+    DISPLAY "ASM_CONTROL_CODE_END = ", /A, ASM_CONTROL_CODE_END         // end of control code
+    DISPLAY "ASM_CONTROL_CODE_LEN = ", /A, ASM_CONTROL_CODE_LEN         // length of control code
+
+    // ===========================================================================
 
 ASM_START:
-    // move loader to upper regions.
-    ld HL, (PROG)               // PROG variable contains start of BASIC typically 23755
-    ld DE, ASM_UPPER_BEGIN      // offset from start of BASIC
-    add HL, DE                  // HL = (PROG) + ASM_UPPER_BEGIN
-    ld (load_address_at_basic), HL    // keep for later (eg 24036)    (or 24117)
-    ld DE, ASM_UPPER_START 
-    ld BC, ASM_UPPER_LEN - 2    // -2 do NOT overwrite load_address_at_basic just written
+    // clear screen & print a message
+    call ROM_CLS                 // cls; also opens channel #2 so rst 10 goes to screen
+//    ld DE, TEXT_LOADING
+//    call PRINT                  // print "Loading..." 
+
+    // move loader to upper regions. (to avoid contended memory)
+    // this can be overwritten when loading last block.
+    ld HL, (PROG)                       // PROG variable contains start of BASIC typically 23755
+    ld DE, ASM_UPPER_START_OFFSET       // offset from start of BASIC
+    add HL, DE                          // HL = (PROG) + ASM_UPPER_START_OFFSET
+    ld (load_address_at_basic), HL      // keep for later (eg 24036)    (or 24117)
+    ld DE, ASM_UPPER_START
+    ld BC, ASM_UPPER_LEN - 2            // -2 do NOT overwrite load_address_at_basic just written
     ldir
-    // clear screen
-    ld HL, 16384
-    ld DE, 16385
-    ld BC, 6*1024 + 3 * 256
-    ld (HL), 0
-    ldir
 
- 
-
-
-// ===========================================================================
-
-
-
-ASM_LOWER_BEGIN: 
-    ld A, 2                 
-    call CHAN_OPEN              // rst 10 goes to screen
-    ld DE, TEXT_START
-    call PRINT                  // print "Loading..." 
+    
+    // initialize
     di                          // #di1          
     exx                     
         // I think BC', DE', HL' must be saved for save return to BASIC (or before ei)
         push DE                 // #PP1
         push HL                 // #PP2
         push BC                 // #PP5
-    exx
-    
-    
+//  exx                      // not needed
+
+
+
+ASM_CONTROL_CODE_START:
   
 //============================================================================
 // Load one turbo block, then decompresses block.
@@ -135,8 +145,10 @@ ASM_LOWER_BEGIN:
 //   return to BASIC or
 //   jump to start address as in RANDOMIZE USR xxxxx.
 //============================================================================
+
+LOAD_START:
 next_block:
-LOAD:    
+
 
     // Intialize edge plus border color -> C
     // So get intial value from port->C
@@ -146,38 +158,40 @@ LOAD:
     // in(0xfe):  0  E  0  K  K  K  K  K    
     // out(0xfe): d  d  d  E !M  B  B  B  
     ld A,$7F 	                // Read from port 7FFE eg !BREAK is bit 0.
-    in A,($FE)                  // Get initial value; bit 0 is space, bit 6 is ear
-    and   0b01000000            // mask ear
-    or    0b00001010            // ear zero border red 010 <-> 101 cyan + also set mic and/or ear
-    ld C, A                     // initialize c with result: 0E0EEBBB
-    ld H, 0b01000111            // The C xor value, see WAIT_FOR_EDGE
+    in A,($FE)                  // Get initial EAR value
+    and   0b01000000            // mask, so keep only EAR
+    or    0b00001010            // ear zero border red 010 <-> 101 cyan + also set mic (and/or ear)
+    ld C, A                     // initialize c with result: 0E0EEBBB see WAIT_FOR_EDGE #2
+    ld H, 0b01000111            // The C xor value, see WAIT_FOR_EDGE #3
 
 
     // Initialize for loading header
     exx                     
-        ld HL, header-1         // location of header @ (++HL)
-        ld DE, sizeof_header    // length of header 
-        ld C, sizeof_header     // checksum - use header length as init. value.
+//        ld HL, HEADER-1         // location of header @ (++HL)
+        ld HL, HEADER         // location of header @ (++HL)
+        ld DE, HEADER_LEN    // length of header 
+        // ld C, HEADER_LEN     // checksum - use header length as init. value.
     exx
 
     call LOAD_HEADER_PLUS_DATA  // upper, absolute call is ok
-    jr z, error                 // error  
+    jr z, ERROR                 // error  
 
     // check checksum
     exx
-    ld A, C                     // this is LD A, C' check checksum C' should be zero
-    exx
-    sub 1                       // carry only when zero so ok (note: dec A does not affect c!)
-    jr nc, checksum_error
+    ld A, (m_checksum)          // check checksum C' should be m_checksum
+    cp C 
+    // exx                      // not needed
+    // sub 1                    // carry only when zero so ok (note: dec A does not affect c!)
+    jr nz, CHECKSUM_ERROR
 
     // -- Once here here a turbo block was correctly loaded --
 
 
 load_ok:
-    ld DE, (m_clear_address)    // clear address/SP
-    push DE                     // #PP3 check later. might get lost when header overwritten
+    ld DE, (m_clear_address)    // clear address(SP) 
+    push DE                     // #PP3 check later. might get lost when header overwritten (can only be last block)
     ld DE, (m_usr_start_address)// just loaded last block last/start address
-    push DE                     // #PP4 check later. might get lost when header overwritten
+    push DE                     // #PP4 check later. might get lost when header overwritten (can only be last block)
     ld DE, (m_dest_address)     // destination address to copy/uncomress to
     ld A,D                      // check dest address is zero skip copy or decompressing
     or E
@@ -186,13 +200,6 @@ load_ok:
     // -- Now DE is copy destination address --
 
     ld HL, (m_load_address)     // where data was received at load, when 0 take load_address_at_basic
-      
-    ld A, H
-    or A
-    jr nz, .hl_is_load_address
-    ld HL, (load_address_at_basic)               
-
-.hl_is_load_address
     ld BC, (m_length)           
 
     // -- Now DE is m_dest_address;  HL is m_load_address (or load_address_at_basic), BC is m_length --
@@ -201,7 +208,7 @@ load_ok:
     dec A
     jr z, DECOMPRESS            // m_compression_type == 1
   //  dec A
-  //  jr z, SCREEN_DECOMPRESSION
+  //  jr z, SCREEN_DECOMPRESSION    // TODO?
 
 
 
@@ -214,60 +221,53 @@ just_copy:
 //    jr copy_done
 
 
-SCREEN_DECOMPRESSION:           // TODO
+SCREEN_DECOMPRESSION:           // TODO?
 
 
 decompress_done:
 copy_done:
 
     pop HL                      // #PP4 user start addres/last block?
-    pop DE                      // #PP3 clear_address/sp
+    pop DE                      // #PP3 clear_address(->sp)
     ld A, H
-    or L
-    jr z, next_block            // when HL == 0 continue to next block
-    ld A, L
     dec A
-    jr z, copy_me_to_screen     //  when HL = 1 copy to screen, then to next block
-  
+    jr z, next_block            // when H == 1 (TurboBlocks::LoadNext) continue to next block
     dec A
-    jr z, end_to_basic     // HL = 2 so last block but do not start MC, return to BASIC.
+    jp z, COPY_ME               // when H = 2 (TurboBlocks::CopyLoader) copy me, then to next block (at new location)
+    dec A
+    jr z, END_TO_BASIC          // when H = 3 (TurboBlocks::ReturnToBasic) so last block but do not start MC, return to BASIC.
 
     // -- When here: --
-    // -- HL is start addres as in RANDOMIZE USR xxxxx --
+    // -- HL is start address as in RANDOMIZE USR xxxxx --
     // -- DE is address as in CLEAR xxxxx. --
 call_usr:
-    ld A,D                      // when not 0 do m_clear_address -> SP
+    ld A,D                      // when not 0 do m_clear_address -> SP (needed at zqloader_test!)
     or E
     jr z, go_go_go
     ex DE, HL                   // This is ld SP, DE
     ld SP, HL                   // put SP at CLEAR address.
     ex DE, HL
-go_go_go:   
     ei                          // #di1 (this is needed for a game like Galaxians)
+go_go_go:   
+    // ld A , 255                 // @DEBUG have some visible feedback
+    // ld (16385), A              // @DEBUG have some visible feedback
+    // ld B, H                    // @DEBUG show HL in basic
+    // ld C, L                    // @DEBUG show HL in basic
+    // jr END_TO_BASIC            // @DEBUG   show HL in basic
     jp HL                       // go-go-go! note: this also means HL is PC once there
 
-copy_me_to_screen:
-    ld HL, (PROG)               // PROG variable contains start of BASIC typically 23755
-    ld DE, ASM_LOWER_BEGIN      // offset from start of BASIC
-    add HL, DE                  // HL = (PROG) + ASM_LOWER_BEGIN
-    ld DE, SCREEN_23RD          // lower 3rd of screen
-    ld BC, ASM_LOWER_LEN             
-    ldir
-    ld SP, SCREEN_END - SNAPSHOT_CODE_LEN           // also put stack at (end of) screen! We cant go back to basic anyway
-    ld HL, SCREEN_23RD + ASM_LOWER_LEN
-    ld (load_address_at_basic), HL                  // also adjust this!!
-    jp SCREEN_23RD + next_block - ASM_LOWER_BEGIN      // and go on from there (load_ok)
 
-// Show error messages
-checksum_error:
+
+// Show error messages, then end to basic
+CHECKSUM_ERROR:
     ld DE, TEXT_CHECKSUM_ERROR
     call PRINT
 
-error:
+ERROR:
     ld DE, TEXT_ERROR
     call PRINT
 
-end_to_basic:
+END_TO_BASIC:
     exx
         pop BC                  // #PP5
         pop HL                  // #PP2
@@ -278,48 +278,70 @@ end_to_basic:
 
 
 
+
 //============================================================================
 // RLE decompress. Both 1st most occuring as 2nd most occoring bytes are coded.
 // Largely ldir compatible so:
 // HL: Source
 // DE: Dest
-// BC: Length/counter
+// No read from m_decompress_counter BC: Length/counter
 // A, IX is touched.
+// m_code_for_most      DB 0
+// m_decompress_counter DW 0    LSB/MSB
+// m_code_for_multiples DB 0
+// m_code_for_pairs     DB 0
+// m_value_for_pairs    DB 0
+// m_value_for_most     DB 0
 DECOMPRESS
-//    di                        // di2 IY is used in interrupts and here so di - already done though.
-    push IY
-    // 40 T 8B
-    ld IX, (m_rle_most)         // IXH = not used; IXL = (m_rle_most+0) so most
-    ld IY, (m_rle_min1)         // IYH = (m_rle_min1+1) so min2; IYL = (m_rle_min1+0) so min1
+    ld BC, (m_code_for_most )    // B = m_code_for_most+1 so m_decompress_counter (LSB); C = m_code_for_most+0 so m_code_for_most
+    // ex  AF, AF'               // not needed
+    ld A, (m_decompress_counter + 1)    // so m_decompress_counter (MSB)
+    or A                        // set z flag ok
+    ex  AF, AF'
+    ld IX, (m_code_for_multiples)      // IXH =(m_code_for_multiples+1)   so m_code_for_pairs;  IXL = (m_code_for_multiples+0) so m_code_for_multiples
 .beginloop:
     ld A, (HL)                  // take a byte
     inc HL                      // move to next byte
-    dec BC                      // decrement counter
-    cp IYL                      // is it min1?
-    jr z, .write_max1           // then write max1
-    cp IYH                      // is it min2?
-    jr z, .write_max2           // then write max2
+    cp C                        // is it m_code_for_most? Must be smallest escape code
+    jr z, .write_most           // A==IXL = m_code_for_most then write_most
+    cp IXL                      // is it m_code_for_multiples?
+    jr z, .write_multiples      // then write write_multiples
+ IFDEF DO_COMRESS_PAIRS
+    cp IXH                      // is it m_code_for_pairs?
+    jr z, .write_pairs          // then write_pairs
+ ENDIF
 .write_A:                 
     ld (DE), A                  // normal write
     inc DE
 .nextloop    
-    ld A, B                     // check zero
-    or C
-    jr nz, .beginloop
-    pop IY
-//    ei                        // di2
-    jr decompress_done          // was: ret 
-.write_max2:  
-    cp (HL)                     // A must still be min2
-    jr z, .itsmin               // a second min2 seen, write min2 as value
+    djnz  .beginloop
+    ex AF, AF'                  // when here B = LSB counter is 0
+    jr z, decompress_done       // MSB counter also 0? then done was: ret 
+    dec A                       // dec MSB counter
+    ex AF, AF'
+    jr .beginloop               // jr needed! Code is relocatable
+ 
+
+ IFDEF DO_COMRESS_PAIRS
+.write_pairs:
+    cp (HL)                     // HL already increased; A must still be m_code_for_pairs
+    jr z, .its_escape           // a second m_code_for_multiples seen, write m_code_for_multiples as value
+    ld A, (m_value_for_pairs)   // A=m_value_for_pairs
+    ld (DE), A                  // extra write
+    inc DE
+    jr .write_A
+ ENDIF
+.write_multiples:  
+    cp (HL)                     // HL already increased; A must still be m_code_for_multiples
+    jr z, .its_escape           // a second m_code_for_multiples seen, write m_code_for_multiples as value
     ld A, (HL)                  // A=value to write (val)    
-    dec BC                      // decrement counter
-    inc HL
+    inc HL                      // move to next byte
+   // dec BC                    // not needed because m_decompress_counter (was decrement counter)
     jr .write_rle_bytes
-.write_max1:                    // occurs move often so put last to avoid jump
-    cp (HL)                     // A must still be min1
-    jr z, .itsmin               // a second min1 seen, write min1 as normal value
-    ld A, IXL                   // A=most
+.write_most:                    // occurs more often so put last to avoid jump
+    cp (HL)                     // HL already increased; A must still be m_code_for_most
+    jr z, .its_escape           // a second m_code_for_most seen, write m_code_for_most as normal value
+    ld A, (m_value_for_most)    // A=m_value_for_most
 .write_rle_bytes:    
     // write value in A (HL)-times to DE, DE and HL updated.
     // With ldir hard to write just one byte: so
@@ -333,48 +355,84 @@ DECOMPRESS
     pop BC
     
     inc HL
-    dec BC
+   // dec BC                    // not needed because m_decompress_counter (was decrement counter)
     jr .nextloop
 
-.itsmin:                        // write min1 or min2 as normal value. This should occur rarely
+.its_escape:                    // write min1 or min2 as normal value. This should occur rarely
     inc HL                      // just need to increase HL, A is min1 or min2
-    dec BC          
+   // dec BC                    // not needed because m_decompress_counter (was decrement counter)
     jr .write_A
  
 //============================================================================
-//============================================================================
-//============================================================================
 
-
-ASM_LOWER_END: 
-ASM_UPPER_BEGIN:    
-    DISP  0xffff-(ASM_UPPER_LEN -1)     // ENT
+ASM_CONTROL_CODE_END
+ASM_CONTROL_CODE_LEN EQU ASM_CONTROL_CODE_END - ASM_CONTROL_CODE_START
 
 
 
 //============================================================================
+// Code block is (can be) overwritten when last block is copied/decompressed.
+// So not present in memory when completely done
+//============================================================================
 
 
+ASM_UPPER_START_OFFSET:
 
-ASM_UPPER_START:
+    DISP  0xffff - (ASM_UPPER_LEN - 1)
+
+
+ASM_UPPER_START
+
+
+// Copy 'lower' code
+// c++ must patch various parameters.
+// Called when TurboBlocks::CopyLoader seen in header block as received from C++ code.
+// At upper to avoid problems when overwriting itself
+COPY_ME:             
+COPY_ME_SP+*:           ld SP, 0                    // New SP c++ must patch this
+//COPY_ME_SP+*:           ld BC, 0                    // @DEBUG 
+COPY_ME_DEST+*:         ld DE, 0                    // Destination c++ must patch this
+                        ld HL, (PROG)               // PROG variable contains start of BASIC typically 23755
+COPY_ME_SOURCE_OFFSET+*:ld BC, 0                    // c++ must patch this eg ASM_CONTROL_CODE_START + ASM_CONTROL_CODE_LEN; offset from start of BASIC, place at end
+                        add HL, BC                  // HL = (PROG) + ASM_CONTROL_CODE_START + ASM_CONTROL_CODE_LEN
+                        ld BC, ASM_CONTROL_CODE_LEN // length     
+COPY_ME_LDDR_OR_LDIR:
+                        ldir                        // or lddr! c++ can patch this
+COPY_ME_END_JUMP+*:     jp 0                        // Continue at new location. c++ must patch this
+
+ EXPORT COPY_ME_SP
+ EXPORT COPY_ME_DEST
+ EXPORT COPY_ME_SOURCE_OFFSET
+ EXPORT COPY_ME_LDDR_OR_LDIR
+ EXPORT COPY_ME_END_JUMP
+
 
 
 // Print bit7-terminated string
-// Note: needs to be at upper to have a fixed addres to be used by call.
+// Note: needs to be at upper to have a fixed address to be used by call.
 // DE: address of string
 PRINT:
 .loop    
     ld A, (DE)
     inc DE
-    ld (SCR_CT),A               // avoid "Scroll?"
+    // ld (SCR_CT),A               // avoid "Scroll?"
     bit 7,A
     jr nz, .last
-    rst 0x10
-    jr .loop
+    rst 0x10                    // rom print char
+    jr .loop    
 .last    
     and 0x7f
-    rst 0x10
+    rst 0x10                    // rom print char
     ret
+
+ //============================================================================
+
+//TEXT_LOADING:
+//    DC " Loading...\r"        // \r is a newline
+TEXT_CHECKSUM_ERROR :
+    DC "CRC "
+TEXT_ERROR :
+    DC "ERROR\r"
 
  //============================================================================
  //============================================================================
@@ -382,6 +440,7 @@ PRINT:
 
 //============================================================================
 // LOAD_HEADER_PLUS_DATA
+// Load leader--sync--extra sync--header--extra sync--data
 // HL' storage location-1, must be header location-1.
 // DE': # bytes to load must be size of header.
 // C: last IN at WAIT_FOR_EDGE; border color.
@@ -395,8 +454,9 @@ PRINT:
 //  z=1  Timeout or error (B==0)
 LOAD_HEADER_PLUS_DATA:
 
-// wait for edge until enter pressed.
+// wait for edge or until enter pressed.
 // Note value of B is not really relevant at first.
+try_again:
 wait_for_first_edge:     
     ld A,$BF 	                // Read from port 0xBFFE, read ENTER to break
     in A,($FE)                  // bit 0 is !ENTER
@@ -416,12 +476,12 @@ wait_for_first_edge:
 .leader_loop1:    
     ld B, LEADER_MAX            // # counts = max acceptable time between edges
     call WAIT_FOR_EDGE
-    jr z, wait_for_first_edge   // T/O no edge (note B is 0 when T/O)
+    jr z, try_again             // T/O no edge (note B is 0 when T/O)
 
     ld A, B
     cp LEADER_MAX+2-LEADER_MIN   // minimum acceptable time between edges (eg 12+2-8=6)
     // B > LEADER_MAX-LEADER_MIN (eg 4) : waited shorter than LEADER_MIN -> nc -> nok to soon
-    jr nc,wait_for_first_edge   // edge < LEADER_MIN so to soon (-)
+    jr nc, try_again            // edge < LEADER_MIN so to soon 
     dec L                       // #matching edges B = 4,3,2,1
     jr nz, .leader_loop1
 
@@ -436,11 +496,11 @@ wait_for_first_edge:
 .leader_loop2:        
     ld B, LEADER_MAX    
     call WAIT_FOR_EDGE
-    jr z, wait_for_first_edge   // > LEADER_MAX counts no edge: timeout (note B is 0 when T/O)
+    jr z, try_again             // > LEADER_MAX counts no edge: timeout (note B is 0 when T/O)
     ld A, B                     
     cp LEADER_MAX+2-SYNC_MIN    // minimum acceptable time between edges eg(12+2-4=10)
     // B > LEADER_MAX-SYNC_MIN : waited shorter than SYNC_MIN -> nc -> nok to soon
-    jr nc,wait_for_first_edge   // edge < SYNC_MIN counts, (B=9,11,11) to soon not even a sync to soon start all over
+    jr nc, try_again            // edge < SYNC_MIN counts, (B=9,11,11) to soon not even a sync to soon start all over
     cp LEADER_MAX+2-LEADER_MIN 	// (12+2-8=6) edge SYNC_MIN-LEADER_MIN counts its a sync
     // B > LEADER_MAX-LEADER_MIN : waited shorter than LEADER_MIN but longer than SYNC_MIN -> its a sync
     jr c, .leader_loop2         // edge between LEADER_MIN-LEADER_MAX counts valid leader but no sync continue
@@ -454,8 +514,8 @@ wait_for_first_edge:
     ld    C, A
 
     
-    //  ld HL', header            // already done
-    //  ld DE', sizeof_header     // already done
+    //  ld HL', HEADER            // already done
+    //  ld DE', HEADER_LEN        // already done
     call LOAD_BYTES             // load header
     ret z                       // loading error
 
@@ -468,39 +528,21 @@ wait_for_first_edge:
     // when m_load_address zero: load into basic at REM ie load_address_at_basic
     // when m_length zero: nothing more to load.
     exx
+        ld C, 0                 // init. checksum
         ld DE, (m_length)       // now has length of data to be received 
         ld HL, (m_load_address) // m_load_address
         ld A, H
         or A
         jp nz, .not_basic       // LOAD data, normal
         ld HL, (load_address_at_basic)          // when 0 load at load_address_at_basic REM overwritting our loader code there
+        ld (m_load_address), HL
 .not_basic    
-        dec HL                  // @Opt (++HL)
+        // dec HL                  // @Opt (++HL)
         ld A, D
         or E
     exx
     jr z, load_done             // length zero nothing more to do, but need to unset z
     // -> continue directly at LOAD_BYTES
-
-//============================================================================
-
-  MACRO READ_ONE_BIT            // 111T states
-    ld B, D                     // # counts eg 12
-    call WAIT_FOR_EDGE          // 69T
-    ret z
-    ld A, B
-    cp E                        // (eg 12+2-6=8)
-    rl L    
-  ENDM
-  MACRO READ_ONE_BIT_NO_RETZ    // 42T states
-    ld B, D                     // # counts eg 12
-    call WAIT_FOR_EDGE          // #3
-    ld A, B
-    cp E                        // (eg 12+2-6=8)
-    rl L    
-  ENDM  
-
-
 
 
 //============================================================================
@@ -519,11 +561,11 @@ wait_for_first_edge:
 // HL': (increases)
 // DE': (walks to zero)
 // C': Checksum
-// H: must be 0b01000111 
+// H: the C xor value, must be 0b01000111 (or 0b01011111)
 // L: Now/Last loaded byte
-// B: timing at WAIT_FOR_EDGE
+// B: timer count down at WAIT_FOR_EDGE
 // C: last IN value to check changes; border color at WAIT_FOR_EDGE
-// D: ONE_MAX, used to to quickly put in B
+// D: ONE_MAX, used to to quickly put in B (init value for timer count down)
 // E: ONE_MAX+2-ONE_MIN, used to to quickly compare to B
 // A: temporary storage
 //
@@ -533,139 +575,152 @@ wait_for_first_edge:
 //          0  0  0  0  0  1  1  1  1  1  1  1  t/o     (- = to soon)
 LOAD_BYTES:   
 
-BIT_LOOP_MAX+*:     ld D, ONE_MAX
-BIT_ONE_THESHLD+*:  ld E, ONE_MAX+2-ONE_MIN     // eg 12+2-6 = 8
+BIT_LOOP_MAX+*:     ld D, ONE_MAX               // eg 12 can also be set from C++ code
+BIT_ONE_THESHLD+*:  ld E, ONE_MAX+1-ONE_MIN     // eg 12+2-4 = 10, can also be set from C++ code
 
     ld B, 200                   // @Opt Mini sync
     call WAIT_FOR_EDGE          // @Opt Mini sync
     ret z                       // @Opt Mini sync
-
-.nextbyte    
-
+    nop                         // makes it bit cycle time exactly.
 // Time between WAIT_FOR_EDGE calls: 42T
-// Min Time between IN's 42T + 69T = 111T
-// Max Time between IN's 82T + 69T = 151T
-// entire byte = 391T + 8 * 69 = 943T (~118T per bit @@)
+// Min Time between IN's 42T + 69T = 111T           -> 42T + 62T = 104T
+// Max Time between IN's 82T + 69T = 151T           -> 82T + 62T = 144T
+// entire byte = 391T + 8 * 69 = 943T (~118T per bit @@)        -> 391+8*62=887    ->  ~111T per bit
 // bit loop is unrolled (8x).
 // Because between last and first bit relatively more time is taken -
 // update checksum; increading dest(HL); decreasing count (DE);  check for done;  the jump back:
 // the increase/decrease of HL resp. DE is done in the middle (called #spreading))
 // as is not checking for timeout (spare one RETZ)
-.nextbit              
-    READ_ONE_BIT
 
-.nextbit2             
-    READ_ONE_BIT
+.next_byte  
+    ld L, 1                     // end marker
+.next_bit
+    ld B, D                     // # counts eg 12
 
-    READ_ONE_BIT
+.wait_for_edge_loop2:    
+    dec B                       // Dec. cycle count (carry not touched) 43 since in
+    ret z                       // 5/11T t/o, note carry still not set    (c=0 z=1)
+    // ld A,$7F 	            // Maybe not needed. Read from port 0x7FFE, read BREAK and EAR. 49 + 16 since prev. IN is 59 
+    in A,($FE)                  // bit 0 is !BREAK, bit 6 is ear
+    xor C                       // detect change at ear (also reset carry)
+    and 0b01000000              // mask ear 
+    jr z, .wait_for_edge_loop2    
 
-    READ_ONE_BIT_NO_RETZ
-    exx 
-        inc HL                  // @Opt  (++HL) @Opt #spreading
-        dec de                  
-    exx                         // 20T
+    // -- Once here: change seen --
 
-    READ_ONE_BIT
-
-    READ_ONE_BIT
-
-    READ_ONE_BIT
-
-    READ_ONE_BIT_NO_RETZ	// spreading
+    // C = 0E001BBB #2
+    ld A,C           
+    xor H                       // H = 01000111 (or 01011111) xor both last edge as border #3
+    ld C,A
+    out ($FE),A                 // toggle border color      // 000EMBBB hope 'd5�d7 are not used'
     
+    ld A, B
+    cp E                        // (eg 12+2-6=8) Becomes a '1' when E > B
+    rl L    
+    jp nc, .next_bit             // endmarker @ L reached?    
 
     // -- We now have a new byte in L --
 
     // store loaded byte L ->(HL')
     ld A, L
     exx
+        // inc HL                  // @Opt  (++HL) @Opt #spreading
         ld (HL), A              // HL'= storage pointer
+        inc HL
         add C                   // C' is checksum
-        ld C, A                 // DE'= byte count
-        ld A, D                 // check DE zero
-        or E
+        rlca                    // make it a bit cyclic
+        ld C, A                 // update checksum
+        dec DE                      
+        ld A, D                 // DE'= byte count 
+        or E                    // check DE zero
     exx
     
-    jp nz, .nextbyte            // 61T since WAIT_FOR_EDGE; 61+62 = 123 since last in
+    jp nz, .next_byte            // 61T since WAIT_FOR_EDGE; 61+62 = 123 since last in
     // done!
 load_done    
-    cp D                        // D != 0 for sure so this unsets z
+    cp D                        // D != 0 (=ONE_MAX) and A is 0 for sure so this unsets z
     ret
 
 //============================================================================
 // WAIT_FOR_EDGE
-// Before before IN: 7 T states excl. call excl. IN itself
+// Before before IN: 7 T states excl. call excl. IN itself      -> 0T
 // Since last IN: 62 T States including IN itself and ret
-// Cycle time between IN's : 22 + 12 + 16 = 50 T
-// Immidiate edge seen: (1 IN) 69 T states, excl. call incl. ret; B not changed
-// 1 cycle (2 IN's):               50 + 69 = 119 T states B = B-1
-// n cycle (n+1 IN's):         (n*50) + 69       T states B = B-n
-// timeout done B IN's       (B-1)*50 + 69       T States B = 0 
-// C is last edge plus border color, flips when changed: 0E000BBB
-// H the C xor value, must be 0b01000111 or 01011111
+// Cycle time between IN's : 22 + 12 + 16 = 50 T        -> 43 T
+// Immidiate edge seen: (1 IN) 69 T states, excl. call incl. ret; B not changed  -> 62T
+// 1 cycle (2 IN's):               50 + 69 = 119 T states B = B-1       -> 105
+// n cycle (n+1 IN's):         (n*50) + 69       T states B = B-n       -> (n * 43 + 62)
+// timeout done B IN's       (B-1)*50 + 69       T States B = 0         -> (B-1)*43 + 62
+// C is last edge plus border color, flips when changed: 0E001BBB #2
+// H the C xor value, must be 0b01000111 (or ob01011111)
 // B in is max counter out: counts left.
 // #IN's done =  1 + B-in - B-out
 // DE, HL not touched
 // Return:
 //  z=1  timeout
 //  z=0 OK
-wait_for_edge_loop:    
+wait_for_edge_loop1:    
     dec B                       // Dec. cycle count (carry not touched) 43 since in
     ret z                       // 5/11T t/o, note carry still not set    (c=0 z=1)
 WAIT_FOR_EDGE:        
-    ld A,$7F 	                // Read from port 0x7FFE, read BREAK and EAR. 49 + 16 since prev. IN is 59 
+    //ld A,$7F 	                // Read from port 0x7FFE, read BREAK and EAR. 49 + 16 since prev. IN is 59 
     in A,($FE)                  // bit 0 is !BREAK, bit 6 is ear
     xor C                       // detect change at ear (also reset carry)
     and 0b01000000              // mask ear 
-    jr z, wait_for_edge_loop    
+    jr z, wait_for_edge_loop1    
 
     // -- Once here: change seen --
 
-    // C = 0E001BBB
+    // C = 0E001BBB #2
     ld A,C           
-    xor H                       // H = 01000111 or 01011111
+    xor H                       // H = 01000111 (or 01011111) xor both last edge as border #3
     ld C,A
-    out ($FE),A                 // toggle border color      // 000EMBBB
+    out ($FE),A                 // toggle border color      // 000EMBBB hope 'd5�d7 are not used'
     ret                         // += 51T (c=1 z=0)
 
 //============================================================================
-//============================================================================
-
-TEXT_START:    
-    DC " Loading...\r"        // \r is a newline
-TEXT_CHECKSUM_ERROR:    
-    DC "CHECKSUM "      
-TEXT_ERROR:    
-    DC "ERROR\r"
 
 //============================================================================
 // s/a struct TurboBlock::Header
 //============================================================================
 
-sizeof_header equ 15
-header:  BLOCK sizeof_header 
-m_length equ header + 0
-m_load_address equ header + 2
-m_dest_address equ header + 4
-m_compression_type equ header + 6
-m_checksum equ header + 7
-m_usr_start_address equ header + 8
-m_clear_address equ header + 10
-m_rle_most equ header + 12
-m_rle_min1 equ header + 13
-m_rle_min2 equ header + 14
-//m_copy_to_screen equ header + 15
+
+HEADER:  
+m_length             DW 0
+m_load_address       DW 0
+m_dest_address       DW 0
+m_compression_type   DB 0
+m_checksum           DB 0
+m_usr_start_address  DW 0
+m_clear_address      DW 0
+m_code_for_most      DB 0
+m_decompress_counter DW 0
+m_code_for_multiples DB 0
+ IFDEF DO_COMRESS_PAIRS
+m_code_for_pairs     DB 0
+m_value_for_pairs    DB 0
+ ENDIF
+m_value_for_most     DB 0
 
 
-load_address_at_basic: BLOCK 2
+HEADER_END
+HEADER_LEN equ HEADER_END - HEADER
+
+// must be last
+load_address_at_basic: BLOCK 2      // location to temporary load upper block to eg in now unused basic block
 
 // ===========================================================================
 // ===========================================================================
 
 // ===========================================================================
+    
+
+ASM_UPPER_END       // must be 0xffff+1
+ASM_UPPER_LEN EQU ASM_UPPER_END - ASM_UPPER_START
+    
     ENT         // DISP
-// ===========================================================================
+
 ASM_END
+ASM_LEN EQU ASM_END - ASM_START
 
 
 // ===========================================================================
@@ -673,7 +728,8 @@ ASM_END
     MODULE basic1
         LEND                                        // end of REM line
     ENDMODULE
-BASIC_END
+TOTAL_END
+TOTAL_LEN EQU TOTAL_END - TOTAL_START                     // length of total basic inc mc-rem for SAVETAP
 
 // ===========================================================================
 
@@ -682,10 +738,12 @@ BASIC_END
  
 
 // ===========================================================================
+ IF __ERRORS__ == 0
     DISPLAY "-- Creating file: ", tape_file_name
     EMPTYTAP tape_file_name
     // SAVETAP <filename>,    BASIC,<filenameintapeheader>,<start>,     <length> [,<autorunline>[,<lengthwithoutvars>]]
-    SAVETAP    tape_file_name,BASIC,basic_name,        BASIC_START, BASIC_LEN, 10
+    SAVETAP    tape_file_name, BASIC ,basic_name, TOTAL_START, TOTAL_LEN, 10
+ ENDIF
 // ===========================================================================
 
 
@@ -696,70 +754,76 @@ BASIC_END
 // ===========================================================================
 
 // LOAD_SNAPSHOT EQU SCREEN_23RD + BASIC_LEN - ASM_LOWER_BEGIN
-LOAD_SNAPSHOT EQU SCREEN_END - SNAPSHOT_CODE_LEN
+// LOAD_SNAPSHOT EQU SCREEN_END - REGISTER_CODE_LEN
 
 
  ORG 0
-SNAPSHOT_CODE_BEGIN
-                    ld SP, LOAD_SNAPSHOT +  SnapShotStack   
+REGISTER_CODE_START
+                   // ld A,0xff           // @DEBUG have some visible feedback
+                   // ld (16384),A        // @DEBUG have some visible feedback
+AF_reg+1:           ld BC, 0    
+                    push BC     // #PP6
+AFa_reg+1:          ld BC, 0    
+                    push BC     // #PP7
 flags_and_border+1: ld A, 0     
-                    out ($FE),a // border color 0xD3 0xFE
-BC_reg+1:           ld BC, 0    
-DE_reg+1:           ld DE, 0    
-HL_reg+1:           ld HL, 0    
-                    exx         
-                    ex af, af'  
+                    out ($FE),A // border color 0xD3 0xFE
 BCa_reg+1:          ld BC, 0    
 DEa_reg+1:          ld DE, 0    
 HLa_reg+1:          ld HL, 0    
-                    pop AF              
-                    ex af, af'          
-                    exx                 
+                    pop AF      // #PP7 AF'        
+                    exx         
+                    ex af, af'  
+BC_reg+1:           ld BC, 0    
+DE_reg+1:           ld DE, 0    
+HL_reg+1:           ld HL, 0    
 IX_reg+*:           ld IX, 0            
 IY_reg+*:           ld IY, 0            
-R_reg+*:            LD A, R_reg              
-                    LD R, A                  
-I_reg+*:            LD A, I_reg              
-                    LD I, A                  
-                    pop AF          // AF itself
+R_reg+*:            ld A, R_reg              
+                    ld R, A                  
+I_reg+*:            ld A, I_reg              
+                    ld I, A                  
+                    pop AF        // #PP6 AF itself
 SP_reg+*:           ld SP, 0        
 imode:              im 1            
 ei_di:              ei              
-PC_reg+*:           jp 0            
-SnapShotStack:
-Fa_reg:  DEFS 1
-Aa_reg:  DEFS 1
-F_reg:   DEFS 1
-A_reg:   DEFS 1
+PC_reg+*:           jp 0      
+REGISTER_CODE_END
+REGISTER_CODE_LEN EQU REGISTER_CODE_END-REGISTER_CODE_START 
 
 
-
-// ===========================================================================
-SNAPSHOT_CODE_END
-
-SNAPSHOT_CODE_LEN EQU SNAPSHOT_CODE_END-SNAPSHOT_CODE_BEGIN 
- DISPLAY "SNAPSHOT_CODE_BEGIN = ",/A,SNAPSHOT_CODE_BEGIN
- DISPLAY "SNAPSHOT_CODE_END = ",/A,SNAPSHOT_CODE_END
- DISPLAY "SNAPSHOT_CODE_LEN = ",/A,SNAPSHOT_CODE_LEN
- DISPLAY "LOAD_SNAPSHOT = ",/A,LOAD_SNAPSHOT 
+ DISPLAY "REGISTER_CODE_START = ",/A,REGISTER_CODE_START        // 0
+ DISPLAY "REGISTER_CODE_END = ",/A,REGISTER_CODE_END
+ DISPLAY "REGISTER_CODE_LEN = ",/A,REGISTER_CODE_LEN
+// DISPLAY "LOAD_SNAPSHOT = ",/A,LOAD_SNAPSHOT 
  //DISPLAY "SCREEN_23RD + BASIC_LEN - ASM_LOWER_BEGIN = ",/A, SCREEN_23RD + BASIC_LEN - ASM_LOWER_BEGIN
  //DISPLAY "(load address at basic=)     SCREEN_23RD + ASM_LOWER_LEN = ",/A, SCREEN_23RD + ASM_LOWER_LEN
  //DISPLAY "(end load address at basic=) SCREEN_23RD + ASM_LOWER_LEN + ASM_UPPER_LEN= ",/A, SCREEN_23RD + ASM_LOWER_LEN + ASM_UPPER_LEN
  //DISPLAY "SCREEN_23RD + load_ok - ASM_LOWER_BEGIN = ",/A, SCREEN_23RD + load_ok - ASM_LOWER_BEGIN
+
  
- SAVEBIN "snapshotregs.bin", SNAPSHOT_CODE_BEGIN, SNAPSHOT_CODE_LEN
+ SAVEBIN "snapshotregs.bin", REGISTER_CODE_START, REGISTER_CODE_LEN
 // ENT
 
 // ===========================================================================
 // export to zqloader.exp
 // ===========================================================================
 
- EXPORT ASM_UPPER_LEN
- EXPORT ASM_UPPER_START
  EXPORT CLEAR
 
- EXPORT LOAD_SNAPSHOT
+
+ EXPORT ASM_CONTROL_CODE_START
+ EXPORT ASM_CONTROL_CODE_LEN
+ 
+ EXPORT ASM_UPPER_START_OFFSET
+ EXPORT ASM_UPPER_START
+ EXPORT ASM_UPPER_LEN
+ 
+
+
+// EXPORT LOAD_SNAPSHOT
  EXPORT flags_and_border
+ EXPORT AF_reg
+ EXPORT AFa_reg
  EXPORT BC_reg
  EXPORT DE_reg
  EXPORT HL_reg
@@ -774,15 +838,15 @@ SNAPSHOT_CODE_LEN EQU SNAPSHOT_CODE_END-SNAPSHOT_CODE_BEGIN
  EXPORT ei_di
  EXPORT SP_reg 
  EXPORT PC_reg 
- EXPORT Fa_reg 
- EXPORT Aa_reg 
- EXPORT A_reg 
- EXPORT F_reg 
- EXPORT sizeof_header   // so can check at C++
+
+ EXPORT HEADER_LEN   // so can check at C++
+ EXPORT TOTAL_LEN    // to show
+
  EXPORT BIT_LOOP_MAX
  EXPORT BIT_ONE_THESHLD
- EXPORT ASM_LOWER_END
- EXPORT ASM_UPPER_START
 
+ EXPORT STACK_SIZE  // needed to search free space in snapshot
+
+ EXPORT REGISTER_CODE_LEN
 
  // ===========================================================================

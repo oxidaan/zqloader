@@ -65,6 +65,7 @@ TapLoader& TapLoader::Load(const fs::path &p_filename, std::string p_zxfilename)
     {
         std::cout << "Loading file " << p_filename << std::endl;
         Load(fileread, p_zxfilename);
+        std::cout << std::endl;
     }
     catch(const std::exception &e)
     {

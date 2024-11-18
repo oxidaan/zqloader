@@ -25,16 +25,7 @@ class SampleSender;
 
 
 
-// Calculate a ZX Spectrum standard tap block checksum
-inline std::byte CalculateChecksum(std::byte p_init_val, const DataBlock& p_data)
-{
-    std::byte retval = p_init_val;
-    for (const std::byte& b : p_data)
-    {
-        retval ^= b;
-    }
-    return retval;
-}
+
 
 /// Main ZX spectrum loader class, stores a series of 'pulsers' that generates audio pulses
 /// that the ZX spectrum tapeloader routines can understand.
@@ -67,7 +58,7 @@ public:
         return *this;
     }
 
-    /// And any pulser to process.
+    /// And any pulser.
     template <class TPulser, typename std::enable_if<std::is_base_of<Pulser, TPulser>::value, int>::type = 0>
     SpectrumLoader& AddPulser(TPulser p_block)
     {
@@ -84,19 +75,19 @@ public:
 
     /// Convenience: add ZX Spectrum standard data block.
     /// This is raw data so should already include startbyte + checksum
-    SpectrumLoader& AddData(DataBlock p_data, int p_pulslen = g_tstate_zero);
+    SpectrumLoader& AddData(DataBlock p_data, int p_pulslen = spectrum::g_tstate_zero);
 
     /// Convenience: add ZX Spectrum standard pause (eg before 2nd leader)
     SpectrumLoader& AddPause(std::chrono::milliseconds p_duration = 500ms);
 
     /// Convenience: add ZX Spectrum standard leader+sync+data block.
     /// This is raw data which (should) already include startbyte + checksum
-    SpectrumLoader& AddLeaderPlusData(DataBlock p_data, int p_pulslen = g_tstate_zero, std::chrono::milliseconds p_leader_duration = 3000ms)
+    SpectrumLoader& AddLeaderPlusData(DataBlock p_data, int p_pulslen = spectrum::g_tstate_zero, std::chrono::milliseconds p_leader_duration = 3000ms)
     {
         return AddLeader(p_leader_duration).AddSync().AddData(std::move(p_data), p_pulslen);
     }
 
-
+    /// Write all added pulsers data as a TZX file. Not fully working though.
     SpectrumLoader& WriteTzxFile(std::ostream& p_file);
 
     // Set the call backs

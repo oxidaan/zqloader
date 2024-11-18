@@ -10,7 +10,7 @@
     <ClCompile Include="taploader.cpp" />
     <ClCompile Include="taptoturboblocks.cpp" />
     <ClCompile Include="test.cpp" />
-    <ClCompile Include="turboblock.cpp" />
+    <ClCompile Include="turboblocks.cpp" />
     <ClCompile Include="tzxloader.cpp" />
     <ClCompile Include="z80snapshot_loader.cpp" />
     <ClCompile Include="main.cpp" />
@@ -32,7 +32,7 @@
     <ClInclude Include="symbols.h" />
     <ClInclude Include="taploader.h" />
     <ClInclude Include="taptoturboblocks.h" />
-    <ClInclude Include="turboblock.h" />
+    <ClInclude Include="turboblocks.h" />
     <ClInclude Include="types.h" />
     <ClInclude Include="tzxloader.h" />
     <ClInclude Include="z80snapshot_loader.h" />
@@ -43,6 +43,7 @@
   <ItemGroup>
     <CustomBuild Include="z80\zqloader.z80asm" />
     <CustomBuild Include="z80\zqloader_test.z80asm" />
+    <CustomBuild Include="z80\zqloader_test2.z80asm" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

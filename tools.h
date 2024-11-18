@@ -63,7 +63,7 @@ public:
     }
 
     /// Get last parameter
-    std::string GetLastParamer() const noexcept
+    std::string GetLastParameter() const noexcept
     {
         if (HasParameters())
         {
