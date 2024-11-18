@@ -26,7 +26,7 @@ PausePulser& PausePulser::SetLength(int p_states)
 PausePulser& PausePulser::SetLength(std::chrono::milliseconds p_duration)
 {
    // std::cout << "Pause = " << p_duration.count() << "ms" << std::endl;
-    m_duration_in_tstates = int(p_duration / g_tstate_dur);
+    m_duration_in_tstates = int(p_duration / spectrum::g_tstate_dur);
     return *this;
 }
 
@@ -52,7 +52,7 @@ TonePulser& TonePulser::SetLength(std::chrono::milliseconds p_duration)
     auto pat_dur = GetPatternDuration();
     if (pat_dur)
     {
-        m_max_pulses = unsigned(p_duration / (g_tstate_dur * pat_dur));
+        m_max_pulses = unsigned(p_duration / (spectrum::g_tstate_dur * pat_dur));
         unsigned pattsize = unsigned(m_pattern.size());
         m_max_pulses += pattsize - (m_max_pulses % pattsize);    // round up to next multiple of pattsize
     }

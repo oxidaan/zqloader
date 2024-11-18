@@ -8,7 +8,18 @@
 //==============================================================================
 // This project use the miniaudio sound library by David Read.
 
-
+//  
+// "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\Z80\jsw2.z80"
+// volume_right = -100 usescreen "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\games beetzart\ZX32\ZX Spectrum Files\Golden Oldies\Knight Lore.z80"
+// ZZvolume_right = -100 "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\games beetzart\Z80\download\SABRWULF.tap"
+// "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\zx32\GALAXINS.TAP"
+// bit_one_threshold=4 zero_tstates=110 one_tstates=243 "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\games beetzart\Z80\download\SABRWULF.tap"
+// ZZvolume_right = -100 "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\z80\test.z80"
+// ZZvolume_right = 100 ZZvolume_left = -100 "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\z80\test.z80"
+// ZZvolume_right = 100 ZZvolume_left = -100 "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap"  "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader_test.bin"
+// ZZvolume_left=100 ZZvolume_right=100 bit_one_threshold=3 one_tstates=243 
+// "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Users\Daan\Downloads\MarioBros(ErbeSoftwareS.A.).tzx\Mario Bros (Erbe).tzx"
+// "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\Z80\mm.sna"
 #if __cplusplus < 201703L
 // At MSVC
 // Properties -> C/C++ -> Language -> C++ Language Standard -> ISO c++17 Standard
@@ -31,7 +42,7 @@
 #include "tzxloader.h"
 #include "taptoturboblocks.h"
 #include "z80snapshot_loader.h"
-#include "turboblock.h"
+#include "turboblocks.h"
 #include "samplesender.h"
 #include "sampletowav.h"
 #include "tools.h"
@@ -109,6 +120,7 @@ Syntax:
 1) zqloader.exe [options] path/to/filename 
 2) zqloader.exe [options] path/to/zqloader.tap path/to/turbofile
 3) zqloader.exe [options] filename="path/to/zqloader.tap" turbofile="path/to/turbofile" option=value
+4) zqloader.exe [options] turbofile="path/to/turbofile" option=value
 Arguments:
     path/to/filename        First file: can be a .tap or .tzx file and will be
                             loaded at normal speed into a real ZX spectrum.
@@ -126,19 +138,33 @@ More options can be given with syntax: option=value, or just option value or opt
                             When both are negative both channels are inverted.
     samplerate = value      Sample rate for audio. Default 0 meaning take device native sample rate.
                             S/a miniaudio documentation.
+    usescreen               When loading a snapshot, normally it will try to find empty space for
+                            the loader. Only when not found it uses the lower 2/3 of screen for 
+                            that. With this option it will allways use the screen.
+
     zero_tstates = value
     one_tstates = value     The number of TStates a zero / one pulse will take when using the 
                             zqloader/turboloader. Not giving this (or 0) uses a default that 
-                            worked for me.
+                            worked for me (118/293). 
+                            These parameters are used at the host side so directly effect 
+                            loading speed.
+    end_of_byte_delay = value
+                            Extra delay in TSTates after each byte. Eg time needed to store
+                            the byte, calculate checksum etc. Not giving this (or 0) uses a 
+                            default that worked for me (64). 
     bit_one_threshold = value
                             A time value in 50xTStates used at Z80 turboloader indicating the
                             time between edges when it is considered a 'one' - below this time
                             it is considered a 'zero'. Related to 'one_tstates' above.
-                            Not giving this (or 0) uses a default that worked for me (4)
+                            Not giving this (or 0) uses a default that worked for me (4) - 
+                            (or automatically calculated out of bit_loop_max).
     bit_loop_max = value    A time value in 50xTstates used at Z80 turboloader indicating the
                             maximum time between edges treated as valid 'one' value. Above this 
                             a timeout error will occur.
                             Not giving this (or 0) uses a default that worked for me (12)
+                            These parameters are used at the ZX-spectrum side so must match
+                            zero_tstates/one_tstates.
+                            Eg extra speed: bit_one_threshold=3 one_tstates=243
 
     outputfile="path/to/filename.wav"
                             When a wav file is given: write result to given WAV (audio) file instead of 
@@ -190,13 +216,7 @@ int main(int argc, char** argv)
             filename = (cmdline.GetNumParameters() == 1) ? cmdline.GetParameter(1) : cmdline.GetParameter(cmdline.GetNumParameters() - 1);
         }
 
-        // Check if file exist if not try at current executable directory
-        if (!std::filesystem::exists(filename))
-        {
-            // try at current executable directory by default 
-            filename = fs::path(argv[0]).parent_path() / filename;
-            // (if still not exist will throw anyway)
-        }
+
          
 
         // either last parameter if 2 or more parameters
@@ -204,7 +224,7 @@ int main(int argc, char** argv)
         fs::path filename2 = cmdline.GetParameter("turbofile", "");
         if (filename2.empty() && cmdline.GetNumParameters() >= 2)
         {
-            filename2 = cmdline.GetLastParamer();
+            filename2 = cmdline.GetLastParameter();
         }
 
         bool is_zqloader = ToLower(filename.stem().string()) == "zqloader";
@@ -221,26 +241,34 @@ except waiting.
         }
         if (!is_zqloader && !filename2.empty())
         {
-            throw std::runtime_error(1 + &*R"(
-A second filename argument and/or parameters are only usefull when using zqloader.tap 
-(which is the turbo loader) as (1st) file.
-)");
+            filename = "zqloader.tap";
+            is_zqloader = true;
+//            throw std::runtime_error(1 + &*R"(
+//A second filename argument and/or parameters are only usefull when using zqloader.tap 
+//(which is the turbo loader) as (1st) file.
+//)");
         }
 
-        std::cout << "Processing file " << filename << std::endl;
-
+        // Check if file exist if not try at current executable directory
+        if (!std::filesystem::exists(filename))
+        {
+            // try at current executable directory by default 
+            filename = fs::path(argv[0]).parent_path() / filename;
+            // (if still not exist will throw anyway)
+        }
 
         SpectrumLoader spectrumloader;
 
         if(!is_zqloader)
         {
+            std::cout << "Processing normal speed file: " << filename << std::endl;
             // filename is tap/tzx file to be normal loaded into the ZX Spectrum.
             if (ToLower(filename.extension().string()) == ".tap")
             {
                 TapLoader taploader;
                 taploader.SetOnHandleTapBlock([&](DataBlock p_block, std::string)
                 {
-                    spectrumloader.AddLeaderPlusData(std::move(p_block), g_tstate_quick_zero, 1750ms);//.AddPause(100ms);
+                    spectrumloader.AddLeaderPlusData(std::move(p_block), spectrum::g_tstate_quick_zero, 1750ms);//.AddPause(100ms);
                     return false;
                 }
                 );
@@ -251,7 +279,7 @@ A second filename argument and/or parameters are only usefull when using zqloade
                 TzxLoader tzxloader;
                 tzxloader.SetOnHandleTapBlock([&](DataBlock p_block, std::string)
                 {
-                    spectrumloader.AddLeaderPlusData(std::move(p_block), g_tstate_quick_zero, 1750ms);//.AddPause(100ms);
+                    spectrumloader.AddLeaderPlusData(std::move(p_block), spectrum::g_tstate_quick_zero, 1750ms);//.AddPause(100ms);
                     return false;
                 }
                 );
@@ -264,37 +292,32 @@ A second filename argument and/or parameters are only usefull when using zqloade
         }
         else    // is zqloader
         {   
+            std::cout << "Processing zqloader file: " << filename << " (normal speed)" << std::endl;
             // filename2 is the tap/tzx/z80 file to be turbo-loaded into the ZX Spectrum.
-            std::cout << "Processing zqloader turbo file " << filename2 << std::endl;
 
             fs::path filename_exp = filename;
             filename_exp.replace_extension("exp");      // zqloader.exp (symbols)
 
-            auto zero_tstates = cmdline.GetParameter("zero_tstates", 0);       // 0 is default
-            auto one_tstates = cmdline.GetParameter("one_tstates", 0);         // 0 is default
-            auto bit_loop_max = cmdline.GetParameter<int>("bit_loop_max", 0);       // 0 is default
-            auto bit_one_threshold = cmdline.GetParameter<int>("bit_one_threshold", 0);         // 0 is default
+            auto zero_tstates = cmdline.GetParameter("zero_tstates", 0);                  // 0 is default
+            auto one_tstates = cmdline.GetParameter("one_tstates", 0);                    // 0 is default
+            auto end_of_byte_delay = cmdline.GetParameter("end_of_byte_delay", 0);        // 0 is default
+            auto bit_loop_max = cmdline.GetParameter<int>("bit_loop_max", 0);             // When 0 dont overwrite default @ zqloader.z80asm
+            auto bit_one_threshold = cmdline.GetParameter<int>("bit_one_threshold", 0);   // When 0 dont overwrite default @ zqloader.z80asm
 
-            TurboBlocks tblocks(spectrumloader, filename_exp);
+            TurboBlocks tblocks{filename_exp};
             tblocks.SetCompressionType(CompressionType::automatic).
-                    SetDurations(zero_tstates, one_tstates).
+                    SetDurations(zero_tstates, one_tstates, end_of_byte_delay).
                     SetBitLoopMax(bit_loop_max).SetBitOneThreshold(bit_one_threshold).
-                    Load(filename, "");
-/*
-            if (false)      // test
+                    Load(filename, "");     // zqloader.tap
+            if (cmdline.HasParameter("test"))
             {
-                TurboBlocks tblocks(filename_exp);
-                for (int n = 0; n < 20; n++)
-                {
-                    Test(tblocks, filename);
-                }
-                tblocks.MoveToLoader(spectrumloader, TurboBlocks::ReturnToBasic);
+                auto adr = Test(tblocks, "");
+                tblocks.Finalyze(adr).MoveToLoader(spectrumloader);
             }
-            else 
-*/
-            if (ToLower(filename2.extension().string()) == ".tap")
+            else if (ToLower(filename2.extension().string()) == ".tap")
             {
-                TapToTurboBlocks tab_to_turbo_blocks(tblocks);
+                std::cout << "Processing tap file: " << filename2 << " (turbo speed)" << std::endl;
+                TapToTurboBlocks tab_to_turbo_blocks{tblocks};
                 TapLoader loader;
                 loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string p_zxfilename)
                 {
@@ -302,11 +325,13 @@ A second filename argument and/or parameters are only usefull when using zqloade
                 }
                 );                
                 loader.Load(filename2, "");
-                tblocks.MoveToLoader(tab_to_turbo_blocks.GetUsrAddress(), tab_to_turbo_blocks.GetClearAddress());
+                tblocks.Finalyze(tab_to_turbo_blocks.GetUsrAddress(), tab_to_turbo_blocks.GetClearAddress()).MoveToLoader(spectrumloader);
             }
             else if (ToLower(filename2.extension().string()) == ".tzx")
             {
-                TapToTurboBlocks tab_to_turbo_blocks(tblocks);
+                std::cout << "Processing tzx file: " << filename2 << " (turbo speed)" << std::endl;
+
+                TapToTurboBlocks tab_to_turbo_blocks{tblocks};
                 TzxLoader loader;
                 loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string p_zxfilename)
                 {
@@ -314,26 +339,31 @@ A second filename argument and/or parameters are only usefull when using zqloade
                 }
                 );
                 loader.Load(filename2, "");
-                tblocks.MoveToLoader(tab_to_turbo_blocks.GetUsrAddress(), tab_to_turbo_blocks.GetClearAddress());
+                tblocks.Finalyze(tab_to_turbo_blocks.GetUsrAddress(), tab_to_turbo_blocks.GetClearAddress()).MoveToLoader(spectrumloader);
             }
-            else if (ToLower(filename2.extension().string()) == ".z80")
+            else if (ToLower(filename2.extension().string()) == ".z80" ||
+                     ToLower(filename2.extension().string()) == ".sna")
             {
-                Z80SnapShotLoader z80loader;
-                // Read file snapshotregs.bin -> regblock 
+                std::cout << "Processing snapshot file: " << filename2 << " (turbo speed)" << std::endl;
+
+                Z80SnapShotLoader snapshotloader;
+                // Read file snapshotregs.bin (created by sjasmplus) -> regblock 
                 fs::path snapshot_regs_filename = filename; 
                 snapshot_regs_filename.replace_filename("snapshotregs");
                 snapshot_regs_filename.replace_extension("bin");      
                 DataBlock regblock;
                 regblock.LoadFromFile(snapshot_regs_filename);
-                z80loader.Load(filename2).SetRegBlock(std::move(regblock)).MoveToTurboBlocks(tblocks);
-                tblocks.MoveToLoader(z80loader.GetUsrAddress());
+                bool allways_use_screen = cmdline.HasParameter("usescreen");
+                bool write_fun_attribs = cmdline.HasParameter("write_attribs");
+                snapshotloader.Load(filename2).SetRegBlock(std::move(regblock)).MoveToTurboBlocks(tblocks, allways_use_screen, write_fun_attribs);
+                tblocks.Finalyze(snapshotloader.GetUsrAddress()).MoveToLoader(spectrumloader);
                 //                tblocks.MoveToLoader(spectrumloader, 1);        // @DEBUG
             }
             else if (ToLower(filename2.extension().string()) == ".bin")
             {
                 // @DEBUG
                 auto adr = Test(tblocks, filename2);
-                tblocks.MoveToLoader(adr);
+                tblocks.Finalyze(adr).MoveToLoader(spectrumloader);
             }
             else
             {
@@ -342,20 +372,22 @@ A second filename argument and/or parameters are only usefull when using zqloade
 
         }
 
-        // When outputfile="path/to/filename" given: 
+        // When outputfile="path/to/filename" or -w or -wav given: 
         // Convert to wav file instead of outputting sound
         fs::path outputfilename = cmdline.GetParameter("outputfile", "");
-        if(outputfilename.empty() && !filename2.empty() && ToLower(filename2.extension().string()) != ".wav" &&
-            (cmdline.HasParameter("wav") || cmdline.HasParameter("w")))
+        if(outputfilename.empty() && (cmdline.HasParameter("wav") || cmdline.HasParameter("w")))
         {
-            outputfilename = filename2;
-            outputfilename.replace_extension("wav");
-        }
-        if (outputfilename.empty() && !filename2.empty() && ToLower(filename2.extension().string()) != ".tzx" &&
-            (cmdline.HasParameter("tzx") || cmdline.HasParameter("t")))
-        {
-            outputfilename = filename2;
-            outputfilename.replace_extension("tzx");
+            // When -w or -wav is given create output filename out of 2nd given filename (filename2)
+            if( !filename2.empty() && ToLower(filename2.extension().string()) != ".wav")
+            {
+                outputfilename = filename2;
+                outputfilename.replace_extension("wav");
+            }
+            if (!filename2.empty() && ToLower(filename2.extension().string()) != ".tzx")
+            {
+                outputfilename = filename2;
+                outputfilename.replace_extension("tzx");
+            }
         }
         auto vol1 = cmdline.GetParameter("volume_left", 100);
         auto vol2 = cmdline.GetParameter("volume_right", 100);
@@ -364,10 +396,10 @@ A second filename argument and/or parameters are only usefull when using zqloade
         if(outputfilename.empty())
         {
             // normal, so play as sound
-            SampleSender sample_sender(true);
+            SampleSender sample_sender;
             spectrumloader.Attach(sample_sender);
             sample_sender.SetVolume(vol1, vol2).SetSampleRate(samplerate);
-            sample_sender.Run();
+            sample_sender.Run();            // Play!
         }
         else if (ToLower(outputfilename.extension().string()) == ".wav")
         {
@@ -389,7 +421,7 @@ A second filename argument and/or parameters are only usefull when using zqloade
 
         auto end = std::chrono::steady_clock::now();
         auto dura = end - start;
-        std::cout << "Took: " << std::dec << std::chrono::duration_cast<std::chrono::seconds>(dura).count() << " s" << std::endl;
+        std::cout << "Took: " << std::dec << std::chrono::duration_cast<std::chrono::milliseconds>(dura).count() << " ms" << std::endl;
       //  std::cout << "Edge = " << spectrumloader.GetLastEdge() << std::endl;
         er = 0;
     }

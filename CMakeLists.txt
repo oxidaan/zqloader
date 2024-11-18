@@ -31,7 +31,7 @@ set(SOURCE
     taptoturboblocks.cpp
     test.cpp
     tools.cpp
-    turboblock.cpp
+    turboblocks.cpp
     tzxloader.cpp
     sampletowav.cpp
     pulsers.cpp

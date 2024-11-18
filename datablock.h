@@ -56,3 +56,4 @@ public:
     template <class TPath>
     DataBlock& LoadFromFile(const TPath &p_filename);
 };
+

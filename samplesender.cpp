@@ -17,11 +17,6 @@ SampleSender::SampleSender() = default;
 SampleSender::SampleSender(SampleSender&&) = default;
 SampleSender& SampleSender::operator = (SampleSender&&) = default;
 
-/// CTOR with bool calls Init
-SampleSender::SampleSender(bool)
-{
-    Init();
-}
 
 
 

@@ -89,6 +89,29 @@ class Z80SnapShotLoader
     static_assert(sizeof(Z80SnapShotHeader2) == 25, "Sizeof Z80SnapShotHeader2 must be 23");
     static_assert(sizeof(Z80SnapShotHeader) + sizeof(Z80SnapShotHeader2) + sizeof(Z80SnapShotHeader3) == 86, "Sizeof Z80SnapShotHeaders must be 86");
 
+#pragma pack(push, 1)
+    // https://worldofspectrum.org/faq/reference/formats.htm
+    struct SnaSnapshotShotHeader
+    {
+        uint8_t  I_reg;
+        uint16_t HLa_reg;
+        uint16_t DEa_reg;
+        uint16_t BCa_reg;
+        uint16_t AFa_reg;
+        uint16_t HL_reg;
+        uint16_t DE_reg;
+        uint16_t BC_reg;        
+        uint16_t IY_reg;    
+        uint16_t IX_reg;
+        uint8_t  iff2;           // Interrupt flipflop, bit 2 0=DI, otherwise EI 
+        uint8_t  R_reg;
+        uint16_t  AF_reg;
+        uint16_t  SP_reg;
+        uint8_t imode;       // Interrupt mode (0, 1 or 2)
+        uint8_t  border;
+    };
+#pragma pack(pop)
+    static_assert(sizeof(SnaSnapshotShotHeader) == 27, "Sizeof SnaSnapshotShotHeader must be 27");
 
 public:
     Z80SnapShotLoader()
@@ -98,7 +121,9 @@ public:
     Z80SnapShotLoader& Load(const std::filesystem::path &p_filename);
 
     ///  Load Z80 snapshot file from given stream.
-    Z80SnapShotLoader& Load(std::istream& p_stream);
+    Z80SnapShotLoader& LoadZ80(std::istream& p_stream);
+    ///  Load sna snapshot file from given stream.
+    Z80SnapShotLoader& LoadSna(std::istream& p_stream);
 
     /// The given datablock should be a sjasmplus generated block with
     /// some Z80 code to set all registers.
@@ -113,7 +138,7 @@ public:
     /// Move data as loaded from Z80 snapshot file to given TurboBlocks.
     /// Will replace register data as read by this class (from z80 snapshot) in the block as 
     /// given in SetRegBlock, using the symbols as known by TurboBlocks.
-    void MoveToTurboBlocks(TurboBlocks& p_turbo_blocks);
+    void MoveToTurboBlocks(TurboBlocks& p_turbo_blocks, bool p_allways_use_screen, bool p_write_fun_attribs);
 
     /// This is the start addres at register load code (snapshotregs.bin)
     /// When jumping to that address will load all registers, including PC, 
@@ -123,7 +148,7 @@ public:
         return m_usr;
     }
 
-    ///  Get entire (48kb) snapshot but expluding registers.
+    ///  Get entire (48kb) snapshot but excluding registers.
     DataBlock GetData()
     {
         return std::move(m_mem48k);
@@ -139,9 +164,9 @@ private:
     DataBlock DeCompress(const DataBlock& p_block);
 private:
     Z80SnapShotHeader m_z80_snapshot_header;
-    DataBlock m_mem48k;
-    DataBlock m_reg_block;
-    uint16_t m_usr;
+    DataBlock m_mem48k;         // snapshot data (as read from z80 file)
+    DataBlock m_reg_block;      // Typically would be snapshotregs.bin as created by sjasmplus.
+    uint16_t m_usr = 0;
     std::string m_name;
 };
 

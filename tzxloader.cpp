@@ -375,7 +375,7 @@ void TonePulser::WriteAsTzxBlock(std::ostream &p_stream) const
 {   
     if(m_pattern.size() == 1)
     {
-        std::cout << "TonePulser::WriteAsTzxBlock:Puretone " << m_pattern[0] << ' ' << ((m_max_pulses * m_pattern[0]) *g_tstate_dur).count() << std::endl;
+        std::cout << "TonePulser::WriteAsTzxBlock:Puretone " << m_pattern[0] << ' ' << ((m_max_pulses * m_pattern[0]) *spectrum::g_tstate_dur).count() << std::endl;
         WriteBinary<TzxBlockType>(p_stream, TzxBlockType::Puretone);
         WriteBinary<WORD>(p_stream, WORD(m_pattern[0]));
         WriteBinary<WORD>(p_stream, WORD(m_max_pulses));
@@ -423,7 +423,7 @@ void PausePulser::WriteAsTzxBlock(std::ostream& p_stream) const
 
     if(m_duration_in_tstates > 0xffff && m_edge == Edge::no_change)
     {
-        auto len_in_ms = WORD((1000 * m_duration_in_tstates * g_tstate_dur).count());
+        auto len_in_ms = WORD((1000 * m_duration_in_tstates * spectrum::g_tstate_dur).count());
         std::cout << "PausePulser::WriteAsTzxBlock:Pause " << len_in_ms << "ms" << std::endl;
         WriteBinary<TzxBlockType>(p_stream, TzxBlockType::PauseOrStopthetapecommand);
         WriteBinary(p_stream, len_in_ms);

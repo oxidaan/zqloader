@@ -98,6 +98,9 @@ public:
         m_volume_right = float(p_volume_right) / 100.0f;
         return *this;
     }
+
+
+    /// Set sample rate (hz), when not set use 48000 which is s/a miniaudio default.
     SampleToWav& SetSampleRate(int p_sample_rate)
     {
         if(p_sample_rate)       // else use default
