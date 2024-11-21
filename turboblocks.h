@@ -44,7 +44,7 @@ class TurboBlocks
 {
 public:
 
-    // What to do after a block was loaded, stored at m-usr
+    // What to do after a block was loaded, stored at m_usr_start_address
     enum AfterBlock : uint16_t
     {
         LoadNext      = 256,        // go on to next block (H=1 at z80)
@@ -111,8 +111,8 @@ public:
     /// Mainly for debugging!
     TurboBlocks& CopyLoaderToScreen(uint16_t p_value);
 
-    // Set start of free space to copy loader including space for sp.
-    TurboBlocks& SetEmptySpaceForLoaderLocation(uint16_t p_value )
+    /// Set start of free space to copy loader including space for sp.
+    TurboBlocks& SetLoaderCopyTarget(uint16_t p_value )
     {
         m_loader_copy_start = p_value;
         return *this;
@@ -144,11 +144,11 @@ private:
     uint16_t GetZqLoaderSymbolAddress(const char* p_name) const;
 
 
-    /// Convenience
-    /// Set a 8 bit byte or 16 bit word to the TAP block that contains ZQLoader Z80. To set parameters to ZQLoader.
-    /// p_block: block to modify data to, should be zqloader.tap.
-    /// p_name: symbol name as exported by sjasmplus, see Symbols.
-    /// p_value: new byte value.
+    // Convenience
+    // Set a 8 bit byte or 16 bit word to the TAP block that contains ZQLoader Z80. To set parameters to ZQLoader.
+    // p_block: block to modify data to, should be zqloader.tap.
+    // p_name: symbol name as exported by sjasmplus, see Symbols.
+    // p_value: new byte value.
     void SetDataToZqLoaderTap(const char* p_name, uint16_t p_value);
     void SetDataToZqLoaderTap(const char* p_name, std::byte p_value);
 
@@ -168,12 +168,11 @@ private:
     uint16_t                      m_loader_copy_start = 0;         // start of free space were our loader can be copied to, begins with stack, then Control code copied from basic
     CompressionType               m_compression_type        = CompressionType::none;
     Symbols                       m_symbols;                       // named symbols as read from EXP file
-    int                           m_zero_duration           = 91;//91;  // @@ see zqloader.asm
-    int                           m_one_duration            = 241;//241; //int(91 + 3.5 * 43); //250; 
-    int                           m_end_of_byte_delay       = 64;
+    int                           m_zero_duration           = 81;//91;  // @@ see zqloader.asm
+    int                           m_one_duration            = 241;//241; //int(91 + 3.5 * 43); //250;  231 worked better with jsw3.z80!?
+    int                           m_end_of_byte_delay       = 68;   // 64
     int                           m_bit_loop_max            = 0;
     int                           m_bit_one_threshold       = 0;
-    // default when no better location could be found
 }; // class TurboBlocks
 
 

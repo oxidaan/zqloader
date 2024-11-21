@@ -20,6 +20,7 @@
 // ZZvolume_left=100 ZZvolume_right=100 bit_one_threshold=3 one_tstates=243 
 // "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Users\Daan\Downloads\MarioBros(ErbeSoftwareS.A.).tzx\Mario Bros (Erbe).tzx"
 // "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\Z80\mm.sna"
+// "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\Z80\jsw3.z80"
 #if __cplusplus < 201703L
 // At MSVC
 // Properties -> C/C++ -> Language -> C++ Language Standard -> ISO c++17 Standard
@@ -130,7 +131,8 @@ Arguments:
                             A game for example.
                             When given will be send to the ZX spectrum at turbo speed.
 
-More options can be given with syntax: option=value, or just option value or option="some value":
+More options can be given with syntax: option=value, or just 'option value' or option="some value" or
+'--option=value' :
     volume_left = value            
     volume_right = value    A number between -100 and 100: sets volume for left or right 
                             sound (stereo) channel.
@@ -138,14 +140,16 @@ More options can be given with syntax: option=value, or just option value or opt
                             When both are negative both channels are inverted.
     samplerate = value      Sample rate for audio. Default 0 meaning take device native sample rate.
                             S/a miniaudio documentation.
-    usescreen               When loading a snapshot, normally it will try to find empty space for
+    usescreen or -s         When loading a snapshot, normally it will try to find empty space for
                             the loader. Only when not found it uses the lower 2/3 of screen for 
                             that. With this option it will allways use the screen.
+    fun_attribs or -f       When using screen for a snapshot, giving this paremeter overwrites
+                            the loader garbage at screen with a funny text attribute text.
 
     zero_tstates = value
     one_tstates = value     The number of TStates a zero / one pulse will take when using the 
                             zqloader/turboloader. Not giving this (or 0) uses a default that 
-                            worked for me (118/293). 
+                            worked for me (91/241). 
                             These parameters are used at the host side so directly effect 
                             loading speed.
     end_of_byte_delay = value
@@ -171,9 +175,9 @@ More options can be given with syntax: option=value, or just option value or opt
                             playing sound.
     outputfile="path/to/filename.tzx"
                             When a tzx file given: write result as tzx file instead of playing sound. **
-    --wav or -w             Write a wav file as above with same as turbo (2nd) filename but with wav extension.
-    --tzx or -t             Write a tzx file as above with same as turbo (2nd) filename but with tzx extension.
-    --overwrite or -o       When given allows overwriting above output file when already exists, else gives
+    wav or -w               Write a wav file as above with same as turbo (2nd) filename but with wav extension.
+    tzx or -t               Write a tzx file as above with same as turbo (2nd) filename but with tzx extension. **
+    overwrite or -o         When given allows overwriting above output file when already exists, else gives
                             error in that case. Eg: -wo create wav file, overwrite previous one.
 
     key = yes/no/error      When done wait for key: yes=always, no=never or only when an error
@@ -353,8 +357,8 @@ except waiting.
                 snapshot_regs_filename.replace_extension("bin");      
                 DataBlock regblock;
                 regblock.LoadFromFile(snapshot_regs_filename);
-                bool allways_use_screen = cmdline.HasParameter("usescreen");
-                bool write_fun_attribs = cmdline.HasParameter("write_attribs");
+                bool allways_use_screen = cmdline.HasParameter("usescreen")  || cmdline.HasParameter("s");
+                bool write_fun_attribs =  cmdline.HasParameter("fun_attribs")|| cmdline.HasParameter("f");
                 snapshotloader.Load(filename2).SetRegBlock(std::move(regblock)).MoveToTurboBlocks(tblocks, allways_use_screen, write_fun_attribs);
                 tblocks.Finalyze(snapshotloader.GetUsrAddress()).MoveToLoader(spectrumloader);
                 //                tblocks.MoveToLoader(spectrumloader, 1);        // @DEBUG
@@ -383,6 +387,10 @@ except waiting.
                 outputfilename = filename2;
                 outputfilename.replace_extension("wav");
             }
+        }
+        // same for tzx
+        if(outputfilename.empty() && (cmdline.HasParameter("tzx") || cmdline.HasParameter("t")))
+        {
             if (!filename2.empty() && ToLower(filename2.extension().string()) != ".tzx")
             {
                 outputfilename = filename2;

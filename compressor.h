@@ -10,7 +10,13 @@
 
 #pragma once
 
-#define DO_COMRESS_PAIRS
+// When set compresses isolated pairs (2 sequential bytes of value 'value_for_pairs') into one byte 'code_for_pairs'
+// spares around 5% or a couple of hunderd bytes on average for a game.
+// I hoped this would be more because of 16x16 bit sprites might have this often, but:
+// That size improvement is largely, if not entirely, undone because the decompression is now slower,
+// also zqloader.tap (which is loaded at normal speed!) becomes larger.
+// When changing also change same at file zqloader.z80asm!
+// #define DO_COMRESS_PAIRS
 
 #include <optional>         // std::optional
 #include <iostream>         // cout

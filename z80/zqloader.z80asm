@@ -16,7 +16,7 @@
 //    path/to/zqloader/z80/zqloader\z80\zqloader.z80asm  
 
 // Must match value at compressor.h:
-    DEFINE DO_COMRESS_PAIRS
+//    DEFINE DO_COMRESS_PAIRS
 
 
     DEVICE ZXSPECTRUM48
@@ -157,8 +157,8 @@ next_block:
     //            7  6  5  4  3  2  1  0
     // in(0xfe):  0  E  0  K  K  K  K  K    
     // out(0xfe): d  d  d  E !M  B  B  B  
-    ld A,$7F 	                // Read from port 7FFE eg !BREAK is bit 0.
-    in A,($FE)                  // Get initial EAR value
+    ld A, $7F 	                // Read from port 7FFE eg !BREAK is bit 0.
+    in A, ($FE)                 // Get initial EAR value
     and   0b01000000            // mask, so keep only EAR
     or    0b00001010            // ear zero border red 010 <-> 101 cyan + also set mic (and/or ear)
     ld C, A                     // initialize c with result: 0E0EEBBB see WAIT_FOR_EDGE #2
@@ -167,10 +167,8 @@ next_block:
 
     // Initialize for loading header
     exx                     
-//        ld HL, HEADER-1         // location of header @ (++HL)
         ld HL, HEADER         // location of header @ (++HL)
         ld DE, HEADER_LEN    // length of header 
-        // ld C, HEADER_LEN     // checksum - use header length as init. value.
     exx
 
     call LOAD_HEADER_PLUS_DATA  // upper, absolute call is ok
@@ -180,8 +178,6 @@ next_block:
     exx
     ld A, (m_checksum)          // check checksum C' should be m_checksum
     cp C 
-    // exx                      // not needed
-    // sub 1                    // carry only when zero so ok (note: dec A does not affect c!)
     jr nz, CHECKSUM_ERROR
 
     // -- Once here here a turbo block was correctly loaded --
@@ -293,11 +289,11 @@ END_TO_BASIC:
 // m_value_for_pairs    DB 0
 // m_value_for_most     DB 0
 DECOMPRESS
-    ld BC, (m_code_for_most )    // B = m_code_for_most+1 so m_decompress_counter (LSB); C = m_code_for_most+0 so m_code_for_most
     // ex  AF, AF'               // not needed
     ld A, (m_decompress_counter + 1)    // so m_decompress_counter (MSB)
     or A                        // set z flag ok
     ex  AF, AF'
+    ld BC, (m_code_for_most )    // B = m_code_for_most+1 so m_decompress_counter (LSB); C = m_code_for_most+0 so m_code_for_most
     ld IX, (m_code_for_multiples)      // IXH =(m_code_for_multiples+1)   so m_code_for_pairs;  IXL = (m_code_for_multiples+0) so m_code_for_multiples
 .beginloop:
     ld A, (HL)                  // take a byte
@@ -561,10 +557,11 @@ wait_for_first_edge:
 // HL': (increases)
 // DE': (walks to zero)
 // C': Checksum
+// B': not used
 // H: the C xor value, must be 0b01000111 (or 0b01011111)
 // L: Now/Last loaded byte
-// B: timer count down at WAIT_FOR_EDGE
 // C: last IN value to check changes; border color at WAIT_FOR_EDGE
+// B: timer count down at WAIT_FOR_EDGE
 // D: ONE_MAX, used to to quickly put in B (init value for timer count down)
 // E: ONE_MAX+2-ONE_MIN, used to to quickly compare to B
 // A: temporary storage
@@ -624,12 +621,11 @@ BIT_ONE_THESHLD+*:  ld E, ONE_MAX+1-ONE_MIN     // eg 12+2-4 = 10, can also be s
     // store loaded byte L ->(HL')
     ld A, L
     exx
-        // inc HL                  // @Opt  (++HL) @Opt #spreading
         ld (HL), A              // HL'= storage pointer
         inc HL
-        add C                   // C' is checksum
-        rlca                    // make it a bit cyclic
-        ld C, A                 // update checksum
+        add C                   // C' is checksum/crc
+        rlca                    // make crc a bit cyclic - improves security greatly!
+        ld C, A                 // update checksum/crc
         dec DE                      
         ld A, D                 // DE'= byte count 
         or E                    // check DE zero

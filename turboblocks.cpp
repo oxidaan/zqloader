@@ -627,7 +627,7 @@ TurboBlocks& TurboBlocks::AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr
 /// Mainly for debugging!
 TurboBlocks& TurboBlocks::CopyLoaderToScreen(uint16_t p_value)
 {
-    SetEmptySpaceForLoaderLocation(p_value);
+    SetLoaderCopyTarget(p_value);
     TurboBlock empty;
     m_turbo_blocks.push_back(std::move(empty));
     return *this;
@@ -668,6 +668,10 @@ TurboBlocks &TurboBlocks::Finalyze(uint16_t p_usr_address, uint16_t p_clear_addr
 {
     if(m_loader_copy_start)
     {
+        if(p_usr_address == 0)
+        {
+            throw std::runtime_error("Loader will be moved, so will stack, but at end returns to BASIC, will almost certainly crash");
+        }
         uint16_t copy_me_target_location = m_loader_copy_start + m_symbols.GetSymbol("STACK_SIZE");
 
         SetDataToZqLoaderTap("COPY_ME_SP", copy_me_target_location);        // before new copied block
@@ -707,13 +711,14 @@ TurboBlocks &TurboBlocks::Finalyze(uint16_t p_usr_address, uint16_t p_clear_addr
         AddTurboBlock(std::move(*m_upper_block));        
     }
 
-    // When indicated, after loading first block, loader will be copied.
     if (m_turbo_blocks.size() > 0)
     {
+        // When indicated, after loading first block, loader will be copied.
         if (m_loader_copy_start)
         {
             m_turbo_blocks.front().SetCopyLoader();
         }
+        // What should be done after last block
         m_turbo_blocks.back().SetUsrStartAddress(p_usr_address ? p_usr_address : TurboBlocks::ReturnToBasic);    // now is last block
         m_turbo_blocks.back().SetClearAddress(p_clear_address);
     }
@@ -725,7 +730,7 @@ TurboBlocks &TurboBlocks::Finalyze(uint16_t p_usr_address, uint16_t p_clear_addr
 void TurboBlocks::MoveToLoader(SpectrumLoader& p_spectrumloader)
 {
     p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_header), spectrum::g_tstate_quick_zero, 1750ms);
-    p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_code),   spectrum::g_tstate_quick_zero, 1750ms);
+    p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_code),   spectrum::g_tstate_quick_zero, 1500ms);
 
     auto pause_before = 100ms;        // time needed to start our loader after loading itself (basic!)
     for (auto& tblock : m_turbo_blocks)
