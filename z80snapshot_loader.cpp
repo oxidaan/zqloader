@@ -19,7 +19,7 @@
 #include <string>
 
 
-void WriteTextToAttr(DataBlock& out_attr, const std::string& p_text1, std::byte p_color);
+
 namespace fs = std::filesystem;
 
 ///  Load z80 or sna snapshot from given file.
@@ -178,7 +178,7 @@ Z80SnapShotLoader& Z80SnapShotLoader::LoadSna(std::istream& p_stream)
 /// Write given text to attribute block
 /// For fun write a attribute block -> text_attr
 /// at the bottom 1/3rd of screen were our loader is.
-void WriteTextToAttr(DataBlock &out_attr, const std::string &p_text, std::byte p_color)
+void WriteTextToAttr(DataBlock &out_attr, const std::string &p_text, std::byte p_color, bool p_center, int p_col)
 {
     static const std::string font = 1 + &*R"(
     @    @    @    @   @   @    @    @ @    @    @   @     @    @    @    @    @    @    @   @    @     @     @    @   @    @
@@ -189,7 +189,7 @@ X  X  X X X     X X X   X   XXXX X  X X    X X X  X   X X X X  X X  X XXX  XXXX 
 X  X  X X X  X  X X X   X      X X  X X X  X X  X X   X X X X  X X  X X       X X  X    X  X  X  X  X X  X X X X  X  X  X    
 X  X XXX   XX  XXX  XXX X   XXXX X  X X  XX  X  X XXX X X X X  X  XX  X       X X  X XXX   X   XX    X    X X  X  X  X  XXXX 
     )";
-    const auto font_col_len       = font.find('#');
+    const auto font_col_len       = font.find('#');     // column length eg 126 (see left top of A)
     auto GetStartOfLetter = [&](char p_letter)
                             {
                                 int lt = p_letter - 'A';
@@ -236,14 +236,18 @@ X  X XXX   XX  XXX  XXX X   XXXX X  X X  XX  X  X XXX X X X X  X  XX  X       X 
                                 };
 
 
+    int col = p_col;
     // determine text width for centering
-    int width = 0;
-    for (const auto& c : p_text)
+    if(p_center)
     {
-        width += GetWidthForLetter(c) + (width != 0);
-    }
+        int width = 0;
+        for (const auto& c : p_text)
+        {
+            width += GetWidthForLetter(c) + (width != 0);
+        }
 
-    int col = width <= 32 ? (32 - width) / 2 : 0;
+        col = width <= 32 ? (32 - width) / 2 : 0;       // left position
+    }
     for (const auto& c : p_text)
     {
         // int idx = (row + 1) * 32;
@@ -266,14 +270,16 @@ X  X XXX   XX  XXX  XXX X   XXXX X  X X  XX  X  X XXX X X X X  X  XX  X       X 
             for (int row = 1; row <= 6; row++)
             {
                 auto start = GetStartForLetterRow(c, row);
-                for(int i = 0; i < 1 + GetWidthForLetter(c) && col < 32; i++)
+                for(int i = 0; i < 1 + GetWidthForLetter(c); i++)
                 {
-                    bool set = font[start + i] == 'X';
-                    if (set)
+                    if((col + i >= 0) && (col + i < 32))
                     {
-                        out_attr[row * 32 + col + i] |= color;
+                        bool set = font[start + i] == 'X';
+                        if (set)
+                        {
+                            out_attr[row * 32 + col + i] |= color;
+                        }
                     }
-
                 }
             }
             col += 1 + GetWidthForLetter(c);
@@ -313,57 +319,53 @@ inline uint16_t GetEmptySpaceLocation(const DataBlock &p_block, uint16_t p_len, 
 
 
 /// Move this snapshot -as read from Z80 file- to given TurboBlocks.
-void Z80SnapShotLoader::MoveToTurboBlocks(TurboBlocks& p_turbo_blocks, bool p_allways_use_screen, bool p_write_fun_attribs)
+void Z80SnapShotLoader::MoveToTurboBlocks(TurboBlocks& p_turbo_blocks, uint16_t p_new_loader_location, bool p_write_fun_attribs)
 {
     const auto &symbols                = p_turbo_blocks.GetSymbols();   // alias
     auto snapshot_data                 = GetData();                     // the z80 snapshot, 48k
 
     static constexpr uint16_t z80_snapshot_offset = 16384;                         // 48k z80 snapshot starts here (offset)
     uint16_t len_needed                = p_turbo_blocks.GetLoaderCodeLength(true);    // space needed for our loader code
-    uint16_t copy_me_target_location   = GetEmptySpaceLocation(snapshot_data, len_needed, 6 * 1024 + 768); // location for our loader code
-    bool at_screen                     = false;
-    if(p_allways_use_screen)
+    if(p_new_loader_location == 0)
     {
-        at_screen               = true;
-        copy_me_target_location = spectrum::SCREEN_23RD;
-        std::cout << "Will copy loader code to screen. (" << spectrum::SCREEN_23RD << "; length = " << len_needed << ")" << std::endl;
+        p_new_loader_location = GetEmptySpaceLocation(snapshot_data, len_needed, 6 * 1024 + 768); // location for our loader code
+        if(p_new_loader_location == 0)      // no empty space found, use last 3rd of screen
+        {
+            p_new_loader_location = spectrum::SCREEN_23RD;
+            std::cout << "Not enough empty space found in snapshot. Will copy loader code to screen. (" << spectrum::SCREEN_23RD << "; length = " << len_needed << ")" << std::endl;
+        }
+        else
+        {
+            p_new_loader_location += z80_snapshot_offset;       // adjust offset within (48k) snapshot
+            std::cout << "Found empty space to copy loader code to: " << p_new_loader_location << ". (length = " << len_needed << ")" << std::endl;
+        }
     }
-    else if(copy_me_target_location == 0)      // no empty space found, use last 3rd of screen
-    {
-        at_screen               = true;
-        copy_me_target_location = spectrum::SCREEN_23RD;
-        std::cout << "Not enough empty space found in snapshot. Will copy loader code to screen. (" << spectrum::SCREEN_23RD << "; length = " << len_needed << ")" << std::endl;
-    }
-    else
-    {
-        copy_me_target_location += z80_snapshot_offset;       // adjust offset within (48k) snapshot
-        std::cout << "Found empty space to copy loader code to: " << copy_me_target_location << ". (length = " << len_needed << ")" << std::endl;
-    }
-    uint16_t register_code_start = copy_me_target_location +
+    uint16_t register_code_start = p_new_loader_location +
                                     symbols.GetSymbol("STACK_SIZE") + 
                                     symbols.GetSymbol("ASM_CONTROL_CODE_LEN") + 
                                     symbols.GetSymbol("ASM_UPPER_LEN");
 
     Z80SnapShotHeaderToSnapShotRegs(symbols);       // fill register values into ->m_reg_block
     // copy m_reg_block directly into 48k data block
-    std::copy(m_reg_block.begin(), m_reg_block.end(), snapshot_data.begin() + register_code_start - z80_snapshot_offset);
+    // without the int cast below crashes (msvc)? Dunno why?
+    std::copy(m_reg_block.begin(), m_reg_block.end(), snapshot_data.begin() + int(register_code_start - z80_snapshot_offset));
 
     DataBlock screenblock(snapshot_data.begin(), snapshot_data.begin() + spectrum::SCREEN_SIZE);      // split
     DataBlock payload(snapshot_data.begin() + spectrum::SCREEN_SIZE, snapshot_data.end());
 
-    if(at_screen && p_write_fun_attribs)
+    if(p_write_fun_attribs)
     {
         // For fun write a attribute block -> text_attr (last 3rd)
         // at the bottom 1/3rd of screen were our loader is.
         // We also wont see the loader code then.
         DataBlock text_attr;
         text_attr.resize(256);
-        WriteTextToAttr(text_attr, ToUpper(m_name), 0_byte);    // 0_byte: random colors
+        WriteTextToAttr(text_attr, ToUpper(m_name), 0_byte, true, 0);    // 0_byte: random colors
         std::copy(text_attr.begin(), text_attr.end(), screenblock.begin() + spectrum::ATTR_23RD - z80_snapshot_offset);
 
     }
     p_turbo_blocks.AddDataBlock(std::move(screenblock), spectrum::SCREEN_START);       // screen
-    p_turbo_blocks.SetLoaderCopyTarget(copy_me_target_location);
+    p_turbo_blocks.SetLoaderCopyTarget(p_new_loader_location);
     p_turbo_blocks.AddDataBlock(std::move(payload), spectrum::SCREEN_START + spectrum::SCREEN_SIZE);           // rest
     // This puts startaddress at where registers are restored, thus starting the snapshot.
     m_usr = register_code_start;

@@ -30,7 +30,7 @@
 // Some Spectum variables
 ROM_CLS                 EQU 0x0daf      // cls, also opens print channel 2
 CHAN_OPEN               EQU 0x1601         
-PROG                    EQU 23635       // Zx spectrum system variable PROG indicates start address of basic
+PROG                    EQU 23755       // Zx spectrum system start of basic
 SCR_CT                  EQU 23692       // avoid Scroll?
 
 SCREEN_23RD             EQU 16384+4*1024
@@ -38,7 +38,7 @@ SCREEN_END              EQU 16384+6*1024
 
 
 //----------------------------------------------------------------------------
-CLEAR                   EQU 24435       // CLEAR used at basic below. Eg horace (H.spiders: 24575)   min:24290
+CLEAR                   EQU TOTAL_END + 256   // CLEAR used at basic below. Eg horace (H.spiders: 24575)   min:24290
 STACK_SIZE              EQU 10          // estimated size of stack this code needs
 //----------------------------------------------------------------------------
 LEADER_MIN_EDGES        EQU 200         // Minimum edges a leader need to have to be accepted
@@ -73,12 +73,14 @@ NUM2   MACRO	value
 // PRINT USR(PEEK(23635) + 256 * PEEK(23636) + [ASM_START]
 // REM [machine code here]
 
+ ORG PROG
+
 TOTAL_START:        // = PROG
 BASIC_START:
     MODULE basic1
         INCLUDE	"BasicLib.asm" 
-            LINE : db	clear : NUM2(CLEAR) :LEND       
-            LINE : db	print, usr, '(', peek : NUM2(PROG) : db '+' : NUM2(256) : db '*',  peek : NUM2(PROG + 1) : db '+' : NUM2(ASM_START) : db ')' : LEND   
+            LINE : db	clear : NUM2(CLEAR) 
+                   db	':', print, usr : NUM2(ASM_START) : LEND   
 //            LINE : db load, '"','"' : LEND      //   @DEBUG
             LINE : db	rem                             
     ENDMODULE
@@ -103,6 +105,7 @@ BASIC_LEN EQU BASIC_END - BASIC_START
     DISPLAY "ASM_CONTROL_CODE_START = ", /A, ASM_CONTROL_CODE_START     // offset of control code from start of basic (that needs to be kept)
     DISPLAY "ASM_CONTROL_CODE_END = ", /A, ASM_CONTROL_CODE_END         // end of control code
     DISPLAY "ASM_CONTROL_CODE_LEN = ", /A, ASM_CONTROL_CODE_LEN         // length of control code
+    DISPLAY "CLEAR = ", /A, CLEAR                        // CLEAR value at basic
 
     // ===========================================================================
 
@@ -114,12 +117,9 @@ ASM_START:
 
     // move loader to upper regions. (to avoid contended memory)
     // this can be overwritten when loading last block.
-    ld HL, (PROG)                       // PROG variable contains start of BASIC typically 23755
-    ld DE, ASM_UPPER_START_OFFSET       // offset from start of BASIC
-    add HL, DE                          // HL = (PROG) + ASM_UPPER_START_OFFSET
-    ld (load_address_at_basic), HL      // keep for later (eg 24036)    (or 24117)
+    ld HL, ASM_UPPER_START_OFFSET       
     ld DE, ASM_UPPER_START
-    ld BC, ASM_UPPER_LEN - 2            // -2 do NOT overwrite load_address_at_basic just written
+    ld BC, ASM_UPPER_LEN            
     ldir
 
     
@@ -149,6 +149,11 @@ ASM_CONTROL_CODE_START:
 LOAD_START:
 next_block:
 
+    // Initialize for loading header
+    // exx                    // not needed
+    ld HL, HEADER         // location of header @ (++HL)
+    ld BC, HEADER_LEN     // length of header 
+    exx
 
     // Intialize edge plus border color -> C
     // So get intial value from port->C
@@ -165,20 +170,17 @@ next_block:
     ld H, 0b01000111            // The C xor value, see WAIT_FOR_EDGE #3
 
 
-    // Initialize for loading header
-    exx                     
-        ld HL, HEADER         // location of header @ (++HL)
-        ld DE, HEADER_LEN    // length of header 
-    exx
+
 
     call LOAD_HEADER_PLUS_DATA  // upper, absolute call is ok
-    jr z, ERROR                 // error  
+    jr z, ERROR                 // (timeout) error  
 
     // check checksum
     exx
-    ld A, (m_checksum)          // check checksum C' should be m_checksum
-    cp C 
+    ld A, (m_checksum)          // check checksum E' should be m_checksum
+    cp E 
     jr nz, CHECKSUM_ERROR
+    // exx                      // not needed
 
     // -- Once here here a turbo block was correctly loaded --
 
@@ -198,7 +200,7 @@ load_ok:
     ld HL, (m_load_address)     // where data was received at load, when 0 take load_address_at_basic
     ld BC, (m_length)           
 
-    // -- Now DE is m_dest_address;  HL is m_load_address (or load_address_at_basic), BC is m_length --
+    // -- Now DE is m_dest_address;  HL is m_load_address, BC is m_length --
 
     ld A, (m_compression_type)  // compression type
     dec A
@@ -264,7 +266,7 @@ ERROR:
     call PRINT
 
 END_TO_BASIC:
-    exx
+    // not needed exx
         pop BC                  // #PP5
         pop HL                  // #PP2
         pop DE                  // #PP1
@@ -281,24 +283,23 @@ END_TO_BASIC:
 // HL: Source
 // DE: Dest
 // No read from m_decompress_counter BC: Length/counter
-// A, IX is touched.
-// m_code_for_most      DB 0
-// m_decompress_counter DW 0    LSB/MSB
-// m_code_for_multiples DB 0
-// m_code_for_pairs     DB 0
+// A, IX is touched.    
+// m_code_for_most      DB 0            -> C
+// m_decompress_counter DW 0    LSB/MSB -> B / A'
+// m_code_for_multiples DB 0            -> IXl
+// m_code_for_pairs     DB 0            -> IXh
 // m_value_for_pairs    DB 0
 // m_value_for_most     DB 0
 DECOMPRESS
-    // ex  AF, AF'               // not needed
+    // ex  AF, AF'                  // not needed
     ld A, (m_decompress_counter + 1)    // so m_decompress_counter (MSB)
-    or A                        // set z flag ok
     ex  AF, AF'
-    ld BC, (m_code_for_most )    // B = m_code_for_most+1 so m_decompress_counter (LSB); C = m_code_for_most+0 so m_code_for_most
+    ld BC, (m_code_for_most )   // B = m_code_for_most+1 so m_decompress_counter (LSB); C = m_code_for_most+0 so m_code_for_most
     ld IX, (m_code_for_multiples)      // IXH =(m_code_for_multiples+1)   so m_code_for_pairs;  IXL = (m_code_for_multiples+0) so m_code_for_multiples
 .beginloop:
     ld A, (HL)                  // take a byte
     inc HL                      // move to next byte
-    cp C                        // is it m_code_for_most? Must be smallest escape code
+    cp C                        // is it m_code_for_most? 
     jr z, .write_most           // A==IXL = m_code_for_most then write_most
     cp IXL                      // is it m_code_for_multiples?
     jr z, .write_multiples      // then write write_multiples
@@ -310,14 +311,12 @@ DECOMPRESS
     ld (DE), A                  // normal write
     inc DE
 .nextloop    
-    djnz  .beginloop
+    djnz  .beginloop            // decs B
     ex AF, AF'                  // when here B = LSB counter is 0
-    jr z, decompress_done       // MSB counter also 0? then done was: ret 
     dec A                       // dec MSB counter
+    jr z, decompress_done      // counter also 0? then done was: ret 
     ex AF, AF'
-    jr .beginloop               // jr needed! Code is relocatable
- 
-
+    jr .beginloop               // can not use jp. Code can be moved!
  IFDEF DO_COMRESS_PAIRS
 .write_pairs:
     cp (HL)                     // HL already increased; A must still be m_code_for_pairs
@@ -358,7 +357,7 @@ DECOMPRESS
     inc HL                      // just need to increase HL, A is min1 or min2
    // dec BC                    // not needed because m_decompress_counter (was decrement counter)
     jr .write_A
- 
+
 //============================================================================
 
 ASM_CONTROL_CODE_END
@@ -367,10 +366,9 @@ ASM_CONTROL_CODE_LEN EQU ASM_CONTROL_CODE_END - ASM_CONTROL_CODE_START
 
 
 //============================================================================
-// Code block is (can be) overwritten when last block is copied/decompressed.
+// Upper code block is (can be) overwritten when last block is copied/decompressed.
 // So not present in memory when completely done
 //============================================================================
-
 
 ASM_UPPER_START_OFFSET:
 
@@ -378,34 +376,12 @@ ASM_UPPER_START_OFFSET:
 
 
 ASM_UPPER_START
-
-
-// Copy 'lower' code
-// c++ must patch various parameters.
-// Called when TurboBlocks::CopyLoader seen in header block as received from C++ code.
-// At upper to avoid problems when overwriting itself
-COPY_ME:             
-COPY_ME_SP+*:           ld SP, 0                    // New SP c++ must patch this
-//COPY_ME_SP+*:           ld BC, 0                    // @DEBUG 
-COPY_ME_DEST+*:         ld DE, 0                    // Destination c++ must patch this
-                        ld HL, (PROG)               // PROG variable contains start of BASIC typically 23755
-COPY_ME_SOURCE_OFFSET+*:ld BC, 0                    // c++ must patch this eg ASM_CONTROL_CODE_START + ASM_CONTROL_CODE_LEN; offset from start of BASIC, place at end
-                        add HL, BC                  // HL = (PROG) + ASM_CONTROL_CODE_START + ASM_CONTROL_CODE_LEN
-                        ld BC, ASM_CONTROL_CODE_LEN // length     
-COPY_ME_LDDR_OR_LDIR:
-                        ldir                        // or lddr! c++ can patch this
-COPY_ME_END_JUMP+*:     jp 0                        // Continue at new location. c++ must patch this
-
- EXPORT COPY_ME_SP
- EXPORT COPY_ME_DEST
- EXPORT COPY_ME_SOURCE_OFFSET
- EXPORT COPY_ME_LDDR_OR_LDIR
- EXPORT COPY_ME_END_JUMP
-
-
+ 
+//============================================================================
 
 // Print bit7-terminated string
-// Note: needs to be at upper to have a fixed address to be used by call.
+// Note: needs to be at upper to have a fixed address that can be used by call. 
+// (after moving loader!)
 // DE: address of string
 PRINT:
 .loop    
@@ -421,16 +397,42 @@ PRINT:
     rst 0x10                    // rom print char
     ret
 
- //============================================================================
+//----------------------------------------------------------------------------
 
 //TEXT_LOADING:
-//    DC " Loading...\r"        // \r is a newline
+//    DC " Loading...\r"        
 TEXT_CHECKSUM_ERROR :
     DC "CRC "
 TEXT_ERROR :
-    DC "ERROR\r"
+    DC "ERROR\r"                // \r is a newline
 
- //============================================================================
+
+//============================================================================
+
+
+// Copy 'lower' code
+// c++ must patch various parameters.
+// Called when TurboBlocks::CopyLoader seen in header block as received from C++ code.
+// At upper to avoid problems when overwriting itself
+COPY_ME:             
+COPY_ME_SP+*:           ld SP, 0                    // New SP c++ must patch this
+//COPY_ME_SP+*:           ld BC, 0                  // @DEBUG 
+COPY_ME_DEST+*:         ld DE, 0                    // Destination c++ must patch this
+COPY_ME_SOURCE_OFFSET+*:ld HL, 0                    // c++ must patch this eg ASM_CONTROL_CODE_START + ASM_CONTROL_CODE_LEN; offset from start of BASIC, place at end
+                        ld BC, ASM_CONTROL_CODE_LEN // length     
+COPY_ME_LDDR_OR_LDIR:
+                        ldir                        // or lddr! c++ can patch this
+COPY_ME_END_JUMP+*:     jp 0                        // Continue at new location. c++ must patch this
+
+ EXPORT COPY_ME_SP
+ EXPORT COPY_ME_DEST
+ EXPORT COPY_ME_SOURCE_OFFSET
+ EXPORT COPY_ME_LDDR_OR_LDIR
+ EXPORT COPY_ME_END_JUMP
+
+
+
+
  //============================================================================
  
 
@@ -524,18 +526,11 @@ wait_for_first_edge:
     // when m_load_address zero: load into basic at REM ie load_address_at_basic
     // when m_length zero: nothing more to load.
     exx
-        ld C, 0                 // init. checksum
-        ld DE, (m_length)       // now has length of data to be received 
+        ld E, 1                 // init. checksum
+        ld BC, (m_length)       // now has length of data to be received 
         ld HL, (m_load_address) // m_load_address
-        ld A, H
-        or A
-        jp nz, .not_basic       // LOAD data, normal
-        ld HL, (load_address_at_basic)          // when 0 load at load_address_at_basic REM overwritting our loader code there
-        ld (m_load_address), HL
-.not_basic    
-        // dec HL                  // @Opt (++HL)
-        ld A, D
-        or E
+        ld A, B
+        or C
     exx
     jr z, load_done             // length zero nothing more to do, but need to unset z
     // -> continue directly at LOAD_BYTES
@@ -545,19 +540,19 @@ wait_for_first_edge:
 // LOAD_BYTES
 // In:
 // HL' storage location, this is modified (walks to end) (was IX)
-// DE': # bytes to load (including not stored checksum byte), this is modified (walks down to zero) (was DE)
+// BC': # bytes to load  (walks down to zero) (was DE)
 // C: last IN at WAIT_FOR_EDGE; border color.
-// C': Checksum init value must be sizeof header. (was H)
+// E': Checksum init value must be sizeof header. (was H)
 // Out:
-// C': checksum / must be zero at end when ok. (was H)
+// E': checksum / must be zero at end when ok. (was H)
 // L: last byte loaded.
 //  z=1 error
 //  z=0 ok
 // Used:
 // HL': (increases)
-// DE': (walks to zero)
-// C': Checksum
-// B': not used
+// BC': (walks to zero) 
+// E': Checksum             
+// D': not used             
 // H: the C xor value, must be 0b01000111 (or 0b01011111)
 // L: Now/Last loaded byte
 // C: last IN value to check changes; border color at WAIT_FOR_EDGE
@@ -622,19 +617,15 @@ BIT_ONE_THESHLD+*:  ld E, ONE_MAX+1-ONE_MIN     // eg 12+2-4 = 10, can also be s
     ld A, L
     exx
         ld (HL), A              // HL'= storage pointer
-        inc HL
-        add C                   // C' is checksum/crc
+        add E                   // E' is checksum/crc
         rlca                    // make crc a bit cyclic - improves security greatly!
-        ld C, A                 // update checksum/crc
-        dec DE                      
-        ld A, D                 // DE'= byte count 
-        or E                    // check DE zero
+        ld E, A                 // update checksum/crc
+        cpi                     // inc HL + dec BC + P/V
     exx
-    
-    jp nz, .next_byte            // 61T since WAIT_FOR_EDGE; 61+62 = 123 since last in
+    jp pe, .next_byte            // 61T since WAIT_FOR_EDGE; 61+62 = 123 since last in
     // done!
-load_done    
-    cp D                        // D != 0 (=ONE_MAX) and A is 0 for sure so this unsets z
+load_done:    
+    or D                        // D != 0 (=ONE_MAX) so this unsets z
     ret
 
 //============================================================================
@@ -701,8 +692,6 @@ m_value_for_most     DB 0
 HEADER_END
 HEADER_LEN equ HEADER_END - HEADER
 
-// must be last
-load_address_at_basic: BLOCK 2      // location to temporary load upper block to eg in now unused basic block
 
 // ===========================================================================
 // ===========================================================================
@@ -768,7 +757,7 @@ DEa_reg+1:          ld DE, 0
 HLa_reg+1:          ld HL, 0    
                     pop AF      // #PP7 AF'        
                     exx         
-                    ex af, af'  
+                    ex AF, AF'  
 BC_reg+1:           ld BC, 0    
 DE_reg+1:           ld DE, 0    
 HL_reg+1:           ld HL, 0    
@@ -805,9 +794,11 @@ REGISTER_CODE_LEN EQU REGISTER_CODE_END-REGISTER_CODE_START
 // ===========================================================================
 
  EXPORT CLEAR
+ EXPORT TOTAL_START
 
 
  EXPORT ASM_CONTROL_CODE_START
+ EXPORT ASM_CONTROL_CODE_END
  EXPORT ASM_CONTROL_CODE_LEN
  
  EXPORT ASM_UPPER_START_OFFSET

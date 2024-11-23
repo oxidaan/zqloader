@@ -57,15 +57,15 @@ public:
 
         friend std::ostream& operator <<(std::ostream& p_stream, const RLE_Meta& p_header)
         {
-            p_stream << std::hex 
+            p_stream 
                 << "code_for_most = " << int(p_header.code_for_most)
-                << "\ncode_for_multiples = " << int(p_header.code_for_multiples)
-                << "\nvalue_for_most = " << int(p_header.value_for_most)
+                << " code_for_multiples = " << int(p_header.code_for_multiples)
+                << " value_for_most = " << int(p_header.value_for_most)
 #ifdef DO_COMRESS_PAIRS
-                << "\nvalue_for_pairs = " << int(p_header.value_for_pairs)
-                << "\ncode_for_pairs = " << int(p_header.code_for_pairs) 
+                << " value_for_pairs = " << int(p_header.value_for_pairs)
+                << " code_for_pairs = " << int(p_header.code_for_pairs) 
 #endif
-                << std::dec << "\n";
+                ;
             return p_stream;
         }
 
@@ -310,6 +310,7 @@ private:
                 WriteMultiples();
                 Write(val);
                 Write(val);
+                decompress_counter++;
             }
 
 

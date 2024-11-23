@@ -170,7 +170,7 @@ private:
     Symbols                       m_symbols;                       // named symbols as read from EXP file
     int                           m_zero_duration           = 81;//91;  // @@ see zqloader.asm
     int                           m_one_duration            = 241;//241; //int(91 + 3.5 * 43); //250;  231 worked better with jsw3.z80!?
-    int                           m_end_of_byte_delay       = 68;   // 64
+    int                           m_end_of_byte_delay       = 64; 
     int                           m_bit_loop_max            = 0;
     int                           m_bit_one_threshold       = 0;
 }; // class TurboBlocks

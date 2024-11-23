@@ -138,7 +138,7 @@ public:
     /// Move data as loaded from Z80 snapshot file to given TurboBlocks.
     /// Will replace register data as read by this class (from z80 snapshot) in the block as 
     /// given in SetRegBlock, using the symbols as known by TurboBlocks.
-    void MoveToTurboBlocks(TurboBlocks& p_turbo_blocks, bool p_allways_use_screen, bool p_write_fun_attribs);
+    void MoveToTurboBlocks(TurboBlocks& p_turbo_blocks, uint16_t p_new_loader_location,  bool p_write_fun_attribs);
 
     /// This is the start addres at register load code (snapshotregs.bin)
     /// When jumping to that address will load all registers, including PC, 
@@ -170,3 +170,4 @@ private:
     std::string m_name;
 };
 
+void WriteTextToAttr(DataBlock& out_attr, const std::string& p_text1, std::byte p_color, bool p_center = true, int p_col = 0);

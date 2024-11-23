@@ -55,5 +55,10 @@ public:
     /// TPath must be std::filesystem::path
     template <class TPath>
     DataBlock& LoadFromFile(const TPath &p_filename);
+
+    /// Save (binary) to given file
+    /// TPath must be std::filesystem::path
+    template <class TPath>
+    const DataBlock& SaveToFile(const TPath &p_filename) const;
 };
 

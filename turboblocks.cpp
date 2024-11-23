@@ -80,14 +80,14 @@ public:
                    (p_header.m_usr_start_address == TurboBlocks::ReturnToBasic) ? "ReturnToBasic" :
                    "Start MC at : " + std::to_string(p_header.m_usr_start_address)) << "\n"
                 << "CLEAR address/SP = "  << p_header.m_clear_address << "\n"
-                << "m_code_for_most = "   << int(p_header.m_code_for_most) << ' '
+                << std::hex << "m_code_for_most = "   << int(p_header.m_code_for_most) << ' '
                 << "m_decompress_counter = "   << p_header.m_decompress_counter << ' '
                 << "m_code_for_multiples = " << int(p_header.m_code_for_multiples) << ' '
 #ifdef DO_COMRESS_PAIRS
                 << "m_code_for_pairs = "   << int(p_header.m_code_for_pairs) << ' '
                 << "m_value_for_pairs = " << int(p_header.m_value_for_pairs) << ' '
 #endif
-                << "m_value_for_most = "  << int(p_header.m_value_for_most) << ' '
+                << "m_value_for_most = "  << int(p_header.m_value_for_most) << std::dec << ' '
                 ;
 
             return p_stream;
@@ -117,7 +117,7 @@ public:     // only for std::unique_ptr
         GetHeader().m_compression_type = CompressionType::none;
         GetHeader().m_usr_start_address = TurboBlocks::LoadNext;        // assume more follow
         GetHeader().m_clear_address = 0;
-        GetHeader().m_checksum = 0;                     // MUST be zero at first so dont affect calc. itself
+        GetHeader().m_checksum = 1;                     // checksum init val 
     }
 
 private:
@@ -168,7 +168,16 @@ private:
         return *this;
     }
 
-
+    // See https://wikiti.brandonw.net/index.php?title=Z80_Optimization#Looping_with_16_bit_counter
+    // 'Looping with 16 bit counter'
+    uint16_t Adjust16bitCounterForUseWithDjnz(uint16_t p_counter)
+    {
+        uint8_t b = p_counter & 0xff;               // lsb - used at djnz 'ld b, e'      
+        uint16_t counter = p_counter - 1;           // 'dec de'
+        uint8_t a = (counter &0xff00) >> 8;         // msb (we use a)
+        a++;                                        // 'inc d'
+        return ((uint16_t(a) << 8) & 0xff00) + uint16_t(b);
+    }
 
     /// Set given data as payload at this TurboBlock. Try to compress.
     /// At header sets:
@@ -200,6 +209,9 @@ private:
             GetHeader().m_code_for_most = uint8_t(rle_meta.code_for_most);
             GetHeader().m_code_for_multiples = uint8_t(rle_meta.code_for_multiples);
             GetHeader().m_value_for_most = uint8_t(rle_meta.value_for_most);
+
+            decompress_counter=Adjust16bitCounterForUseWithDjnz(decompress_counter);
+
             GetHeader().m_decompress_counter = decompress_counter;
 #ifdef DO_COMRESS_PAIRS
             GetHeader().m_value_for_pairs = uint8_t(rle_meta.value_for_pairs);
@@ -258,6 +270,7 @@ private:
         Check();
         std::cout << "Pause before = " << p_pause_before.count() << "ms" << std::endl;
         DebugDump();
+
         PausePulser().SetLength(p_pause_before).MoveToLoader(p_loader);                 // pause before
         TonePulser().SetPattern(500, 500).SetLength(200ms).MoveToLoader(p_loader);      // leader
         TonePulser().SetPattern(250).SetLength(1).MoveToLoader(p_loader);               // sync
@@ -321,10 +334,10 @@ private:
     // Set a flag indicating this block overwrites our zqloader code at upper memory.
     // Need to load it elsewhere first, then copy to final location. Cannot load anything after that.
     // Adjusts loadaddress and dest address accordingly.
-    TurboBlock& SetOverwritesLoader(uint16_t p_loader_upper_length)
+    TurboBlock& SetOverwritesLoader(uint16_t p_upper_start_offset, uint16_t p_loader_upper_length)
     {
         m_overwrites_loader = true;
-        SetLoadAddress(0);     // zqloader.asm will put it at BASIC buffer (load_address_at_basic)
+        SetLoadAddress(p_upper_start_offset);     // zqloader.asm will put it at BASIC buffer (load_address_at_basic)
         SetDestAddress(0xffff - (p_loader_upper_length - 1));
         return *this;
     }
@@ -346,11 +359,12 @@ private:
         auto dest = GetDestAddress();
         if (dest)
         {
-            std::cout << "Orig. data length = " << m_data_size << std::endl;
-            std::cout << "Compr. data length = " << GetHeader().m_length << std::endl;
-            std::cout << "First byte written address = " << dest << std::endl;
-            std::cout << "Last byte written address = " << (dest + m_data_size - 1) << "\n" << std::endl;
+            std::cout << "Orig. data length = " << m_data_size << "\n";
+            std::cout << "Compr. data length = " << GetHeader().m_length << "\n";
+            std::cout << "First byte written address = " << dest << "\n";
+            std::cout << "Last byte written address = " << (dest + m_data_size - 1) << "\n" ;
         }
+        std::cout << std::endl;
         for (int n = 0; (n < m_data.size()) && (n < p_max); n++)
         {
             if (n % 32 == 0 || (n == sizeof(Header)))
@@ -444,6 +458,7 @@ private:
             if ((p_compression_type == CompressionType::automatic || p_tries != 0) && compressed_data.size() >= p_data.size())
             {
                 // When automatic and it is bigger after compression... Then dont.
+                std::cout << "Failed to compress!" << std::endl;
                 p_compression_type = CompressionType::none;
                 return p_data.Clone();
             }
@@ -463,15 +478,15 @@ private:
             p_compression_type = CompressionType::rle;
             return compressed_data;
         }
-        // never reached
-        throw std::runtime_error("Compression algorithm error!");;
+        // So p_compression_type == CompressionType::none
+        return p_data.Clone();       // done
     }
 
     // Calculate a simple one-byte checksum over given data.
     // including header and the length fields.
     uint8_t CalculateChecksum(const DataBlock &p_data) const
     {
-        int8_t retval = 0;//int8_t(sizeof(Header));
+        int8_t retval = 1;  // checksum init val
         // retval++;  // @DEBUG must give CHECKSUM ERROR
         for (const std::byte& b : p_data)
         {
@@ -481,21 +496,7 @@ private:
         return uint8_t(retval);
     }
 
-#if 0
-    // Calculate a simple one-byte checksum over given data.
-    // including header and the length fields.
-    // OLD VERSION
-    uint8_t CalculateChecksum() const
-    {
-        int8_t retval = int8_t(sizeof(Header));
-        // retval++;  // @DEBUG must give CHECKSUM ERROR
-        for (const std::byte& b : m_data)
-        {
-            retval += int8_t(b);
-        }
-        return uint8_t(-retval);    // - !
-    }
-#endif
+
 private:
     size_t m_data_size;     // size of (uncompressed/final) data. Note: Spectrum does not need this.
     bool m_overwrites_loader = false;       // will this block overwrite our loader itself?
@@ -567,7 +568,8 @@ TurboBlocks& TurboBlocks::AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr
         // *Must* be last block since our loader will be overwritten
         // So keep, then append as last.
         m_upper_block = std::make_unique<TurboBlock>();
-        m_upper_block->SetOverwritesLoader(loader_upper_len);        // puts it at BASIC buffer
+        // puts it at BASIC buffer
+        m_upper_block->SetOverwritesLoader(m_symbols.GetSymbol("ASM_UPPER_START_OFFSET"), loader_upper_len);     
         m_upper_block->SetData(block_upper, m_compression_type);
     }
     else
@@ -641,8 +643,8 @@ void TurboBlocks::AddTurboBlock(DataBlock&& p_block, uint16_t p_dest_address)
     if(m_turbo_blocks.size() == 0)
     {
         // when first block overlaps loader at basic, add an empty block before it
-        // will get 
-        auto prog = spectrum::SCREEN_END + 768 + 256;        
+        // will get SetCopyLoader (like CopyLoaderToScreen)
+        auto prog = spectrum::PROG; // spectrum::SCREEN_END + 768 + 256;        
         if (Overlaps(p_dest_address, p_dest_address + p_block.size(), prog, m_symbols.GetSymbol("CLEAR")))
         {
             TurboBlock tblock;
@@ -668,6 +670,8 @@ TurboBlocks &TurboBlocks::Finalyze(uint16_t p_usr_address, uint16_t p_clear_addr
 {
     if(m_loader_copy_start)
     {
+        // loader (control code) will be copied to screen for example
+        // patch zqloader itself
         if(p_usr_address == 0)
         {
             throw std::runtime_error("Loader will be moved, so will stack, but at end returns to BASIC, will almost certainly crash");
@@ -675,24 +679,30 @@ TurboBlocks &TurboBlocks::Finalyze(uint16_t p_usr_address, uint16_t p_clear_addr
         uint16_t copy_me_target_location = m_loader_copy_start + m_symbols.GetSymbol("STACK_SIZE");
 
         SetDataToZqLoaderTap("COPY_ME_SP", copy_me_target_location);        // before new copied block
-        auto copy_me_source_location = spectrum::PROG + m_symbols.GetSymbol("ASM_CONTROL_CODE_START");
+        auto copy_me_source_location = m_symbols.GetSymbol("ASM_CONTROL_CODE_START");
+        auto copy_me_length = m_symbols.GetSymbol("ASM_CONTROL_CODE_LEN");
+        //   <- xxxxxxxx <-
+        //          xxxxxxxx lddr copy_lddr==true
+        //   -> xxxxxxxx ->    
+        //  xxxxxxxx         ldir copy_lddr==false
         // when false: use ldir, copies from low to high 
         // when dest address is before source when overlapping
         // when true: use lddr, copies from high to low 
         // when dest address is after source when overlapping
-        bool copy_backwards = copy_me_target_location > copy_me_source_location;        
-        if(!copy_backwards)     // so forwards, ldir
+        bool copy_lddr = copy_me_target_location > copy_me_source_location;  
+        bool overlaps = Overlaps(copy_me_source_location, copy_me_source_location + copy_me_length, copy_me_target_location, copy_me_target_location + copy_me_length);
+        if(!copy_lddr)     // so forwards, ldir
         {
-            std::cout << "Copy forwards/ldir from " <<  copy_me_source_location << " to " << copy_me_target_location << std::endl;
+            std::cout << "Copy loader backwards (but LDIR working forwards) from " <<  copy_me_source_location << " to " << copy_me_target_location << " length=" << copy_me_length << " last = " << copy_me_target_location + copy_me_length - 1 << (overlaps ? " (overlaps)" : "") << std::endl;
             SetDataToZqLoaderTap("COPY_ME_DEST", copy_me_target_location);
-            SetDataToZqLoaderTap("COPY_ME_SOURCE_OFFSET", m_symbols.GetSymbol("ASM_CONTROL_CODE_START"));
+            SetDataToZqLoaderTap("COPY_ME_SOURCE_OFFSET", copy_me_source_location);
             SetDataToZqLoaderTap("COPY_ME_LDDR_OR_LDIR", 0xb0ed)  ; // LDIR! Endianness swapped
         }
         else
         {       // so backwards, lddr
-            std::cout << "Copy backwards/lddr from " <<  copy_me_source_location << " to " << copy_me_target_location << std::endl;
-            SetDataToZqLoaderTap("COPY_ME_DEST", copy_me_target_location + m_symbols.GetSymbol("ASM_CONTROL_CODE_LEN") - 1) ;
-            SetDataToZqLoaderTap("COPY_ME_SOURCE_OFFSET", m_symbols.GetSymbol("ASM_CONTROL_CODE_START") + m_symbols.GetSymbol("ASM_CONTROL_CODE_LEN") - 1);
+            std::cout << "Copy loader forwards (but LDDR working backwards) from " <<  copy_me_source_location << " to " << copy_me_target_location << " length=" << copy_me_length << " last = " << copy_me_target_location + copy_me_length - 1 << (overlaps ? " (overlaps)" : "") << std::endl;
+            SetDataToZqLoaderTap("COPY_ME_DEST", copy_me_target_location + copy_me_length - 1) ;
+            SetDataToZqLoaderTap("COPY_ME_SOURCE_OFFSET", copy_me_source_location + copy_me_length - 1);
             SetDataToZqLoaderTap("COPY_ME_LDDR_OR_LDIR", 0xb8ed); // LDDR! Endianness swapped
         }
 
@@ -796,6 +806,7 @@ inline uint16_t TurboBlocks::GetZqLoaderSymbolAddress(const char* p_name) const
         uint16_t asm_upper_start_offset = m_symbols.GetSymbol("ASM_UPPER_START_OFFSET");
         adr += asm_upper_start_offset;
     }
+    adr -= m_symbols.GetSymbol("TOTAL_START");
     return adr;
 }
 

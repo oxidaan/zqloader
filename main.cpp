@@ -8,7 +8,9 @@
 //==============================================================================
 // This project use the miniaudio sound library by David Read.
 
-//  
+// usescreen "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\Z80\nightshade.z80"
+// new_loader_location=50000 "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\games beetzart\Z80\Z80\JETPAC.Z80"
+// "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader_test.bin"
 // "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\Z80\jsw2.z80"
 // volume_right = -100 usescreen "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\games beetzart\ZX32\ZX Spectrum Files\Golden Oldies\Knight Lore.z80"
 // ZZvolume_right = -100 "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\games beetzart\Z80\download\SABRWULF.tap"
@@ -16,7 +18,6 @@
 // bit_one_threshold=4 zero_tstates=110 one_tstates=243 "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\games beetzart\Z80\download\SABRWULF.tap"
 // ZZvolume_right = -100 "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\z80\test.z80"
 // ZZvolume_right = 100 ZZvolume_left = -100 "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\z80\test.z80"
-// ZZvolume_right = 100 ZZvolume_left = -100 "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap"  "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader_test.bin"
 // ZZvolume_left=100 ZZvolume_right=100 bit_one_threshold=3 one_tstates=243 
 // "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Users\Daan\Downloads\MarioBros(ErbeSoftwareS.A.).tzx\Mario Bros (Erbe).tzx"
 // "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\Z80\mm.sna"
@@ -357,11 +358,15 @@ except waiting.
                 snapshot_regs_filename.replace_extension("bin");      
                 DataBlock regblock;
                 regblock.LoadFromFile(snapshot_regs_filename);
-                bool allways_use_screen = cmdline.HasParameter("usescreen")  || cmdline.HasParameter("s");
+                auto new_loader_location = cmdline.GetParameter<uint16_t>("new_loader_location", 0);
+                bool use_screen =  cmdline.HasParameter("usescreen")|| cmdline.HasParameter("s");
+                if(new_loader_location == 0 && use_screen)
+                {
+                    new_loader_location = spectrum::SCREEN_23RD;
+                }
                 bool write_fun_attribs =  cmdline.HasParameter("fun_attribs")|| cmdline.HasParameter("f");
-                snapshotloader.Load(filename2).SetRegBlock(std::move(regblock)).MoveToTurboBlocks(tblocks, allways_use_screen, write_fun_attribs);
+                snapshotloader.Load(filename2).SetRegBlock(std::move(regblock)).MoveToTurboBlocks(tblocks, new_loader_location, write_fun_attribs);
                 tblocks.Finalyze(snapshotloader.GetUsrAddress()).MoveToLoader(spectrumloader);
-                //                tblocks.MoveToLoader(spectrumloader, 1);        // @DEBUG
             }
             else if (ToLower(filename2.extension().string()) == ".bin")
             {
