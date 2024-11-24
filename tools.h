@@ -82,7 +82,7 @@ public:
     /// Return given default when not found.
     std::string GetParameter(std::string_view p_param, const char* p_default) noexcept
     {
-        auto opt = TryGetParameter<std::string>(p_param);
+        auto opt = TryGetParameter(p_param);
         if (opt.has_value())
         {
             return opt.value();
@@ -128,8 +128,6 @@ public:
         return TryGetParameter(p_param).has_value();
     }
 
-private:
-    std::string GetCmdLine(int p_first = 0) const noexcept;
 
 private:
     std::vector<std::string> m_args;

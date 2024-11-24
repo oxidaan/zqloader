@@ -18,50 +18,47 @@
 
 
 
-
 /// Get value of given named commandine parameter. 
 /// Return nullopt when not found.
 std::optional<std::string> CommandLine::TryGetParameter(std::string_view p_command) const noexcept
 {
     using namespace std::string_literals;
-    auto command_line = GetCmdLine(1);
-    std::stringstream ss(command_line);
 
-    while (ss && !ss.eof())
+    for (int n = 1; n < m_args.size(); n++)
     {
-        std::string s;
-        ss >> iomanip::readuntil(s, " \n\r\t\0=:"s);
-        ss >> iomanip::skip(" \n\r\t\0=:"s);
-        if (s == p_command ||
-            s == ("--" + std::string(p_command)) )
+        std::string arg = m_args[n];
+        if ((arg == p_command || arg == ("--" + std::string(p_command))) && n < (m_args.size() - 1) )
         {
-            std::string value;
-            ss >> iomanip::quoted(value, '\0');     // do not handle escapes
+            std::string value =  m_args[n+1];
+            if((value == "=" || value == ":") &&  n < (m_args.size() - 2))
+            {
+                value =  m_args[n+2];
+            }
             return value;
         }
-        if (p_command.length() == 1 && s.length() > 1 && s[0] == '-' && s[1] != '-')
+        else if (p_command.length() == 1 && arg.length() > 1 && arg[0] == '-' && arg[1] != '-')
         {
             // Commandline given single - followed by letters eg -abcd = flags: mere presence of letter indicates 'true'
-            if (s.find(p_command) != std::string::npos)
+            if (arg.find(p_command) != std::string::npos)
             {
                 return "1";
             }
         }
+        else
+        {
+            // parse it a bit eg cmd=value
+            std::stringstream ss(arg);
+            std::string s;
+            ss >> iomanip::skip(" \n\r\t\0=:\""s);
+            ss >> iomanip::readuntil(s, " \n\r\t\0=:\""s);
+            if (s == p_command ||
+                s == ("--" + std::string(p_command)) )
+            {
+                std::string value;
+                ss >> iomanip::skip(" \n\r\t\0=:"s) >> iomanip::readuntil(value, "");    // read rest
+                return value;
+            }
+        }
     }
     return std::nullopt;
-}
-
-
-std::string CommandLine::GetCmdLine(int p_first) const noexcept
-{
-    std::string s;
-    for (int n = p_first; n < m_args.size(); n++)
-    {
-        if (!s.empty())
-        {
-            s += " ";
-        }
-        s += m_args[n];
-    }
-    return s;
 }

@@ -28,7 +28,8 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, std::string p_zxfilenam
     DataBlock block = p_block.size() >= 2 ? DataBlock(p_block.begin() + 1, p_block.end() - 1) : std::move(p_block);
     if (type == TapeBlockType::header)
     {
-        if (block.size() != sizeof(TapeHeader))
+        // In tzx files sometimes header is 18 bytes instead of 17
+        if (block.size() != sizeof(TapeHeader) && block.size() != sizeof(TapeHeader) + 1)
         {
             throw std::runtime_error("Expecting header length to be " + std::to_string(sizeof(TapeHeader)) + ", but is : " + std::to_string(block.size()));
         }
@@ -39,10 +40,10 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, std::string p_zxfilenam
             m_last_block = type;
             m_headercnt++;
         }
-        std::cout << m_last_header.m_type << ": ";
-        std::cout << name << std::endl;
-        std::cout << "Start address: " << m_last_header.GetStartAddress() << std::endl;
-        std::cout << "Length: " << m_last_header.m_length << std::endl;
+        std::cout << "Spectrum tape header: " << m_last_header.m_type << ": ";
+        std::cout << "'" << name << "'";
+        std::cout << " Start address: " << m_last_header.GetStartAddress();
+        std::cout << " Length: " << m_last_header.m_length << std::endl;
     }
     else if (type == TapeBlockType::data)
     {
@@ -54,7 +55,7 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, std::string p_zxfilenam
             m_last_header.m_type == TapeHeader::Type::screen)
         {
             auto start_adr = (m_loadcodes.size() > m_codecount) ?
-                m_loadcodes[m_codecount] :          // taking address from LOAD "" CODE Xxxxx as found in basic
+                m_loadcodes[m_codecount] :          // taking address from last unused LOAD "" CODE XXXXX as found in basic
                 m_last_header.GetStartAddress();
 
             m_tblocks.AddDataBlock(std::move(block), start_adr);

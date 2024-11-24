@@ -434,12 +434,16 @@ private:
     static bool CanUseDecompressionInline(const DataBlock& p_orig_data, const DataBlock& p_compressed_data, const Compressor<DataBlock>::RLE_Meta& p_rle_meta)
     {
         DataBlock decompressed_data;
-        auto sz = p_orig_data.size() - p_compressed_data.size();
-        decompressed_data.resize(sz);
-        // append compressed data
-        decompressed_data.insert(decompressed_data.end(), p_compressed_data.begin(), p_compressed_data.end());
-        DeCompress(decompressed_data.cbegin() + sz, decompressed_data.cend(), decompressed_data, decompressed_data.begin(), p_rle_meta);
-        return decompressed_data == p_orig_data;
+        if(p_orig_data.size() > p_compressed_data.size())
+        {
+            auto sz = p_orig_data.size() - p_compressed_data.size();
+            decompressed_data.resize(sz);
+            // append compressed data
+            decompressed_data.insert(decompressed_data.end(), p_compressed_data.begin(), p_compressed_data.end());
+            DeCompress(decompressed_data.cbegin() + sz, decompressed_data.cend(), decompressed_data, decompressed_data.begin(), p_rle_meta);
+            return decompressed_data == p_orig_data;
+        }
+        return false;
     }
 
 

@@ -8,8 +8,11 @@
 //==============================================================================
 // This project use the miniaudio sound library by David Read.
 
-// usescreen "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\Z80\nightshade.z80"
-// new_loader_location=50000 "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\games beetzart\Z80\Z80\JETPAC.Z80"
+// turbofile="C:\Users\Daan\Downloads\MC48Test.tap\MC48Test.tap"
+// turbofile"C:\Users\Daan\Downloads\Gunfright_ZX-Spectrum_EN\Gunfright (1985).tzx"
+// "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\games beetzart\ZX32\ZX Spectrum Files\nightsha\NIGHTSHA.TAP"
+// usescreen "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\Z80\nightshade.z80" fails
+// "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\games beetzart\Z80\Z80\JETPAC.Z80"
 // "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader_test.bin"
 // "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\Z80\jsw2.z80"
 // volume_right = -100 usescreen "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\games beetzart\ZX32\ZX Spectrum Files\Golden Oldies\Knight Lore.z80"
@@ -123,6 +126,7 @@ Syntax:
 2) zqloader.exe [options] path/to/zqloader.tap path/to/turbofile
 3) zqloader.exe [options] filename="path/to/zqloader.tap" turbofile="path/to/turbofile" option=value
 4) zqloader.exe [options] turbofile="path/to/turbofile" option=value
+
 Arguments:
     path/to/filename        First file: can be a .tap or .tzx file and will be
                             loaded at normal speed into a real ZX spectrum.
@@ -131,6 +135,7 @@ Arguments:
     path/to/turbofile       Second file, also a .tap or .tzx or a .z80 (snapshot) file.
                             A game for example.
                             When given will be send to the ZX spectrum at turbo speed.
+    4) auto finds zqloader.tap; given file is read at turbo speed.
 
 More options can be given with syntax: option=value, or just 'option value' or option="some value" or
 '--option=value' :
@@ -233,6 +238,12 @@ int main(int argc, char** argv)
         }
 
         bool is_zqloader = ToLower(filename.stem().string()) == "zqloader";
+        if(!is_zqloader && cmdline.HasParameter("turbofile"))
+        {
+            filename = "zqloader.tap";
+            is_zqloader = true;
+        }
+
 
 
         if ((is_zqloader && filename2.empty()) || ToLower(filename2.stem().string()) == "zqloader")
@@ -246,21 +257,13 @@ except waiting.
         }
         if (!is_zqloader && !filename2.empty())
         {
-            filename = "zqloader.tap";
-            is_zqloader = true;
-//            throw std::runtime_error(1 + &*R"(
-//A second filename argument and/or parameters are only usefull when using zqloader.tap 
-//(which is the turbo loader) as (1st) file.
-//)");
+            throw std::runtime_error(1 + &*R"(
+A second filename argument and/or parameters are only usefull when using zqloader.tap 
+which is the turbo loader) as (1st) file.
+)");
         }
 
-        // Check if file exist if not try at current executable directory
-        if (!std::filesystem::exists(filename))
-        {
-            // try at current executable directory by default 
-            filename = fs::path(argv[0]).parent_path() / filename;
-            // (if still not exist will throw anyway)
-        }
+
 
         SpectrumLoader spectrumloader;
 
@@ -279,7 +282,7 @@ except waiting.
                 );
                 taploader.Load(filename, "");
             }
-            if (ToLower(filename.extension().string()) == ".tzx")
+            else if (ToLower(filename.extension().string()) == ".tzx")
             {
                 TzxLoader tzxloader;
                 tzxloader.SetOnHandleTapBlock([&](DataBlock p_block, std::string)
@@ -297,6 +300,30 @@ except waiting.
         }
         else    // is zqloader
         {   
+            // Try to find zqloader.tap file
+            if (!std::filesystem::exists(filename))
+            {
+                // try at current executable directory by default 
+                filename = fs::path(argv[0]).parent_path() / filename.filename();
+            }
+            if (!std::filesystem::exists(filename))
+            {
+                // try at current executable directory by default 
+                filename = fs::path(argv[0]).parent_path() / "z80" / filename.filename();
+            }
+            if (!std::filesystem::exists(filename))
+            {
+                // then workdir
+                filename = std::filesystem::current_path() / filename.filename();
+            }
+            if (!std::filesystem::exists(filename))
+            {
+                filename = std::filesystem::current_path() / "z80" / filename.filename();
+            }
+            if (!std::filesystem::exists(filename))
+            {
+                throw std::runtime_error("File " +  filename.filename().string() + " not found");
+            }
             std::cout << "Processing zqloader file: " << filename << " (normal speed)" << std::endl;
             // filename2 is the tap/tzx/z80 file to be turbo-loaded into the ZX Spectrum.
 
