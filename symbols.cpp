@@ -24,7 +24,8 @@ uint16_t Symbols::GetSymbol(const std::string& p_name) const
 {
     if (m_symbols.find(p_name) != m_symbols.end())
     {
-        return m_symbols.at(p_name);
+        auto a = m_symbols.at(p_name);
+        return a;
     }
     throw std::runtime_error("Symbol " + p_name + " not found");
 }

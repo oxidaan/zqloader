@@ -34,7 +34,7 @@ add_custom_command(
     COMMAND  "sjasmplus"
     ARGS 
     "--fullpath"
-    "-i${SJASMPLUS_PATH}/examples/BasicLib"          # BasicLib, needed to generate BASIC
+    "-i${SJASMPLUS_PATH}/examples/BasicLib"             # BasicLib, needed to generate BASIC
     "--exp=zqloader.exp"                                # export file, has symbols
     "--lst"                                             # lst file, not really needed
     "--syntax=abf"

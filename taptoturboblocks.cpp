@@ -13,64 +13,69 @@
 #include "byte_tools.h"
 
 /// call back
-/// Handle loaded data block:
+/// Handle loaded/incoming data block:
 /// When header: check name; store as last header.
 /// When data: based on last header header:
 ///     When basic: try get addresses like RANDOMIZE USR XXXXX
 ///     When code: Add to list of blocks to (turbo) load
+/// p_zxfilename: when given check if name matches before accepting header.
 bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, std::string p_zxfilename)
 {
+    using namespace spectrum;
     bool done = false;
-    ZxBlockType type = ZxBlockType(p_block[0]);
+    TapeBlockType type = TapeBlockType(p_block[0]);
     // kick of type and checksum
     DataBlock block = p_block.size() >= 2 ? DataBlock(p_block.begin() + 1, p_block.end() - 1) : std::move(p_block);
-    if (type == ZxBlockType::header)
+    if (type == TapeBlockType::header)
     {
-        if (block.size() != sizeof(ZxHeader))
+        // In tzx files sometimes header is 18 bytes instead of 17
+        if (block.size() != sizeof(TapeHeader) && block.size() != sizeof(TapeHeader) + 1)
         {
-            throw std::runtime_error("Expecting header length to be " + std::to_string(sizeof(ZxHeader)) + ", but is : " + std::to_string(p_block.size()));
+            throw std::runtime_error("Expecting header length to be " + std::to_string(sizeof(TapeHeader)) + ", but is : " + std::to_string(block.size()));
         }
-        m_last_header = *reinterpret_cast<ZxHeader*>(block.data());
+        m_last_header = *reinterpret_cast<TapeHeader*>(block.data());
         std::string name(m_last_header.m_filename, 10);    // zx file name from tap/header
         if ((name == p_zxfilename || p_zxfilename == "") || m_headercnt >= 1)
         {
             m_last_block = type;
             m_headercnt++;
         }
-        std::cout << m_last_header.m_type << ": ";
-        std::cout << name << std::endl;
-        std::cout << "Start address: " << m_last_header.GetStartAddress() << std::endl;
-        std::cout << "Length: " << m_last_header.m_length << std::endl;
+        std::cout << "Spectrum tape header: " << m_last_header.m_type << ": ";
+        std::cout << "'" << name << "'";
+        std::cout << " Start address: " << m_last_header.GetStartAddress();
+        std::cout << " Length: " << m_last_header.m_length << std::endl;
     }
-    else if (type == ZxBlockType::data)
+    else if (type == TapeBlockType::data)
     {
-        if (m_last_block != ZxBlockType::header && m_headercnt >= 1)
+        if (m_last_block != TapeBlockType::header && m_headercnt >= 1)
         {
             throw std::runtime_error("Found headerless, can not handle (can't know were it should go to)");
         }
-        if (m_last_header.m_type == ZxHeader::Type::code ||
-            m_last_header.m_type == ZxHeader::Type::screen)
+        if (m_last_header.m_type == TapeHeader::Type::code ||
+            m_last_header.m_type == TapeHeader::Type::screen)
         {
             auto start_adr = (m_loadcodes.size() > m_codecount) ?
-                m_loadcodes[m_codecount] :          // taking address from LOAD "" CODE Xxxxx as found in basic
+                m_loadcodes[m_codecount] :          // taking address from last unused LOAD "" CODE XXXXX as found in basic
                 m_last_header.GetStartAddress();
 
             m_tblocks.AddDataBlock(std::move(block), start_adr);
             m_codecount++;
         }
-        if (m_last_header.m_type == ZxHeader::Type::basic_program)
+        if (m_last_header.m_type == TapeHeader::Type::basic_program)
         {
             if (m_codecount == 0)
             {
-                m_usr = TryFindUsr(block);
-                if (m_usr)
+                auto usr = TryFindUsr(block);
+                if (usr)
                 {
-                    std::cout << "Found USR " << m_usr << " in BASIC." << std::endl;
+                    std::cout << "Found USR " << usr << " in BASIC." << std::endl;
+                    m_usr = usr;
                 }
-                m_clear = TryFindClear(block);
-                if (m_clear)
+                auto clear = TryFindClear(block);
+                if (clear)
                 {
-                    std::cout << "Found CLEAR " << m_clear << " in BASIC" << std::endl;
+                    std::cout << "Found CLEAR " << clear << " in BASIC" << std::endl;
+                    m_clear = clear;
                 }
 
                 m_loadcodes = TryFindLoadCode(block);
@@ -78,6 +83,8 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, std::string p_zxfilenam
                 {
                     std::cout << "Found LOAD \"\" CODE " << code << " in BASIC" << std::endl;
                 }
+
+
             }
             else
             {
@@ -127,6 +134,37 @@ inline uint16_t TapToTurboBlocks::TryReadNumberFromBasic(const DataBlock& p_basi
     return 0;
 }
 
+inline std::vector<uint16_t> TapToTurboBlocks::TryFindInBasic(const DataBlock& p_basic_block, CheckFun p_check_fun)
+{
+    int seen = 0;       // When >0 recently saw pattern to search for
+    std::vector<uint16_t> retval;
+    for (int cnt = 0; cnt < p_basic_block.size(); cnt++)
+    {
+        if (seen)
+        {
+            auto val = TryReadNumberFromBasic(p_basic_block, cnt);
+            seen--;
+            if (val >= 16384)  // && val < 65536)
+            {
+                retval.push_back(val);
+                seen = 0;
+            }
+        }
+
+        auto check = p_check_fun(p_basic_block, cnt);
+        if (check == 1)
+        {
+            seen = 8;       // allow some chars searching for number after code(eg the value stored as ASCII)
+        }
+        if(check > 1)
+        {
+            retval.push_back(uint16_t(check));
+        }
+            
+    }
+    return retval;
+}
+
 // Try to find (first) USR start address in given BASIC block
 // eg RANDOMIZE USR XXXXX
 // or RANDOMIZE USR VAL "XXXXX"
@@ -134,11 +172,12 @@ inline uint16_t TapToTurboBlocks::TryFindUsr(const DataBlock& p_basic_block)
 {
     auto values = TryFindInBasic(p_basic_block, [](const DataBlock& p_basic_block, int cnt)
         {
-            return cnt > 1 &&
+            bool b = cnt > 1 &&
             p_basic_block[cnt] == 0xC0_byte && (               // USR
                 p_basic_block[cnt - 1] == 0xf9_byte ||         // RANDOMIZE USR
                 p_basic_block[cnt - 1] == 0xf5_byte ||         // PRINT USR
                 p_basic_block[cnt - 1] == std::byte('='));     // (LET x ) = USR
+            return int(b);
         });
     return values.size() ? values.front() : 0;
 }
@@ -150,7 +189,7 @@ inline uint16_t TapToTurboBlocks::TryFindClear(const DataBlock& p_basic_block)
 {
     auto values = TryFindInBasic(p_basic_block, [](const DataBlock& p_basic_block, int cnt)
         {
-            return p_basic_block[cnt] == 0xFD_byte;    // CLEAR
+            return int(p_basic_block[cnt] == 0xFD_byte);    // CLEAR
         });
     return values.size() ? values.front() : 0;
 }
@@ -160,8 +199,19 @@ inline std::vector<uint16_t> TapToTurboBlocks::TryFindLoadCode(const DataBlock& 
 {
     return TryFindInBasic(p_basic_block, [](const DataBlock& p_basic_block, int cnt)
         {
-            return cnt > 0 &&
-            p_basic_block[cnt] == 0xAF_byte &&       // CODE
-            p_basic_block[cnt - 1] == std::byte('"');    // [LOAD "]" CODE
+            if( cnt > 0 &&
+                p_basic_block[cnt] == 0xAF_byte &&           // CODE
+                p_basic_block[cnt - 1] == std::byte('"'))    // [LOAD "]" CODE
+            {
+                return 1;
+            }
+            if(cnt > 0 &&
+                p_basic_block[cnt] == 0xAA_byte &&           // SCREEN$
+                p_basic_block[cnt - 1] == std::byte('"'))
+            {
+                return 16384;       // so SCREEN$
+            }
+            return 0; 
         });
 }
+

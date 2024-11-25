@@ -12,9 +12,13 @@
 
 #include <cstdint>  // uint16_t
 #include <iosfwd>   // forward for std::ostream
+#include "spectrum_consts.h"
+#include <cstddef>  // std::byte stuff
 
-// ZX BlockType (header or data)
-enum class ZxBlockType : unsigned char
+namespace spectrum
+{
+// Tape BlockType (header or data)
+enum class TapeBlockType : unsigned char
 {
     header = 0x0,           // ZX spectrum header
     data = 0xff,            // ZX spectrum data
@@ -22,15 +26,14 @@ enum class ZxBlockType : unsigned char
     unknown = 0x2,
     error = 0x3,            // eg eof
 };
-std::ostream& operator << (std::ostream& p_stream, ZxBlockType p_enum);
 
 
 
 // ZX Spectrum tape header
 #pragma pack(push, 1)
-struct ZxHeader
+struct TapeHeader
 {
-    // ZxHeader::Type
+    // TapeHeaderHeader::Type
     enum class Type : unsigned char
     {
         basic_program = 0,
@@ -48,7 +51,7 @@ struct ZxHeader
         }
         else if (m_type == Type::basic_program)
         {
-            return 23755;       // Afaik typical start of basic (maybe should read PROG)
+            return PROG;       // Afaik typical start of basic (maybe should read PROG)
         }
         else
         {
@@ -68,11 +71,26 @@ struct ZxHeader
     uint16_t m_basic_program_length;        // basic program length after which start of variables follows
 };
 #pragma pack(pop)
-static_assert(sizeof(ZxHeader) == 17, "Sizeof ZxHeader must be 17");
-
-std::ostream& operator << (std::ostream& p_stream, ZxHeader::Type p_enum);
+static_assert(sizeof(TapeHeader) == 17, "Sizeof ZxHeader must be 17");
 
 
+// Calculate a ZX Spectrum standard tap block checksum
+// Is always at end of block.
+template <class TData>
+std::byte CalculateChecksum(std::byte p_init_val, const TData& p_data)
+{
+    std::byte retval = p_init_val;
+    for (const std::byte& b : p_data)
+    {
+        retval ^= b;
+    }
+    return retval;
+}
+
+}
+
+std::ostream& operator << (std::ostream& p_stream, spectrum::TapeBlockType p_enum);
+std::ostream& operator << (std::ostream& p_stream, spectrum::TapeHeader::Type p_enum);
 
 
 

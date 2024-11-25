@@ -30,3 +30,15 @@ DataBlock& DataBlock::LoadFromFile(const fs::path &p_filename)
     fileread.read(reinterpret_cast<char*>(data()), filelen);
     return *this;
 }
+
+template <>
+const DataBlock& DataBlock::SaveToFile(const fs::path &p_filename) const
+{
+    std::ofstream filewrite(p_filename, std::ios::binary);
+    if (!filewrite)
+    {
+        throw std::runtime_error("Cannot open file " + p_filename.string() + ".");
+    }
+    filewrite.write(reinterpret_cast<const char*>(data()), size());
+    return *this;
+}

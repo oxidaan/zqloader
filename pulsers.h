@@ -235,14 +235,21 @@ public:
         return *this;
     }
 
-    /// Set start bit duration when in 'pulse mode'.
+    /// Set delay for byte store
+    DataPulser& SetEndOfByteDelay(int p_delay)
+    {
+        m_delay_duration = p_delay;
+        return *this;
+    }
+
+    /// Set start bit duration ('pulse mode' / RS232 like)
     DataPulser& SetStartBitDuration(int p_puls_duration)
     {
         m_start_duration = p_puls_duration;
         return *this;
     }
 
-    /// Set stop bit duration when in 'pulse mode'.
+    /// Set stop bit duration ('pulse mode' / RS232 like)
     DataPulser& SetStopBitDuration(int p_puls_duration)
     {
         m_stop_duration = p_puls_duration;
@@ -271,17 +278,13 @@ protected:
     {
         if (!IsPulseMode())       // not in 'pulse mode' (so normal)
         {
-            if (NeedStartSync())
-            {
-                return m_start_duration;
-            }
             if (GetCurrentBit())
             {
-                return m_one_pattern[m_pulsnum];
+                return m_one_pattern[m_pulsnum] + GetExtraDelay();
             }
             else
             {
-                return m_zero_pattern[m_pulsnum];
+                return m_zero_pattern[m_pulsnum] + GetExtraDelay();
             }
         }
         else
@@ -319,19 +322,11 @@ protected:
 
     virtual bool Next() override
     {
-        if (NeedStartSync())
+        m_pulsnum++;
+        if (m_pulsnum >= GetMaxPuls())
         {
-            m_need_start_sync = false;
-        }
-        else
-        {
-            m_pulsnum++;
-            if (m_pulsnum >= GetMaxPuls())
-            {
-                m_pulsnum = 0;
-                m_bitnum++;
-                m_need_start_sync = true;
-            }
+            m_pulsnum = 0;
+            m_bitnum++;
         }
         return AtEnd();
     }
@@ -344,12 +339,15 @@ private:
         return m_puls_duration != 0;
     }
 
-    bool NeedStartSync() const
+    // Get delay ZX spectrum needs at end of byte to store it.
+    // Extra delay before each byte except first.
+    int GetExtraDelay() const
     {
-        return !IsPulseMode() &&            // else in pulse mode, has its own start bits
-            m_need_start_sync &&            // else just done
-            m_start_duration &&             // master switch using start sync at all
-            m_bitnum % 8 == 0;              // only at very first bit
+        if(  (m_bitnum % 8) == 0 &&            // before first bit of all bytes except
+             m_bitnum != 0 &&                  // very first bit
+             m_pulsnum == 0)                   // also only before first pulse of first bit pattern
+             return m_delay_duration;
+        return 0;
     }
 
     void SetOnePattern() {}
@@ -384,7 +382,9 @@ private:
         return (m_bitnum / 8) >= GetTotalSize();
     }
 
-
+    // # pulses(=edges) a single bit either 1 or zero needs.
+    // At Spectrum typically 2 (2 edges per bit) (but ZX81 has higher)
+    // Our turboloader typically 1.
     unsigned GetMaxPuls() const
     {
         if (GetCurrentBit())
@@ -396,10 +396,13 @@ private:
             return unsigned(m_zero_pattern.size());
         }
     }
+
+    // Get current bit, based on m_bitnum
     bool GetCurrentBit() const
     {
         if (!IsPulseMode())
         {
+            // normal mode.
             auto bytenum = m_bitnum / 8;
             auto bitnum = m_bitnum % 8;    // 0 -> 7
             bitnum = 7 - bitnum;            // 8 -> 0 spectrum saves most sign bit first
@@ -430,15 +433,16 @@ private:
         }
     }
 private:
-    unsigned m_bitnum = 0;          // bitnum from start in block to be send.
-    bool m_need_start_sync = true;
+    unsigned m_bitnum = 0;          // bitnum from start in block to be send (runs to total # bits of data)
     DataBlock m_data;
 
     std::vector<int> m_zero_pattern;
     std::vector<int> m_one_pattern;
     int m_puls_duration = 0;        // when !0 go to puls mode (! toggle), then this duration of each pulse.
-    int m_start_duration = 0;       // default s/a m_puls_duration
-    int m_stop_duration = 0;        // default s/a m_puls_duration
+    int m_start_duration = 0;       // In puls mode: start bit duration default s/a m_puls_duration
+                                    // else extra wait duration and end of byte to store byte.
+    int m_stop_duration = 0;        // stop bit duration  default s/a m_puls_duration
+    int m_delay_duration = 0;
     bool m_start_bit = true;        // value for start bit. Stopbit is always !m_start_bit
     // and m_start_bit should also be true, see table at zqloader.asm.
     // this means sync should end with 0!
