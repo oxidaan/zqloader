@@ -43,7 +43,9 @@ add_custom_command(
     COMMENT "Assembling ${CMAKE_CURRENT_SOURCE_DIR}/zqloader.z80asm to  ${CMAKE_CURRENT_BINARY_DIR}/zqloader.tap"
 )
 
-
-install(FILES zqloader.exp  ${CMAKE_CURRENT_BINARY_DIR}/zqloader.tap snapshotregs.bin
+install(FILES  
+        ${CMAKE_CURRENT_BINARY_DIR}/zqloader.exp  
+        ${CMAKE_CURRENT_BINARY_DIR}/zqloader.tap  
+        ${CMAKE_CURRENT_BINARY_DIR}/snapshotregs.bin
         DESTINATION bin
         )
