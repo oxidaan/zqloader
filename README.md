@@ -34,7 +34,7 @@ zqloader.exe coded in C++ (17)
 Runs on the host computer. It uses [miniaudio](https://github.com/mackron/miniaudio) to generated loading sounds.  
 First it uploads the ZQloader machine code (described above) itself to the ZX spectrum. It uses traditional ROM speed for that.
 
-After that it will read a TAP, TZX or Z80 (snapshot) file. For TAP or TZX files it will recognize a basic loader, taking the start address from that (as in `RANDOMIZE USR XXXX`) (also read `CLEAR` value, if any). Then it will load 1 or more code blocks, which can be a spash screen or machine code, compress them, and send these at turbo speed into the ZX spectrum. 
+After that it will read a TAP, TZX or Z80/sna (snapshot) file. For TAP or TZX files it will recognize a basic loader, taking the start address from that (as in `RANDOMIZE USR XXXX`) (also read `CLEAR` value, if any). Then it will load 1 or more code blocks, which can be a spash screen or machine code, compress them, and send these at turbo speed into the ZX spectrum. 
 More about the [C++ ZQloader...]
 
 
@@ -43,7 +43,7 @@ Compression
 It uses a simple RLE compression algorithm that only reduces size with 20-40% thereabout. This is not that much (eg [ZX0](https://github.com/einar-saukas/ZX0) should do much better). But essential is it can be decompressed at the ZX spectrum at he same memory block - so decompressed data will overwrite compressed data during decompression. ZX0 can do this also but seems to always need to have some minimal extra space at the end (see `delta` at [ZX0 readme](https://github.com/einar-saukas/ZX0#readme)). Also I've found compressing takes long with ZX0, thus spoiling the entire idea of a quick loader.  
 The RLE compression algorithm compresses the most used byte value (usually this is 0) by writing an escape code, then the number of 'most used value'-s. Further it compresses a sequence of 3 or more the same bytes (of any value) by writing another escape code, then that byte value, then the number of these bytes.  
 
-The compression is most effective when loading a snapshot. This is because when loading a snapshot, often large parts of the memory are zero which can be compressed effectively. Therefore loading a 48kb snapshot containing a 32kb game takes only little more as loading just the 32kb game itself: around 30 seconds.
+The compression is most effective when loading a snapshot. This is because when loading a snapshot, often large parts of the memory are zero which can be compressed effectively. Therefore loading a 48kb snapshot containing a 32kb game takes only little more as loading just the 32kb game itself: around 30 seconds (jsw even < 20 seconds!).
 
 Limitations/TODO's
 ---
@@ -56,8 +56,6 @@ Limitations/TODO's
 The latest version of ZQloader can now recognize this situation and then copy the Z80 ZQloader code to the (lower 3rd) of the screen - then BASIC can be overwritten. Still it ignores any BASIC when processing a TAP or TZX file, except trying to find the CLEAR and USR adresses in it. There is no code yet to see if the BASIC is just a simple loader (that can be ignored) or has more to it.
 
 * It cannot load games that have any kind of copy protection. Or does any loading without BASIC. Eg *Horace and the Spiders* does some additional loading after Machine code started. ZXloader cannot possible know where this extra datablock needs to go. Same for headerless: ZQloader does not know where to put these. **Of course these games can be loaded without problem using a Z80 snapshot.**
-
-* Want to add code to load .SNA snapshots.
 
 * Add a user interface! Maybe with QT. It is now only commandline...
 
@@ -124,6 +122,13 @@ You can play with options like, for example (see also [ZQloader commandline opti
 ```
 zqloader samplerate=48000 volume_left=-100 volume_right=-100 z80/zqloader.tap c:\games/rtype.z80
 ```
+
+There is a lot of discussion about what is the best setup for sound. Sometimes a stereo cable is recommended, sometimes mono. When the ZX-Spectrum and the host computer are sharing a common ground, a stereo cable is probably best. 
+And when using stereo it is probably best to invert one sound output (left or right) eg with commandline parameters `volume_left=-100 volume_right=100` . This is not the default.
+Personally I was using stereo, but without inverting one channel. I used a 'composite-video to hdmi hardware box' that was powered through USB from my laptop. This way, the ZX Specttum shard ground with the laptop. Later I used composite video directly. For some reason the ZX-Spectrum did not receive any sound at all - until I switched to a mono cable.
+A good test is to try to play any sound at the host laptop (eg music) (play loud!). When all is good the ZX-Spectrum border should flash between red-cyan (after typing `LOAD ""`)
+Moral of the story: try stereo/mono cables, try with inverted or not inverted sound channels - until it works.
+
 
 
 ZQloader commandline options
