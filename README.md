@@ -123,10 +123,12 @@ You can play with options like, for example (see also [ZQloader commandline opti
 zqloader samplerate=48000 volume_left=-100 volume_right=-100 z80/zqloader.tap c:\games/rtype.z80
 ```
 
-There is a lot of discussion about what is the best setup for sound. Sometimes a stereo cable is recommended, sometimes mono. When the ZX-Spectrum and the host computer are sharing a common ground, a stereo cable is probably best. 
-And when using stereo it is probably best to invert one sound output (left or right) eg with commandline parameters `volume_left=-100 volume_right=100` . This is not the default.
-Personally I was using stereo, but without inverting one channel. I used a 'composite-video to hdmi hardware box' that was powered through USB from my laptop. This way, the ZX Specttum shard ground with the laptop. Later I used composite video directly. For some reason the ZX-Spectrum did not receive any sound at all - until I switched to a mono cable.
-A good test is to try to play any sound at the host laptop (eg music) (play loud!). When all is good the ZX-Spectrum border should flash between red-cyan (after typing `LOAD ""`)
+Tuning sound
+---
+There is a lot of discussion about what is the best setup for sound (eg see [here](https://retrocomputing.stackexchange.com/questions/773/loading-zx-spectrum-tape-audio-in-a-post-cassette-world)). Sometimes a stereo cable is recommended, sometimes mono. When the ZX-Spectrum and the host computer are sharing a common ground, a stereo cable is probably best. 
+And when using stereo it is probably best to invert one sound output (left or right) eg with commandline parameters `volume_left=-100 volume_right=100` . This is not the default.  
+Personally I was using stereo, but without inverting one channel. I used a 'composite-video to hdmi hardware box' that was powered through USB from my laptop. This way, the ZX Spectrum shared ground with the laptop. Later I used composite video directly. For some reason the ZX-Spectrum did not receive any sound at all - until I switched to a mono cable.  
+_A good test is to try to play any sound at the host laptop (eg music) (play loud!). When all is good the ZX-Spectrum border should flash between red-cyan (after typing `LOAD ""`)_  
 Moral of the story: try stereo/mono cables, try with inverted or not inverted sound channels - until it works.
 
 
