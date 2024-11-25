@@ -12,6 +12,7 @@
 #include <functional>           // std::function
 #include "types.h"              // Doublesec
 #include "datablock.h"
+#include <iostream>
 
 /// Largely same interface as SampleSender but writes to wav file instead of outputting sound.
 /// Used call-backs are set with:
