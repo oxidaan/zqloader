@@ -1,6 +1,6 @@
 //==============================================================================
 // PROJECT:         zqloader
-// FILE:            miniaudio.cpp
+// FILE:            pulsers.h
 // DESCRIPTION:     Definition and implementation for classes Pulser and friends.
 // 
 // Copyright (c) 2023 Daan Scherft [Oxidaan]
@@ -26,12 +26,17 @@
 /// Base / interface for all pulsers
 class Pulser
 {
+    Pulser(const Pulser &)= delete;
+
 public:
+    Pulser() = default;
+    Pulser(Pulser&&) = default;
     virtual ~Pulser() {}
     virtual int GetTstate() const = 0;      // Get # TStates to wait    
     virtual Edge GetEdge() const = 0;       // What to do after wait
     virtual bool Next() = 0;                // move to next pulse/edge, return true when done.
     virtual void WriteAsTzxBlock(std::ostream& p_stream) const = 0;
+    virtual Doublesec GetDuration() const = 0;  // get expected duration
 protected:
     unsigned m_pulsnum = 0;                         // increased after each edge
 
@@ -82,11 +87,6 @@ protected:
     }
     virtual bool Next() override
     {
-        if (m_pulsnum == 0)
-        {
-            m_timepoint = Clock::now();     // set start timepoint at first call
-            m_pulsnum++;    // just to make sure timepoint only set once
-        }
         return AtEnd();
     }
     int GetTstate() const override
@@ -102,11 +102,10 @@ protected:
         }
         return edge;
     }
-
+    Doublesec GetDuration() const override;
 private:
     int m_duration_in_tstates = 0;
     Edge m_edge = Edge::no_change;
-    std::chrono::time_point<Clock> m_timepoint;
 };
 
 
@@ -139,6 +138,14 @@ public:
 
     /// Set length in milliseconds, rounds up to complete patterns.
     TonePulser& SetLength(std::chrono::milliseconds p_duration);
+
+    /// Set length infinite
+    TonePulser& SetInfiniteLength()
+    {
+        m_forever = true;
+        return *this;
+    }
+
     
     /// Convenience, move me to given loader.
     template<class TLoader>
@@ -147,6 +154,7 @@ public:
         p_loader.AddPulser(std::move(*this));
     }
     void WriteAsTzxBlock(std::ostream& p_stream) const override;
+    Doublesec GetDuration() const override;
 private:
     void SetPattern()
     {
@@ -170,9 +178,9 @@ private:
     }
     bool AtEnd() const
     {
-        return m_pulsnum >= m_max_pulses;
+        return m_forever == false && m_pulsnum >= m_max_pulses;
     }
-    virtual bool Next() override
+    bool Next() override
     {
         m_pulsnum++;
         return AtEnd();
@@ -190,6 +198,7 @@ private:
 
     std::vector<int> m_pattern;
     unsigned m_max_pulses = 0;
+    bool m_forever = false;
 
 };
 
@@ -271,7 +280,7 @@ public:
 
 
     void WriteAsTzxBlock(std::ostream& p_stream) const override;
-
+    Doublesec GetDuration() const override;
 protected:
     /// Get # TStates to wait
     virtual int GetTstate() const override
@@ -470,7 +479,10 @@ public:
     }
     void WriteAsTzxBlock(std::ostream&) const override
     {}
-
+    Doublesec GetDuration() const override
+    {
+        return 0ms;
+    }
 protected:
 
     virtual bool Next() override

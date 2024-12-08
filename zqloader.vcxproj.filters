@@ -1,65 +1,26 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="datablock.cpp" />
-    <ClCompile Include="enumstreamer.cpp" />
-    <ClCompile Include="miniaudio.cpp" />
-    <ClCompile Include="samplesender.cpp" />
-    <ClCompile Include="spectrum_loader.cpp" />
-    <ClCompile Include="symbols.cpp" />
-    <ClCompile Include="taploader.cpp" />
-    <ClCompile Include="taptoturboblocks.cpp" />
-    <ClCompile Include="test.cpp" />
-    <ClCompile Include="turboblocks.cpp" />
-    <ClCompile Include="tzxloader.cpp" />
-    <ClCompile Include="z80snapshot_loader.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="tools.cpp" />
-    <ClCompile Include="sampletowav.cpp" />
-    <ClCompile Include="pulsers.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="byte_tools.h" />
-    <ClInclude Include="compressor.h" />
-    <ClInclude Include="datablock.h" />
-    <ClInclude Include="event.h" />
-    <ClInclude Include="loadbinary.h" />
-    <ClInclude Include="pulsers.h" />
-    <ClInclude Include="samplesender.h" />
-    <ClInclude Include="spectrum_loader.h" />
-    <ClInclude Include="spectrum_types.h" />
-    <ClInclude Include="spectrum_consts.h" />
-    <ClInclude Include="symbols.h" />
-    <ClInclude Include="taploader.h" />
-    <ClInclude Include="taptoturboblocks.h" />
-    <ClInclude Include="turboblocks.h" />
-    <ClInclude Include="types.h" />
-    <ClInclude Include="tzxloader.h" />
-    <ClInclude Include="z80snapshot_loader.h" />
-    <ClInclude Include="tools.h" />
-    <ClInclude Include="resource.h" />
-    <ClInclude Include="sampletowav.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="z80\zqloader.z80asm" />
-    <CustomBuild Include="z80\zqloader_test.z80asm" />
-    <CustomBuild Include="z80\zqloader_test2.z80asm" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="README.md" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="LICENSE.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Filter Include="z80asm">
-      <UniqueIdentifier>{b98788d2-f3ca-4fc8-9d3b-198825e74b43}</UniqueIdentifier>
+    <Filter Include="Resource">
+      <UniqueIdentifier>{81a42211-9aa1-41ef-857c-3802457c18b8}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="zqloader.rc" />
+    <ClInclude Include="resource\resource.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="resource\zqloader.ico" />
+    <Image Include="resource\zqloader.ico">
+      <Filter>Resource</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resource\zqloader.rc">
+      <Filter>Resource</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

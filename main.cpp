@@ -1,30 +1,14 @@
 //==============================================================================
 // PROJECT:         zqloader
 // FILE:            main.cpp
-// DESCRIPTION:     Implementation of main().
+// DESCRIPTION:     Implementation of main() / console version.
 // 
 // Copyright (c) 2023 Daan Scherft [Oxidaan]
 // This project uses the MIT license. See LICENSE.txt for details.
 //==============================================================================
 // This project use the miniaudio sound library by David Read.
 
-// turbofile="C:\Users\Daan\Downloads\MC48Test.tap\MC48Test.tap"
-// turbofile"C:\Users\Daan\Downloads\Gunfright_ZX-Spectrum_EN\Gunfright (1985).tzx"
-// "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\games beetzart\ZX32\ZX Spectrum Files\nightsha\NIGHTSHA.TAP"
-// usescreen "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\Z80\nightshade.z80" fails
-// "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\games beetzart\Z80\Z80\JETPAC.Z80"
-// "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader_test.bin"
-// "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\Z80\jsw2.z80"
-// volume_right = -100 usescreen "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\games beetzart\ZX32\ZX Spectrum Files\Golden Oldies\Knight Lore.z80"
-// ZZvolume_right = -100 "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\games beetzart\Z80\download\SABRWULF.tap"
-// "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\zx32\GALAXINS.TAP"
-// bit_one_threshold=4 zero_tstates=110 one_tstates=243 "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\games beetzart\Z80\download\SABRWULF.tap"
-// ZZvolume_right = -100 "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\z80\test.z80"
-// ZZvolume_right = 100 ZZvolume_left = -100 "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\z80\test.z80"
-// ZZvolume_left=100 ZZvolume_right=100 bit_one_threshold=3 one_tstates=243 
-// "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Users\Daan\Downloads\MarioBros(ErbeSoftwareS.A.).tzx\Mario Bros (Erbe).tzx"
-// "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\Z80\mm.sna"
-// "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Games\Z80\jsw3.z80"
+
 #if __cplusplus < 201703L
 // At MSVC
 // Properties -> C/C++ -> Language -> C++ Language Standard -> ISO c++17 Standard
@@ -38,25 +22,14 @@
 #include <conio.h>
 #endif
 
-#ifdef _MSC_VER
-#pragma warning (disable: 4456) // declaration of '' hides previous local declaration
-#endif
 
-
-#include "spectrum_loader.h"
-#include "tzxloader.h"
-#include "taptoturboblocks.h"
-#include "z80snapshot_loader.h"
-#include "turboblocks.h"
-#include "samplesender.h"
-#include "sampletowav.h"
-#include "tools.h"
+#include "tools.h"          // CommandLine
 #include <iostream>
-#include <fstream>
 #include <filesystem>
+#include "zqloader.h"
+#include "loader_defaults.h"
 namespace fs = std::filesystem;
 
-uint16_t Test(TurboBlocks& p_blocks, fs::path p_filename);
 
 
 #ifndef _WIN32
@@ -81,19 +54,6 @@ int Key()
 }
 #endif
 
-inline std::ofstream OpenFileToWrite(fs::path p_filename, bool p_allow_overwrite)
-{
-    if (!p_allow_overwrite && std::filesystem::exists(p_filename))
-    {
-        throw std::runtime_error("File to write (" + p_filename.string() + ") already exists. Please remove first.");
-    }
-    std::ofstream filewrite(p_filename, std::ios::binary);
-    if (!filewrite)
-    {
-        throw std::runtime_error("Could not open file " + p_filename.string() + " for writing");
-    }
-    return filewrite;
-}
 
 void Version()
 {
@@ -218,17 +178,6 @@ int main(int argc, char** argv)
             return 0;
         }
 
-        // either only parameter (if 1 given) or 2nd to last parameter if 2 or more parameters
-        // or filename="path/to/file" given
-        fs::path filename = cmdline.GetParameter("filename", "");
-        if (filename.empty())
-        {
-            filename = (cmdline.GetNumParameters() == 1) ? cmdline.GetParameter(1) : cmdline.GetParameter(cmdline.GetNumParameters() - 1);
-        }
-
-
-         
-
         // either last parameter if 2 or more parameters
         // or turbofile="path/to/file" given
         fs::path filename2 = cmdline.GetParameter("turbofile", "");
@@ -237,231 +186,55 @@ int main(int argc, char** argv)
             filename2 = cmdline.GetLastParameter();
         }
 
-        bool is_zqloader = ToLower(filename.stem().string()) == "zqloader";
-        if(!is_zqloader && cmdline.HasParameter("turbofile"))
+        // either only parameter (if 1 given) or 2nd to last parameter if 2 or more parameters
+        // or filename="path/to/file" given
+        fs::path filename = cmdline.GetParameter("filename", "");
+        if (filename.empty())
         {
-            filename = "zqloader.tap";
-            is_zqloader = true;
+            filename = (cmdline.GetNumParameters() == 1 && filename2.empty()) ? cmdline.GetParameter(1) :
+                       (cmdline.GetNumParameters() >= 2) ? cmdline.GetParameter(cmdline.GetNumParameters() - 1):
+                       "";
         }
 
 
 
-        if ((is_zqloader && filename2.empty()) || ToLower(filename2.stem().string()) == "zqloader")
-        {
-            throw std::runtime_error(1 + &*R"(
-When using zqloader.tap a 2nd filename is needed as runtime argument,
-with the program to be turboloaded. A game for example. 
-Else the ZX Spectrum will not do anything after loading the turbo loader,
-except waiting.
-)");
-        }
-        if (!is_zqloader && !filename2.empty())
-        {
-            throw std::runtime_error(1 + &*R"(
-A second filename argument and/or parameters are only usefull when using zqloader.tap 
-which is the turbo loader) as (1st) file.
-)");
-        }
 
-
-
-        SpectrumLoader spectrumloader;
-
-        if(!is_zqloader)
-        {
-            std::cout << "Processing normal speed file: " << filename << std::endl;
-            // filename is tap/tzx file to be normal loaded into the ZX Spectrum.
-            if (ToLower(filename.extension().string()) == ".tap")
-            {
-                TapLoader taploader;
-                taploader.SetOnHandleTapBlock([&](DataBlock p_block, std::string)
-                {
-                    spectrumloader.AddLeaderPlusData(std::move(p_block), spectrum::g_tstate_quick_zero, 1750ms);//.AddPause(100ms);
-                    return false;
-                }
-                );
-                taploader.Load(filename, "");
-            }
-            else if (ToLower(filename.extension().string()) == ".tzx")
-            {
-                TzxLoader tzxloader;
-                tzxloader.SetOnHandleTapBlock([&](DataBlock p_block, std::string)
-                {
-                    spectrumloader.AddLeaderPlusData(std::move(p_block), spectrum::g_tstate_quick_zero, 1750ms);//.AddPause(100ms);
-                    return false;
-                }
-                );
-                tzxloader.Load(filename, "");
-            }
-            else
-            {
-                throw std::runtime_error("Unknown file type for filename: " + filename.string() + " (extension not tap / tzx)");
-            }
-        }
-        else    // is zqloader
-        {   
-            // Try to find zqloader.tap file
-            if (!std::filesystem::exists(filename))
-            {
-                // try at current executable directory by default 
-                filename = fs::path(argv[0]).parent_path() / filename.filename();
-            }
-            if (!std::filesystem::exists(filename))
-            {
-                // try at current executable directory by default 
-                filename = fs::path(argv[0]).parent_path() / "z80" / filename.filename();
-            }
-            if (!std::filesystem::exists(filename))
-            {
-                // then workdir
-                filename = std::filesystem::current_path() / filename.filename();
-            }
-            if (!std::filesystem::exists(filename))
-            {
-                filename = std::filesystem::current_path() / "z80" / filename.filename();
-            }
-            if (!std::filesystem::exists(filename))
-            {
-                throw std::runtime_error("File " +  filename.filename().string() + " not found");
-            }
-            std::cout << "Processing zqloader file: " << filename << " (normal speed)" << std::endl;
-            // filename2 is the tap/tzx/z80 file to be turbo-loaded into the ZX Spectrum.
-
-            fs::path filename_exp = filename;
-            filename_exp.replace_extension("exp");      // zqloader.exp (symbols)
-
-            auto zero_tstates = cmdline.GetParameter("zero_tstates", 0);                  // 0 is default
-            auto one_tstates = cmdline.GetParameter("one_tstates", 0);                    // 0 is default
-            auto end_of_byte_delay = cmdline.GetParameter("end_of_byte_delay", 0);        // 0 is default
-            auto bit_loop_max = cmdline.GetParameter<int>("bit_loop_max", 0);             // When 0 dont overwrite default @ zqloader.z80asm
-            auto bit_one_threshold = cmdline.GetParameter<int>("bit_one_threshold", 0);   // When 0 dont overwrite default @ zqloader.z80asm
-
-            TurboBlocks tblocks{filename_exp};
-            tblocks.SetCompressionType(CompressionType::automatic).
-                    SetDurations(zero_tstates, one_tstates, end_of_byte_delay).
-                    SetBitLoopMax(bit_loop_max).SetBitOneThreshold(bit_one_threshold).
-                    Load(filename, "");     // zqloader.tap
-            if (cmdline.HasParameter("test"))
-            {
-                auto adr = Test(tblocks, "");
-                tblocks.Finalyze(adr).MoveToLoader(spectrumloader);
-            }
-            else if (ToLower(filename2.extension().string()) == ".tap")
-            {
-                std::cout << "Processing tap file: " << filename2 << " (turbo speed)" << std::endl;
-                TapToTurboBlocks tab_to_turbo_blocks{tblocks};
-                TapLoader loader;
-                loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string p_zxfilename)
-                {
-                    return tab_to_turbo_blocks.HandleTapBlock(std::move(p_block), p_zxfilename);
-                }
-                );                
-                loader.Load(filename2, "");
-                tblocks.Finalyze(tab_to_turbo_blocks.GetUsrAddress(), tab_to_turbo_blocks.GetClearAddress()).MoveToLoader(spectrumloader);
-            }
-            else if (ToLower(filename2.extension().string()) == ".tzx")
-            {
-                std::cout << "Processing tzx file: " << filename2 << " (turbo speed)" << std::endl;
-
-                TapToTurboBlocks tab_to_turbo_blocks{tblocks};
-                TzxLoader loader;
-                loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string p_zxfilename)
-                {
-                    return tab_to_turbo_blocks.HandleTapBlock(std::move(p_block), p_zxfilename);
-                }
-                );
-                loader.Load(filename2, "");
-                tblocks.Finalyze(tab_to_turbo_blocks.GetUsrAddress(), tab_to_turbo_blocks.GetClearAddress()).MoveToLoader(spectrumloader);
-            }
-            else if (ToLower(filename2.extension().string()) == ".z80" ||
-                     ToLower(filename2.extension().string()) == ".sna")
-            {
-                std::cout << "Processing snapshot file: " << filename2 << " (turbo speed)" << std::endl;
-
-                Z80SnapShotLoader snapshotloader;
-                // Read file snapshotregs.bin (created by sjasmplus) -> regblock 
-                fs::path snapshot_regs_filename = filename; 
-                snapshot_regs_filename.replace_filename("snapshotregs");
-                snapshot_regs_filename.replace_extension("bin");      
-                DataBlock regblock;
-                regblock.LoadFromFile(snapshot_regs_filename);
-                auto new_loader_location = cmdline.GetParameter<uint16_t>("new_loader_location", 0);
-                bool use_screen =  cmdline.HasParameter("usescreen")|| cmdline.HasParameter("s");
-                if(new_loader_location == 0 && use_screen)
-                {
-                    new_loader_location = spectrum::SCREEN_23RD;
-                }
-                bool write_fun_attribs =  cmdline.HasParameter("fun_attribs")|| cmdline.HasParameter("f");
-                snapshotloader.Load(filename2).SetRegBlock(std::move(regblock)).MoveToTurboBlocks(tblocks, new_loader_location, write_fun_attribs);
-                tblocks.Finalyze(snapshotloader.GetUsrAddress()).MoveToLoader(spectrumloader);
-            }
-            else if (ToLower(filename2.extension().string()) == ".bin")
-            {
-                // @DEBUG
-                auto adr = Test(tblocks, filename2);
-                tblocks.Finalyze(adr).MoveToLoader(spectrumloader);
-            }
-            else
-            {
-                throw std::runtime_error("Unknown file type for filename: " + filename2.string() + " (extension not tap / tzx / z80)");
-            }
-
-        }
+        ZQLoader zqloader;
 
         // When outputfile="path/to/filename" or -w or -wav given: 
         // Convert to wav file instead of outputting sound
-        fs::path outputfilename = cmdline.GetParameter("outputfile", "");
-        if(outputfilename.empty() && (cmdline.HasParameter("wav") || cmdline.HasParameter("w")))
+        zqloader.SetOutputFilename(cmdline.GetParameter("outputfile", ""));
+        if(cmdline.HasParameter("wav") || cmdline.HasParameter("w"))
         {
-            // When -w or -wav is given create output filename out of 2nd given filename (filename2)
-            if( !filename2.empty() && ToLower(filename2.extension().string()) != ".wav")
-            {
-                outputfilename = filename2;
-                outputfilename.replace_extension("wav");
-            }
+            zqloader.SetAction(ZQLoader::Action::write_wav);
         }
-        // same for tzx
-        if(outputfilename.empty() && (cmdline.HasParameter("tzx") || cmdline.HasParameter("t")))
+        else if(cmdline.HasParameter("tzx") || cmdline.HasParameter("t"))
         {
-            if (!filename2.empty() && ToLower(filename2.extension().string()) != ".tzx")
-            {
-                outputfilename = filename2;
-                outputfilename.replace_extension("tzx");
-            }
-        }
-        auto vol1 = cmdline.GetParameter("volume_left", 100);
-        auto vol2 = cmdline.GetParameter("volume_right", 100);
-        auto samplerate = cmdline.GetParameter("samplerate", 0);
-        auto start = std::chrono::steady_clock::now();      // to measure duration only
-        if(outputfilename.empty())
-        {
-            // normal, so play as sound
-            SampleSender sample_sender;
-            spectrumloader.Attach(sample_sender);
-            sample_sender.SetVolume(vol1, vol2).SetSampleRate(samplerate);
-            sample_sender.Run();            // Play!
-        }
-        else if (ToLower(outputfilename.extension().string()) == ".wav")
-        {
-            // Write to wav file
-            std::ofstream filewrite = OpenFileToWrite(outputfilename, cmdline.HasParameter("overwrite") || cmdline.HasParameter("o"));
-            SampleToWav wav_writer;
-            spectrumloader.Attach(wav_writer);
-            wav_writer.SetVolume(vol1, vol2).SetSampleRate(samplerate);
-            wav_writer.WriteToFile(filewrite);
-            std::cout << "Written " << outputfilename << " with size: " << wav_writer.GetSize() << " and duration: " << wav_writer.GetDuration().count() << "s"  << std::endl;
-        }
-        else if (ToLower(outputfilename.extension().string()) == ".tzx")
-        {
-            // Write to tzx file
-            std::ofstream filewrite = OpenFileToWrite(outputfilename, cmdline.HasParameter("overwrite") || cmdline.HasParameter("o"));
-            spectrumloader.WriteTzxFile(filewrite);
-            std::cout << "Written " << outputfilename << std::endl;
+            zqloader.SetAction(ZQLoader::Action::write_tzx);
         }
 
-        auto end = std::chrono::steady_clock::now();
-        auto dura = end - start;
-        std::cout << "Took: " << std::dec << std::chrono::duration_cast<std::chrono::milliseconds>(dura).count() << " ms" << std::endl;
+        zqloader.SetBitLoopMax     (cmdline.GetParameter<int>("bit_loop_max", 0)).
+                 SetBitOneThreshold(cmdline.GetParameter<int>("bit_one_threshold", 0)).
+                 SetDurations      (cmdline.GetParameter("zero_tstates", 0),
+                                    cmdline.GetParameter("one_tstates", 0),
+                                    cmdline.GetParameter("end_of_byte_delay", 0));
+
+        zqloader.SetVolume(cmdline.GetParameter("volume_left", loader_defaults::volume_left),cmdline.GetParameter("volume_right", loader_defaults::volume_right));
+
+
+        if(cmdline.HasParameter("usescreen") || cmdline.HasParameter("s"))
+        {
+            zqloader.SetUseScreen();
+        }
+        else
+        {
+            zqloader.SetNewLoaderLocation(cmdline.GetParameter<uint16_t>("new_loader_location", 0));
+        }
+
+        zqloader.SetNormalFilename(filename).SetTurboFilename(filename2);
+
+        
+        zqloader.Run();
       //  std::cout << "Edge = " << spectrumloader.GetLastEdge() << std::endl;
         er = 0;
     }

@@ -10,8 +10,10 @@
 #pragma once
 
 #include <cstdint>
-#include "taploader.h"
+//#include "taploader.h"
+#include <functional>
 #include <filesystem>       // std::filesystem::path
+#include "datablock.h"
 
 
 /// Loads TZX files.

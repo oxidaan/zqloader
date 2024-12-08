@@ -14,20 +14,12 @@
 #include "symbols.h"         // Symbols member
 #include <memory>            // std::unique_ptr
 #include <iostream>
-
-
+#include "types.h"           // CompressionType
+#include "loader_defaults.h"
 
 class TurboBlock;
 class SpectrumLoader;
 
-enum class CompressionType : uint8_t
-{
-    none,       // No compression; just copy to m_dest_address when given
-    rle,
-    automatic,  // will never be send to spectrum
-};
-
-std::ostream& operator << (std::ostream& p_stream, CompressionType p_enum);
 
 
 
@@ -55,20 +47,29 @@ public:
 
 public:
 
-    /// CTOR using given SpectrumLoader.
-    /// Take an export file name that will be used to load symbols.
-    /// TPath must be std::filesystem::path
-    template <class TPath>
-    TurboBlocks(const TPath &p_symbol_file_name);
+    /// CTORs
+    TurboBlocks() ;
+    TurboBlocks(TurboBlocks &&);
+    TurboBlocks(const TurboBlocks &) = delete;
+
+    TurboBlocks & operator = (TurboBlocks &&);
+    TurboBlocks & operator = (const TurboBlocks &) = delete;
 
     /// DTOR
     ~TurboBlocks();
 
+
     /// Load at normal speed, typically loads zqloader.tap.
-    TurboBlocks& Load(const std::filesystem::path& p_filename, std::string p_zxfilename);
+    TurboBlocks& LoadZqLoader(const std::filesystem::path& p_filename);
 
     /// Set durations in T states for zero and one pulses.
     TurboBlocks& SetDurations(int p_zero_duration, int p_one_duration, int p_end_of_byte_delay);
+
+    auto GetDurations() const
+    {
+        return std::tuple{m_zero_duration, m_one_duration, m_end_of_byte_delay};
+    }
+
 
     /// Set this ZQLoader parameter
     TurboBlocks& SetBitLoopMax(int p_value)
@@ -138,7 +139,10 @@ public:
 
 private:
 
-    bool HandleTapBlock(DataBlock p_block, std::string p_zxfilename);
+    template <class TPath>
+    TurboBlocks&SetSymbolFilename(const TPath &p_symbol_file_name);
+
+    bool HandleZqLoaderTapBlock(DataBlock p_block);
 
     // Get corrected address at datablock as read from zqloader.tap
     uint16_t GetZqLoaderSymbolAddress(const char* p_name) const;
@@ -163,16 +167,16 @@ private:
 
     DataBlock                     m_zqloader_header;               // standard zx header for zqloader
     DataBlock                     m_zqloader_code;                 // block with entire code for zqloader
-    std::vector<TurboBlock>       m_turbo_blocks;
+    std::vector<TurboBlock>       m_turbo_blocks;                  // turbo blocks to load
     std::unique_ptr<TurboBlock>   m_upper_block;                   // when a block is found that overlaps our loader (nullptr when not) must be loaded last
     uint16_t                      m_loader_copy_start = 0;         // start of free space were our loader can be copied to, begins with stack, then Control code copied from basic
-    CompressionType               m_compression_type        = CompressionType::none;
+    CompressionType               m_compression_type        = loader_defaults::compression_type;
     Symbols                       m_symbols;                       // named symbols as read from EXP file
-    int                           m_zero_duration           = 81;//91;  // @@ see zqloader.asm
-    int                           m_one_duration            = 241;//241; //int(91 + 3.5 * 43); //250;  231 worked better with jsw3.z80!?
-    int                           m_end_of_byte_delay       = 64; 
-    int                           m_bit_loop_max            = 0;
-    int                           m_bit_one_threshold       = 0;
+    int                           m_zero_duration           = loader_defaults::zero_duration;
+    int                           m_one_duration            = loader_defaults::one_duration;
+    int                           m_end_of_byte_delay       = loader_defaults::end_of_byte_delay;
+    int                           m_bit_loop_max            = loader_defaults::bit_loop_max;   
+    int                           m_bit_one_threshold       = loader_defaults::bit_one_threshold;
 }; // class TurboBlocks
 
 
@@ -183,3 +187,4 @@ static bool Overlaps(T1 p_start, T2 p_end, T3 p_start2, T4 p_end2)
 {
     return (int(p_end) > int(p_start2)) && (int(p_start) < int(p_end2));
 }
+

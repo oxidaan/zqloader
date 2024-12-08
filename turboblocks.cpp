@@ -108,6 +108,8 @@ public:     // only for std::unique_ptr
 
     TurboBlock(TurboBlock&&) = default;
 
+    ~TurboBlock() = default;
+
     TurboBlock()
     {
         m_data.resize(sizeof(Header));
@@ -184,7 +186,7 @@ private:
     /// m_length,
     /// m_compression_type,
     /// RLE meta data
-    TurboBlock& SetData(const DataBlock& p_data, CompressionType p_compression_type = CompressionType::automatic)
+    TurboBlock& SetData(const DataBlock& p_data, CompressionType p_compression_type = loader_defaults::compression_type)
     {
         m_data_size = p_data.size();
         Compressor<DataBlock>::RLE_Meta rle_meta;
@@ -509,31 +511,43 @@ private:
 
 
 
-/// CTOR using given SpectrumLoader.
+TurboBlocks::TurboBlocks() = default;
+TurboBlocks::TurboBlocks(TurboBlocks &&) = default;
+TurboBlocks & TurboBlocks::operator = (TurboBlocks &&) = default;
+
+
 /// Take an export file name that will be used to load symbols.
 template<>
-TurboBlocks::TurboBlocks(const fs::path &p_symbol_file_name) :
-    m_symbols(p_symbol_file_name)
+TurboBlocks& TurboBlocks::SetSymbolFilename(const fs::path& p_symbol_file_name)
 {
+    m_symbols.ReadSymbols(p_symbol_file_name);
     if(m_symbols.GetSymbol("HEADER_LEN") != sizeof(TurboBlock::Header))
     {
         throw std::runtime_error("TurboBlock::Header length mismatch with zqloader.z80asm");
     }
     std::cout << "Z80 loader total length = " << m_symbols.GetSymbol("TOTAL_LEN") << "\n";
+
+    return *this;
 }
 
 
 TurboBlocks::~TurboBlocks() = default;
 
 /// Load given tap file at normal speed, typically loads zqloader.tap.
-TurboBlocks& TurboBlocks::Load(const std::filesystem::path& p_filename, std::string p_zxfilename)
+TurboBlocks& TurboBlocks::LoadZqLoader(const std::filesystem::path& p_filename)
 {
+    std::cout << "Processing zqloader file: " << p_filename << " (normal speed)" << std::endl;
+
+    fs::path filename_exp = p_filename;
+    filename_exp.replace_extension("exp");          // zqloader.exp (symbols)
+    SetSymbolFilename(filename_exp);
+
     TapLoader loader;
-    loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string p_zxfilename)
+    loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string )
     {   
-        return HandleTapBlock(std::move(p_block), p_zxfilename);
+        return HandleZqLoaderTapBlock(std::move(p_block));
     });
-    loader.Load(p_filename, p_zxfilename);
+    loader.Load(p_filename, "");
     return *this;
 }
 
@@ -765,19 +779,18 @@ inline uint16_t TurboBlocks::GetLoaderCodeLength(bool p_with_registers) const
 
 // Handle the tap block for zqloader.tap - so our loader itself.
 // patch certain parameters, then move to spectrumloader (normal speed)
-bool TurboBlocks::HandleTapBlock(DataBlock p_block, std::string p_zxfilename)
+inline bool TurboBlocks::HandleZqLoaderTapBlock(DataBlock p_block)
 {
-    (void)p_zxfilename;
     using namespace spectrum;
     TapeBlockType type = TapeBlockType(p_block[0]);
     if(type == TapeBlockType::data)
     {
         m_zqloader_code = std::move(p_block);
-        if (m_bit_loop_max)             // when set only (SetBitLoopMax)
+        if (m_bit_loop_max)                 // when 0 dont set (SetBitLoopMax)
         {
             SetDataToZqLoaderTap("BIT_LOOP_MAX", std::byte(m_bit_loop_max));
         }
-        if ( m_bit_one_threshold)        // when set only (SetBitOneThreshold)
+        if ( m_bit_one_threshold)           // when 0 dont set(SetBitOneThreshold)
         {
             auto val = (m_bit_loop_max ? m_bit_loop_max : 12) + 1 - m_bit_one_threshold;
             SetDataToZqLoaderTap("BIT_ONE_THESHLD", std::byte(val));
@@ -842,6 +855,7 @@ inline void TurboBlocks::SetDataToZqLoaderTap( const char* p_name, std::byte p_v
 
 
 /// Set durations in T states for zero and one pulses.
+/// When 0 keep defaults.
 TurboBlocks &TurboBlocks::SetDurations(int p_zero_duration, int p_one_duration, int p_end_of_byte_delay)
 {
     if(p_zero_duration != 0)

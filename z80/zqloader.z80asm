@@ -609,7 +609,7 @@ BIT_ONE_THESHLD+*:  ld E, ONE_MAX+1-ONE_MIN     // eg 12+2-4 = 10, can also be s
     ld A, B
     cp E                        // (eg 12+2-6=8) Becomes a '1' when E > B
     rl L    
-    jp nc, .next_bit             // endmarker @ L reached?    
+    jp nc, .next_bit            // endmarker @ L reached?    
 
     // -- We now have a new byte in L --
 
@@ -622,7 +622,7 @@ BIT_ONE_THESHLD+*:  ld E, ONE_MAX+1-ONE_MIN     // eg 12+2-4 = 10, can also be s
         ld E, A                 // update checksum/crc
         cpi                     // inc HL + dec BC + P/V
     exx
-    jp pe, .next_byte            // 61T since WAIT_FOR_EDGE; 61+62 = 123 since last in
+    jp pe, .next_byte           
     // done!
 load_done:    
     or D                        // D != 0 (=ONE_MAX) so this unsets z
@@ -649,7 +649,7 @@ wait_for_edge_loop1:
     dec B                       // Dec. cycle count (carry not touched) 43 since in
     ret z                       // 5/11T t/o, note carry still not set    (c=0 z=1)
 WAIT_FOR_EDGE:        
-    //ld A,$7F 	                // Read from port 0x7FFE, read BREAK and EAR. 49 + 16 since prev. IN is 59 
+    //ld A,$7F 	                // Maybe not needed. Read from port 0x7FFE, read BREAK and EAR. 49 + 16 since prev. IN is 59 
     in A,($FE)                  // bit 0 is !BREAK, bit 6 is ear
     xor C                       // detect change at ear (also reset carry)
     and 0b01000000              // mask ear 

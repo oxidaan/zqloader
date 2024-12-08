@@ -17,13 +17,24 @@
 
 
 SpectrumLoader::SpectrumLoader() = default;
-
+SpectrumLoader::SpectrumLoader(SpectrumLoader &&) = default;
+SpectrumLoader & SpectrumLoader::operator = (SpectrumLoader &&) = default;
 SpectrumLoader::~SpectrumLoader() = default;
 
 SpectrumLoader& SpectrumLoader::AddLeader(std::chrono::milliseconds p_duration)
 {
     TonePulser().SetPattern(spectrum::g_tstate_leader).
         SetLength(p_duration).
+        MoveToLoader(*this);
+    return *this;
+}
+
+
+/// Convenience: add ZX Spectrum standard leader that goes on forever: for tuning.
+SpectrumLoader& SpectrumLoader::AddEndlessLeader()
+{
+    TonePulser().SetPattern(spectrum::g_tstate_leader).
+        SetInfiniteLength().
         MoveToLoader(*this);
     return *this;
 }
@@ -55,6 +66,8 @@ SpectrumLoader& SpectrumLoader::AddPause(std::chrono::milliseconds p_duration)
     return *this;
 }
 
+
+///  Write as tzx file to given stream
 SpectrumLoader& SpectrumLoader::WriteTzxFile(std::ostream& p_filewrite)
 {
     p_filewrite << "ZXTape!";
@@ -68,16 +81,29 @@ SpectrumLoader& SpectrumLoader::WriteTzxFile(std::ostream& p_filewrite)
     return *this;
 }
 
-// CallBack; runs in miniaudio thread
-// Move to next pulse. Return true when (completely) done.
+///  Get expected duration (from all pulsers)
+/// Not 100% accurate because discrepancy between miniaudio sample rate and time we actually need.
+Doublesec SpectrumLoader::GetDuration() const
+{
+    Doublesec retval = 0ms;
+    for(const auto &p : m_pulsers)
+    {
+        retval += p->GetDuration();
+    }
+    return retval = retval * 1.2;   // see remark at  SampleSender::GetNextSample
+}
+
+/// CallBack; runs in miniaudio thread
+/// Move to next pulse. Return true when (completely) done.
 bool SpectrumLoader::Next()
 {
     Pulser& current = GetCurrentBlock();
-    if (current.Next())
+    if (current.Next())     // true when at end
     {
         m_current_pulser++;
         if (m_current_pulser >= m_pulsers.size())
         {
+            Done();     // calls OnDone callback
             return true;
         }
     }
@@ -85,21 +111,30 @@ bool SpectrumLoader::Next()
 }
 
 
-// Get duration to wait (in seconds)
-// CallBack; runs in miniaudio thread
+
+/// CallBack; runs in miniaudio thread
+/// Get duration to wait (in seconds)
 Doublesec SpectrumLoader::GetDurationWait() const
 {
     Pulser& current = GetCurrentBlock();
     return current.GetTstate() * spectrum::g_tstate_dur;
 }
 
-// Get edge 
-// CallBack; runs in miniaudio thread
-// Get edge depending on what is to be sent: (1/0/sync/leader).
-// Eg a datapulser will return Edge::one when a 1 needs to be send etc.
+/// CallBack; runs in miniaudio thread
+/// Get edge 
+/// Get edge depending on what is to be sent: (1/0/sync/leader).
+/// Eg a datapulser will return Edge::one when a 1 needs to be send etc.
 Edge SpectrumLoader::GetEdge() const
 {
     Pulser& current = GetCurrentBlock();
     return current.GetEdge();
+}
+
+inline void SpectrumLoader::Done()
+{
+    if (m_OnDone)
+    {
+        m_OnDone();
+    }
 }
 

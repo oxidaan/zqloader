@@ -19,6 +19,13 @@
 class Symbols
 {
 public:
+    Symbols() = default;
+    Symbols(Symbols &&) = default;
+    Symbols(const Symbols &) = delete;
+    Symbols & operator = (Symbols &&) = default;
+    Symbols & operator = (const Symbols &) = delete;
+
+
     /// CTOR, loads symbols from given export file. Typical 'zqloader.exp'
     /// Throws when error loading.
     Symbols(const std::filesystem::path &p_filename)

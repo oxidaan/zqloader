@@ -3,24 +3,57 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.33424.131
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zqloader", "zqloader.vcxproj", "{03FF5471-A305-447A-9895-DF7A14D7775F}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zqloaderlib", "zqloaderlib.vcxproj", "{03FF5471-A305-447A-9895-DF7A14D7775F}"
 EndProject
 Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "zqloader_installer", "zqloader_installer\zqloader_installer.vdproj", "{F857A3A6-3474-4A12-B924-2912F6E0EAAB}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{B76F9B81-52DE-400D-83E7-12BECFEC4B89}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zqloader", "zqloader.vcxproj", "{FE3826CD-5A12-43AD-B1BB-8DF89AD4362A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{03FF5471-A305-447A-9895-DF7A14D7775F} = {03FF5471-A305-447A-9895-DF7A14D7775F}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zqloaderui", "zqloaderui\zqloaderui.vcxproj", "{2D162484-2E61-49FB-8263-94EC62629F78}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
 		Release|x64 = Release|x64
+		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{03FF5471-A305-447A-9895-DF7A14D7775F}.Debug|x64.ActiveCfg = Debug|x64
 		{03FF5471-A305-447A-9895-DF7A14D7775F}.Debug|x64.Build.0 = Debug|x64
+		{03FF5471-A305-447A-9895-DF7A14D7775F}.Debug|x86.ActiveCfg = Debug|x64
+		{03FF5471-A305-447A-9895-DF7A14D7775F}.Debug|x86.Build.0 = Debug|x64
 		{03FF5471-A305-447A-9895-DF7A14D7775F}.Release|x64.ActiveCfg = Release|x64
 		{03FF5471-A305-447A-9895-DF7A14D7775F}.Release|x64.Build.0 = Release|x64
+		{03FF5471-A305-447A-9895-DF7A14D7775F}.Release|x86.ActiveCfg = Release|x64
+		{03FF5471-A305-447A-9895-DF7A14D7775F}.Release|x86.Build.0 = Release|x64
 		{F857A3A6-3474-4A12-B924-2912F6E0EAAB}.Debug|x64.ActiveCfg = Debug
+		{F857A3A6-3474-4A12-B924-2912F6E0EAAB}.Debug|x86.ActiveCfg = Debug
+		{F857A3A6-3474-4A12-B924-2912F6E0EAAB}.Debug|x86.Build.0 = Debug
 		{F857A3A6-3474-4A12-B924-2912F6E0EAAB}.Release|x64.ActiveCfg = Release
+		{F857A3A6-3474-4A12-B924-2912F6E0EAAB}.Release|x86.ActiveCfg = Release
+		{F857A3A6-3474-4A12-B924-2912F6E0EAAB}.Release|x86.Build.0 = Release
+		{FE3826CD-5A12-43AD-B1BB-8DF89AD4362A}.Debug|x64.ActiveCfg = Debug|x64
+		{FE3826CD-5A12-43AD-B1BB-8DF89AD4362A}.Debug|x64.Build.0 = Debug|x64
+		{FE3826CD-5A12-43AD-B1BB-8DF89AD4362A}.Debug|x86.ActiveCfg = Debug|Win32
+		{FE3826CD-5A12-43AD-B1BB-8DF89AD4362A}.Debug|x86.Build.0 = Debug|Win32
+		{FE3826CD-5A12-43AD-B1BB-8DF89AD4362A}.Release|x64.ActiveCfg = Release|x64
+		{FE3826CD-5A12-43AD-B1BB-8DF89AD4362A}.Release|x64.Build.0 = Release|x64
+		{FE3826CD-5A12-43AD-B1BB-8DF89AD4362A}.Release|x86.ActiveCfg = Release|Win32
+		{FE3826CD-5A12-43AD-B1BB-8DF89AD4362A}.Release|x86.Build.0 = Release|Win32
+		{2D162484-2E61-49FB-8263-94EC62629F78}.Debug|x64.ActiveCfg = Debug|x64
+		{2D162484-2E61-49FB-8263-94EC62629F78}.Debug|x64.Build.0 = Debug|x64
+		{2D162484-2E61-49FB-8263-94EC62629F78}.Debug|x86.ActiveCfg = Debug|x64
+		{2D162484-2E61-49FB-8263-94EC62629F78}.Debug|x86.Build.0 = Debug|x64
+		{2D162484-2E61-49FB-8263-94EC62629F78}.Release|x64.ActiveCfg = Release|x64
+		{2D162484-2E61-49FB-8263-94EC62629F78}.Release|x64.Build.0 = Release|x64
+		{2D162484-2E61-49FB-8263-94EC62629F78}.Release|x86.ActiveCfg = Release|x64
+		{2D162484-2E61-49FB-8263-94EC62629F78}.Release|x86.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

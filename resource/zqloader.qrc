@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/icon">
+        <file>zqloader.ico</file>
+    </qresource>
+</RCC>

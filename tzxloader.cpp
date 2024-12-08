@@ -8,6 +8,7 @@
 //==============================================================================
 
 #include "tzxloader.h"
+#include "taploader.h"
 #include "loadbinary.h"
 #include "datablock.h"
 #include "pulsers.h"
@@ -308,7 +309,7 @@ TzxLoader& TzxLoader::Load(std::istream& p_stream, std::string p_zxfilename)
             break;
         }
         default:
-            std::cout << "TODO: TZX:" << id << std::endl;       // TODO!
+            std::cout << "TODO: TZX block: " << id << std::endl;       // TODO!
 
         }
         std::cout << std::endl;
@@ -469,6 +470,7 @@ void PausePulser::WriteAsTzxBlock(std::ostream& p_stream) const
     }
 }
 
+
 void DataPulser::WriteAsTzxBlock(std::ostream& p_stream) const
 {
 
@@ -505,4 +507,5 @@ void DataPulser::WriteAsTzxBlock(std::ostream& p_stream) const
         WriteBinary(p_stream, GetByte(i)); 
     }
 }
+
 

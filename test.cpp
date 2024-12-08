@@ -315,37 +315,37 @@ uint16_t Test(TurboBlocks& p_blocks, fs::path p_filename)
 #endif
 #if 0
     TonePulser tone;
-    tone.SetPattern(80, 80).SetLength(20s).MoveToLoader(spectrumloader);
+    tone.SetPattern(80, 80).SetLength(20s).MoveToLoader(m_spectrumloader);
 #endif
 #if 0
     {
         PausePulser pause;
         pause.SetLength(100ms).
             SetEdge(Edge::zero).
-            MoveToLoader(spectrumloader);
-        spectrumloader.Run();
+            MoveToLoader(m_spectrumloader);
+        m_spectrumloader.Run();
 
-        std::cout << "Edge = " << spectrumloader.GetLastEdge() << std::endl;
+        std::cout << "Edge = " << m_spectrumloader.GetLastEdge() << std::endl;
     }
     {
-        SpectrumLoader spectrumloader;
+        SpectrumLoader m_spectrumloader;
         TonePulser tone;
         tone.SetPattern(700, 700).
             //            SetLength(500ms).
             SetLength(1).
-            MoveToLoader(spectrumloader);
-        spectrumloader.Run();
-        std::cout << "Edge = " << spectrumloader.GetLastEdge() << std::endl;
+            MoveToLoader(m_spectrumloader);
+        m_spectrumloader.Run();
+        std::cout << "Edge = " << m_spectrumloader.GetLastEdge() << std::endl;
     }
     {
-        SpectrumLoader spectrumloader;
+        SpectrumLoader m_spectrumloader;
         TonePulser tone;
         tone.SetLength(1).   // 000ms).
             SetPattern(700, 700, 700).SetLength(1).
-            MoveToLoader(spectrumloader);
-        spectrumloader.Run();
+            MoveToLoader(m_spectrumloader);
+        m_spectrumloader.Run();
 
-        std::cout << "Edge = " << spectrumloader.GetLastEdge() << std::endl;
+        std::cout << "Edge = " << m_spectrumloader.GetLastEdge() << std::endl;
     }
 #endif
 }

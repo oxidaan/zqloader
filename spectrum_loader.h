@@ -13,7 +13,6 @@
 #include <vector>
 #include <memory>           // std::unique_ptr
 #include <functional>       // std::bind
-
 #include "types.h"
 #include "datablock.h"      // Datablock used
 #include "spectrum_consts.h"
@@ -40,28 +39,27 @@ class SpectrumLoader
 private:
     using PulserPtr = std::unique_ptr<Pulser>;
     using Pulsers = std::vector<PulserPtr>;
-
+    SpectrumLoader(const SpectrumLoader&) = delete;
+    SpectrumLoader & operator =(const SpectrumLoader&) = delete;
 public:
-    // Ctor
-    SpectrumLoader();
-    
+    using DoneFun        = std::function<void (void)>;
+
+    // Ctor 
+    SpectrumLoader();            
+    SpectrumLoader(SpectrumLoader &&);
+    SpectrumLoader & operator = (SpectrumLoader &&); 
     // Dtor
-    ~SpectrumLoader();
+    ~SpectrumLoader();   // = default;
 
 
 
 
-    /// Reset SpectrumLoader.
-    SpectrumLoader& Reset()
-    {
-        m_current_pulser = 0;
-        return *this;
-    }
 
     /// And any pulser.
     template <class TPulser, typename std::enable_if<std::is_base_of<Pulser, TPulser>::value, int>::type = 0>
     SpectrumLoader& AddPulser(TPulser p_block)
     {
+        m_current_pulser = 0;
         PulserPtr ptr = std::make_unique< TPulser >(std::move(p_block));
         m_pulsers.push_back(std::move(ptr));
         return *this;
@@ -69,6 +67,9 @@ public:
 
     /// Convenience: add ZX Spectrum standard leader with given duration.
     SpectrumLoader& AddLeader(std::chrono::milliseconds p_duration);
+
+    /// Convenience: add ZX Spectrum standard leader that goes on forever: for tuning.
+    SpectrumLoader& AddEndlessLeader();
 
     /// Convenience: add ZX Spectrum standard sync block. 
     SpectrumLoader& AddSync();
@@ -95,14 +96,20 @@ public:
     template<class TSampleSender>
     SpectrumLoader& Attach(TSampleSender& p_sample_sender)
     {
-        Reset();
         p_sample_sender.SetOnGetDurationWait(std::bind(&SpectrumLoader::GetDurationWait, this)).
                         SetOnGetEdge(std::bind(&SpectrumLoader::GetEdge, this)).
                         SetOnNextSample(std::bind(&SpectrumLoader::Next, this));
         return *this;
     }
 
+    /// Set callback when done.
+    SpectrumLoader& SetOnDone(DoneFun p_fun)
+    {
+        m_OnDone = std::move(p_fun);
+        return *this;
+    }
 
+    Doublesec GetDuration() const;
 
 private:
     // CallBack; runs in miniaudio thread
@@ -126,10 +133,16 @@ private:
         return *(m_pulsers[m_current_pulser]);
     }
 
+    
+    // Calls callback see 'SetOnDone'
+    // runs in miniaudio thread
+    void Done();
+
 
 
 private:
     Pulsers m_pulsers;
     size_t m_current_pulser = 0;
+    DoneFun                      m_OnDone;
 
 };

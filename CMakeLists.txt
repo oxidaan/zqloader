@@ -19,17 +19,19 @@ else()
     add_subdirectory(z80)
 endif()
 
+set(TARGET_LIB ${PROJECT_NAME}lib)
+set(TARGET_EXE ${PROJECT_NAME})
+
 file(GLOB INCLUDE
     "zqloader/*.h"
     "*.h"
     )
 
 
-set(SOURCE
+set(SOURCE_LIB
     z80snapshot_loader.cpp
     datablock.cpp
     enumstreamer.cpp
-    main.cpp
     miniaudio.cpp
     samplesender.cpp
     spectrum_loader.cpp
@@ -42,27 +44,26 @@ set(SOURCE
     tzxloader.cpp
     sampletowav.cpp
     pulsers.cpp
+    zqloader.cpp
 )
 
-if(MSVC)
-    set(SOURCE ${SOURCE}
-    zqloader.rc)
-endif()
 
 set(DOCUMENTATION
     README.md
     LICENSE.txt
 )    
 
-add_executable(${PROJECT_NAME}  ${SOURCE} ${INCLUDE} ${DOCUMENTATION} )
+
+
+add_library(${TARGET_LIB} SHARED  ${SOURCE_LIB} ${INCLUDE} ${DOCUMENTATION} )
 
 # We need c++17
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+target_compile_features(${TARGET_LIB} PUBLIC cxx_std_17)
 
 # Here lives miniadio.h
-target_include_directories(${PROJECT_NAME} PRIVATE miniaudio)
+target_include_directories(${TARGET_LIB} PRIVATE miniaudio)
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE
+target_compile_definitions(${TARGET_LIB} PUBLIC
     "NDEBUG;"
     "_CONSOLE;"
     "UNICODE;"
@@ -75,7 +76,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 endif()
 
 if(MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE
+    target_compile_options(${TARGET_LIB} PUBLIC
         /permissive-;
         /MP;                # multi processor build
         /Oi;                # intrincic functions
@@ -86,7 +87,7 @@ if(MSVC)
         /Zc:__cplusplus;    # fix bug to recognise __cplusplus
         ${DEFAULT_CXX_EXCEPTION_HANDLING}
     )
-    target_link_options(${PROJECT_NAME} PRIVATE
+    target_link_options(${TARGET_LIB} PUBLIC
         /DEBUG;
         /SUBSYSTEM:CONSOLE;
         /OPT:REF;           # Remove unreferenced
@@ -95,7 +96,7 @@ if(MSVC)
 endif()
 
 if (GCC) 
-    target_compile_options(${PROJECT_NAME} PRIVATE 
+    target_compile_options(${TARGET_LIB} PUBLIC 
         -Wall 
         -pedantic
         -Werror
@@ -106,16 +107,25 @@ endif()
 
 
 if(UNIX)
-    target_link_libraries(${PROJECT_NAME} PRIVATE dl pthread)
+    target_link_libraries(${TARGET_LIB} PRIVATE dl pthread)
 endif()
 if(WIN32)
-    target_link_libraries(${PROJECT_NAME} PRIVATE ws2_32 DbgHelp psapi)
+    target_link_libraries(${TARGET_LIB} PRIVATE ws2_32 DbgHelp psapi)
 endif()
 
 
+set(SOURCE_EXE main.cpp)
+
+if(MSVC)
+    set(SOURCE_EXE ${SOURCE_EXE}
+    zqloader.rc)
+endif()
+
+add_executable(${TARGET_EXE}  ${SOURCE_EXE} ${INCLUDE} )
+target_link_libraries(${TARGET_EXE} ${TARGET_LIB})
 
 
-install(TARGETS ${PROJECT_NAME} 
+install(TARGETS ${TARGET_EXE} ${TARGET_LIB}
 RUNTIME DESTINATION bin
 LIBRARY DESTINATION lib
        )
