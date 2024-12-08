@@ -368,3 +368,22 @@ FodyWeavers.xsd
 # Svn directory
 .svn/
 *.bak
+/resource/RCa23168
+/z80/zqloader - kopie (2).z80asm
+/z80/zqloader - kopie (3).z80asm
+/z80/zqloader - kopie (4).z80asm
+/z80/zqloader - kopie.z80asm
+/z80/zqloader - with moved stack.z80asm
+/z80/zqloader classic.z80asm
+/z80/zqloader wo ld in.z80asm
+/z80/zqloader2.z80asm
+/z80/zqloader_snapshottest.sna
+/z80/zqloader_test.bin
+/z80/zqloader_test.tap
+/z80/ff.z80asm
+/z80/Nieuw - Tekstdocument.txt
+/z80/qloader_test.bin
+/CMakePresets.json
+/CMakeUserPresets.json
+/examples.txt
+/test2.bin
