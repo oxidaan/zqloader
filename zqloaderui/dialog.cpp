@@ -225,7 +225,8 @@ Dialog::Dialog(QWidget *parent)
     if(QCoreApplication::arguments().size() > 1)
     {
         ui->lineEditTurboFile->setText(QCoreApplication::arguments()[1]);
-        Go();
+        // maybe not nice to have loading sounds unprepared: 
+        // Go();
     }
 
     
