@@ -3,7 +3,7 @@ ZQloader
 
 This is a turbo loader used to load machine code games into a **real** ZX Spectrum at high speed.  
 
-This loader is capable of loading a 48K game in about *25-30 seconds*. This time includes the time of loading the loader itself (which uses traditional ROM loader/speed) plus a splash screen.  
+This loader is capable of loading a 48K game in about *25-30 seconds*. (Jetset Willy snapshot in 19 seconds!). This time includes the time of loading the loader itself (which uses traditional ROM loader/speed) plus a splash screen.  
 
 The idea is that when using a computer to generate the loading-sounds a much higher speed can be achieved as compared to the old tapes. After all the accuracy when generating loading sounds from a computer is much higher than those old wobbly tape recorders.   
 
