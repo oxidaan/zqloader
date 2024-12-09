@@ -48,7 +48,7 @@ The compression is most effective when loading a snapshot. This is because when 
 Limitations/TODO's
 ---
 
-* Only works with 48K ZX Spectrum! Because thats all I have to test it with!
+* It is only tested with 48K ZX Spectrum! Because thats all I have to test it with! (if you have it working on a 128K or any other ZX Spectrum let me know!...).
 
 *When using TAP or TZX files:*
 
