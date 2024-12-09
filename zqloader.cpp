@@ -216,10 +216,11 @@ public:
         Reset();
     }
 
+    /// reset by move assigning empty/new instance.
     void Reset()
     {
-        m_sample_sender.Stop();    // <- Because move assign causes problems. Dtor target not called. So thread not stopped.
         auto onDone = std::move(m_OnDone);  // keep call back
+        SampleSender remove = std::move(m_sample_sender);   // <- Because move assign causes problems. Dtor target not called. So thread not stopped.
         *this = Impl();
         m_OnDone = std::move(onDone);
     }

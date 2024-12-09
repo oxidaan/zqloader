@@ -34,14 +34,14 @@ public:
    SampleSender &operator =(const SampleSender&) = delete;
 public:
 
-    SampleSender();
-    ~SampleSender();
+    SampleSender() noexcept;
+    ~SampleSender() noexcept;
 
     /// Move CTOR
-    SampleSender(SampleSender&&) = delete;
+    SampleSender(SampleSender&&) noexcept;
 
     /// Default move assign causes problems. Dtor target not called. So thread not stopped.
-    SampleSender& operator = (SampleSender&&);
+    SampleSender& operator = (SampleSender&&) noexcept;
 
 
 

@@ -13,8 +13,9 @@
 #include <thread>
 
 // CTORs
-SampleSender::SampleSender() = default;
-SampleSender& SampleSender::operator = (SampleSender&&) = default;
+SampleSender::SampleSender() noexcept = default;
+SampleSender::SampleSender(SampleSender &&) noexcept = default;
+SampleSender& SampleSender::operator = (SampleSender&&) noexcept = default;
 
 
 
