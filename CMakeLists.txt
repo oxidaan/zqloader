@@ -54,7 +54,7 @@ set(DOCUMENTATION
 )    
 
 
-
+# Common library contianing bulk of code
 add_library(${TARGET_LIB} SHARED  ${SOURCE_LIB} ${INCLUDE} ${DOCUMENTATION} )
 
 # We need c++17
@@ -113,7 +113,10 @@ if(WIN32)
     target_link_libraries(${TARGET_LIB} PRIVATE ws2_32 DbgHelp psapi)
 endif()
 
+# include ui/qt application
+add_subdirectory(zqloaderui)
 
+# commandline/console application
 set(SOURCE_EXE main.cpp)
 
 if(MSVC)
@@ -125,8 +128,10 @@ add_executable(${TARGET_EXE}  ${SOURCE_EXE} ${INCLUDE} )
 target_link_libraries(${TARGET_EXE} ${TARGET_LIB})
 
 
+#installation
+include(GNUInstallDirs)
 install(TARGETS ${TARGET_EXE} ${TARGET_LIB}
-RUNTIME DESTINATION bin
-LIBRARY DESTINATION lib
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
        )
 
