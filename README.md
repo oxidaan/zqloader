@@ -1,7 +1,7 @@
 ZQloader
 ====
 
-This is a turbo loader used to load machine code games into a **real** ZX Spectrum at high speed.  
+This is a turbo loader used to load machine code games into a **real** unmodified ZX Spectrum at high speed.  
 
 This loader is capable of loading a 48K game in about *25-30 seconds*. (Jetset Willy snapshot in 19 seconds!). This time includes the time of loading the loader itself (which uses traditional ROM loader/speed) plus a splash screen.  
 
