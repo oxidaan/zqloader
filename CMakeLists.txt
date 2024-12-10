@@ -16,7 +16,7 @@ if(NOT HAVE_SJSASMPLUS)
             )
 else()
     message("sjasmplus found at ${HAVE_SJSASMPLUS}")
-    add_subdirectory(z80)
+    ##add_subdirectory(z80)
 endif()
 
 set(TARGET_LIB ${PROJECT_NAME}lib)

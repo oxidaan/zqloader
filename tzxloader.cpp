@@ -110,7 +110,7 @@ struct GeneralizedDataBlock
 
 
 
-TzxLoader& TzxLoader::Load(const fs::path &p_filename, std::string p_zxfilename)
+TzxLoader& TzxLoader::Load(const fs::path &p_filename, const std::string &p_zxfilename)
 {
     std::ifstream fileread(p_filename, std::ios::binary);
     if (!fileread)
@@ -134,7 +134,7 @@ TzxLoader& TzxLoader::Load(const fs::path &p_filename, std::string p_zxfilename)
 
 // http://k1.spdns.de/Develop/Projects/zasm/Info/TZX%20format.html
 // https://worldofspectrum.net/TZXformat.html
-TzxLoader& TzxLoader::Load(std::istream& p_stream, std::string p_zxfilename)
+TzxLoader& TzxLoader::Load(std::istream& p_stream, const std::string &p_zxfilename)
 {
     std::string s = LoadBinary<std::string>(p_stream, 7);
 
@@ -323,7 +323,7 @@ bool TzxLoader::HandleTapBlock(std::istream& p_stream, std::string p_zxfilename,
     auto block = taploader.LoadTapBlock(p_stream, p_length);
     if (m_OnHandleTapBlock)
     {
-        return m_OnHandleTapBlock(std::move(block), p_zxfilename);
+        return m_OnHandleTapBlock(std::move(block), std::move(p_zxfilename));
     }
     return false;
 }
@@ -385,7 +385,7 @@ void TonePulser::WriteAsTzxBlock(std::ostream &p_stream) const
     {
         // need to write as GeneralizedDataBlock (instead of Puretone) because pulses have different length
         WriteBinary<TzxBlockType>(p_stream, TzxBlockType::GeneralizedDataBlock);
-        GeneralizedDataBlock generalized_data_block;
+        GeneralizedDataBlock generalized_data_block{};
         generalized_data_block.pause = 0;
         generalized_data_block.totp = 1;
         generalized_data_block.npp = BYTE(m_pattern.size());
@@ -399,7 +399,7 @@ void TonePulser::WriteAsTzxBlock(std::ostream &p_stream) const
         WriteBinary(p_stream, generalized_data_block);
         // for(int n = 0; n < generalized_data_block.asp; n++)      // there is one only
         {
-            GeneralizedDataBlock::SymDef symdef;
+            GeneralizedDataBlock::SymDef symdef{};
             symdef.m_edge = Edge::toggle;      
             WriteBinary(p_stream, symdef);
             for (int i = 0; i < generalized_data_block.npp; i++)
@@ -409,7 +409,7 @@ void TonePulser::WriteAsTzxBlock(std::ostream &p_stream) const
         }
         //for (int n = 0; n < generalized_data_block.totp; n++)     // there is one only
         {
-            GeneralizedDataBlock::Prle prle;
+            GeneralizedDataBlock::Prle prle{};
             prle.m_symbol = 0;      // the one and only symbol
             prle.m_repetitions = WORD(m_max_pulses / generalized_data_block.npp);
             WriteBinary(p_stream, prle);
@@ -434,7 +434,7 @@ void PausePulser::WriteAsTzxBlock(std::ostream& p_stream) const
         // need to write as GeneralizedDataBlock because PauseOrStopthetapecommand is not accurate
         // enough and might need edge at end of pause
         WriteBinary<TzxBlockType>(p_stream, TzxBlockType::GeneralizedDataBlock);
-        GeneralizedDataBlock generalized_data_block;
+        GeneralizedDataBlock generalized_data_block{};
         generalized_data_block.pause = 0;
         generalized_data_block.totp = 2;            // pause, then the edge
         generalized_data_block.npp = 1;             
@@ -448,7 +448,7 @@ void PausePulser::WriteAsTzxBlock(std::ostream& p_stream) const
         WriteBinary(p_stream, generalized_data_block);
 
         // first symdef for pause
-        GeneralizedDataBlock::SymDef symdef;
+        GeneralizedDataBlock::SymDef symdef{};
         symdef.m_edge = Edge::no_change;
         WriteBinary(p_stream, symdef);
         WriteBinary(p_stream, WORD(m_duration_in_tstates));
@@ -458,7 +458,7 @@ void PausePulser::WriteAsTzxBlock(std::ostream& p_stream) const
         WriteBinary(p_stream, symdef);
         WriteBinary(p_stream, WORD(0));
 
-        GeneralizedDataBlock::Prle prle;
+        GeneralizedDataBlock::Prle prle{};
         prle.m_symbol = 0;      // first symbol
         prle.m_repetitions = 1;
         WriteBinary(p_stream, prle);
@@ -475,7 +475,7 @@ void DataPulser::WriteAsTzxBlock(std::ostream& p_stream) const
 {
 
     WriteBinary<TzxBlockType>(p_stream, TzxBlockType::GeneralizedDataBlock);
-    GeneralizedDataBlock generalized_data_block;
+    GeneralizedDataBlock generalized_data_block{};
     generalized_data_block.pause = 0;
 
     generalized_data_block.totp = 0;
@@ -492,7 +492,7 @@ void DataPulser::WriteAsTzxBlock(std::ostream& p_stream) const
     // no pulses, so no SYMDEF[ASP]/PRLE[TOTP]
     for(int n = 0; n < generalized_data_block.asd; n++)   
     {
-        GeneralizedDataBlock::SymDef symdef;
+        GeneralizedDataBlock::SymDef symdef{};
         symdef.m_edge = Edge::toggle;      // toggle
         WriteBinary(p_stream, symdef);
         const auto & pattern = (n==0) ? m_zero_pattern : m_one_pattern;

@@ -31,10 +31,10 @@ public:
 
 
     /// Loads given tzx file from given file. Ignores until given zxfilename is found.
-    TzxLoader& Load(const std::filesystem::path &p_filename, std::string p_zxfilename);
+    TzxLoader& Load(const std::filesystem::path &p_filename, const std::string &p_zxfilename);
 
     ///  Loads tzx file from given stream. Ignores until given zxfilename is found.
-    TzxLoader& Load(std::istream& p_stream, std::string p_zxfilename);
+    TzxLoader& Load(std::istream& p_stream, const std::string &p_zxfilename);
 
     /// Set callback when tapblock found
     TzxLoader& SetOnHandleTapBlock(HandleTapBlockFun p_fun)

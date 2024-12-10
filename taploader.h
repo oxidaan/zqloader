@@ -29,10 +29,10 @@ public:
     /// Load a tap file from given filename.
     /// p_zxfilename: the ZX Spectrum file name, eg used to filter / only load certain 
     /// program names.
-    TapLoader& Load(const std::filesystem::path &p_filename, std::string p_zxfilename);
+    TapLoader& Load(const std::filesystem::path &p_filename, const std::string &p_zxfilename);
     
     /// Load a tap file from given stream. Stops when HandleTapBlock returns true.
-    TapLoader& Load(std::istream& p_stream, std::string p_zxfilename);
+    TapLoader& Load(std::istream& p_stream, const std::string &p_zxfilename);
 
     /// Load a data block as in TAP format from given stream.    
     DataBlock LoadTapBlock(std::istream& p_stream);

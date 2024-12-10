@@ -172,7 +172,7 @@ private:
 
     // See https://wikiti.brandonw.net/index.php?title=Z80_Optimization#Looping_with_16_bit_counter
     // 'Looping with 16 bit counter'
-    uint16_t Adjust16bitCounterForUseWithDjnz(uint16_t p_counter)
+    static uint16_t Adjust16bitCounterForUseWithDjnz(uint16_t p_counter)
     {
         uint8_t b = p_counter & 0xff;               // lsb - used at djnz 'ld b, e'      
         uint16_t counter = p_counter - 1;           // 'dec de'
@@ -189,7 +189,7 @@ private:
     TurboBlock& SetData(const DataBlock& p_data, CompressionType p_compression_type = loader_defaults::compression_type)
     {
         m_data_size = p_data.size();
-        Compressor<DataBlock>::RLE_Meta rle_meta;
+        Compressor<DataBlock>::RLE_Meta rle_meta{};
         // try inline decompression
         bool try_inline = !m_overwrites_loader && GetHeader().m_load_address == 0 && GetHeader().m_dest_address != 0;
         uint16_t decompress_counter = 0;
@@ -486,7 +486,7 @@ private:
 
     // Calculate a simple one-byte checksum over given data.
     // including header and the length fields.
-    uint8_t CalculateChecksum(const DataBlock &p_data) const
+    static uint8_t CalculateChecksum(const DataBlock &p_data)
     {
         int8_t retval = 1;  // checksum init val
         // retval++;  // @DEBUG must give CHECKSUM ERROR
