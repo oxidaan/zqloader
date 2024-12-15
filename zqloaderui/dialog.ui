@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>621</width>
-    <height>478</height>
+    <width>759</width>
+    <height>537</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -94,8 +94,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>595</width>
-            <height>339</height>
+            <width>733</width>
+            <height>398</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_3">
@@ -114,69 +114,10 @@
            <property name="spacing">
             <number>4</number>
            </property>
-           <item row="1" column="1">
-            <widget class="QLabel" name="label_2">
+           <item row="1" column="9">
+            <widget class="QPushButton" name="pushButtonBrowseTurboFile">
              <property name="text">
-              <string>Turbo speed file:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="4">
-            <widget class="QLabel" name="label_4">
-             <property name="text">
-              <string>Volume Right:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="2">
-            <widget class="QLineEdit" name="lineEditVolumeLeft"/>
-           </item>
-           <item row="3" column="5">
-            <widget class="QLineEdit" name="lineEditVolumeRight"/>
-           </item>
-           <item row="3" column="1">
-            <widget class="QLabel" name="label_3">
-             <property name="text">
-              <string>Volume Left:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="7">
-            <widget class="Dial" name="dialVolumeRight">
-             <property name="maximumSize">
-              <size>
-               <width>50</width>
-               <height>50</height>
-              </size>
-             </property>
-             <property name="minimum">
-              <number>-100</number>
-             </property>
-             <property name="maximum">
-              <number>100</number>
-             </property>
-             <property name="wrapping">
-              <bool>false</bool>
-             </property>
-             <property name="notchesVisible">
-              <bool>false</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QLabel" name="label">
-             <property name="text">
-              <string>Normal speed file:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="7" column="1">
-            <widget class="QLabel" name="label_10">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;To write an output fil instead of playing sound enter .wav or .tzx output file here. Leave emtpy for normal usage (playing audio)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="text">
-              <string>Output file:</string>
+              <string>Browse...</string>
              </property>
             </widget>
            </item>
@@ -202,74 +143,20 @@
              </property>
             </widget>
            </item>
-           <item row="3" column="8">
-            <widget class="QPushButton" name="pushButtonTune">
-             <property name="text">
-              <string>Tune...</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="8">
-            <widget class="QPushButton" name="pushButtonBrowseTurboFile">
-             <property name="text">
-              <string>Browse...</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="8">
+           <item row="0" column="9">
             <widget class="QPushButton" name="pushButtonBrowseNormalFile">
              <property name="text">
               <string>Browse...</string>
              </property>
             </widget>
            </item>
-           <item row="0" column="2" colspan="6">
-            <widget class="QLineEdit" name="lineEditNormalFile"/>
-           </item>
-           <item row="1" column="2" colspan="6">
-            <widget class="QLineEdit" name="lineEditTurboFile"/>
-           </item>
-           <item row="2" column="1" colspan="8">
-            <widget class="Line" name="line">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-            </widget>
-           </item>
-           <item row="6" column="1" colspan="8">
-            <widget class="Line" name="line_2">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-            </widget>
-           </item>
-           <item row="7" column="8">
-            <widget class="QPushButton" name="pushButtonBrowseOutputFile">
-             <property name="text">
-              <string>Browse...</string>
-             </property>
-            </widget>
-           </item>
-           <item row="7" column="2" colspan="6">
-            <widget class="QLineEdit" name="lineEditOutputFile"/>
-           </item>
-           <item row="10" column="1" colspan="8">
-            <widget class="QLabel" name="label_5">
-             <property name="text">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;To write an output file instead of playing sound enter a .wav or .tzx output file here. Leave empty for normal usage (playing audio)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="textFormat">
-              <enum>Qt::RichText</enum>
-             </property>
-             <property name="wordWrap">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="13" column="1" colspan="8">
+           <item row="13" column="1" colspan="9">
             <widget class="QTextEdit" name="textEditOutput">
              <property name="sizeAdjustPolicy">
               <enum>QAbstractScrollArea::AdjustToContents</enum>
+             </property>
+             <property name="readOnly">
+              <bool>true</bool>
              </property>
              <property name="html">
               <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
@@ -286,7 +173,47 @@ li.checked::marker { content: &quot;\2612&quot;; }
              </property>
             </widget>
            </item>
-           <item row="13" column="8" alignment="Qt::AlignBottom">
+           <item row="3" column="9">
+            <widget class="QPushButton" name="pushButtonTune">
+             <property name="text">
+              <string>Tune...</string>
+             </property>
+            </widget>
+           </item>
+           <item row="11" column="1" colspan="9">
+            <widget class="Line" name="line_4">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="1">
+            <widget class="QLabel" name="label_10">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;To write an output fil instead of playing sound enter .wav or .tzx output file here. Leave emtpy for normal usage (playing audio)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="text">
+              <string>Output file:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="2" colspan="6">
+            <widget class="QLineEdit" name="lineEditOutputFile"/>
+           </item>
+           <item row="4" column="1" colspan="9">
+            <widget class="QLabel" name="label_7">
+             <property name="text">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Volume. Use negative values to invert channel. Use the 'Tune' button for an endless leader tone. Then adjust volume and cables until you see red/cyan stripes.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="textFormat">
+              <enum>Qt::RichText</enum>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="13" column="9" alignment="Qt::AlignBottom">
             <widget class="QPushButton" name="pushButtonClean">
              <property name="enabled">
               <bool>false</bool>
@@ -302,23 +229,106 @@ li.checked::marker { content: &quot;\2612&quot;; }
              </property>
             </widget>
            </item>
-           <item row="11" column="1" colspan="8">
-            <widget class="Line" name="line_4">
+           <item row="3" column="1">
+            <widget class="QLabel" name="label_3">
+             <property name="text">
+              <string>Volume Left:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1" colspan="9">
+            <widget class="Line" name="line">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
              </property>
             </widget>
            </item>
-           <item row="4" column="1" colspan="8">
-            <widget class="QLabel" name="label_7">
+           <item row="6" column="1" colspan="9">
+            <widget class="Line" name="line_2">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLabel" name="label">
              <property name="text">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Volume. Use negative values to invert channel. Use the 'Tune' button for an endless leader tone. Then adjust volume and cables until you see red/cyan stripes.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>Normal speed file:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="10" column="1" colspan="9">
+            <widget class="QLabel" name="label_5">
+             <property name="text">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;To write an output file instead of playing sound enter a .wav or .tzx output file here. Leave empty for normal usage (playing audio)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="textFormat">
               <enum>Qt::RichText</enum>
              </property>
              <property name="wordWrap">
               <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="7">
+            <widget class="Dial" name="dialVolumeRight">
+             <property name="maximumSize">
+              <size>
+               <width>50</width>
+               <height>50</height>
+              </size>
+             </property>
+             <property name="minimum">
+              <number>-100</number>
+             </property>
+             <property name="maximum">
+              <number>100</number>
+             </property>
+             <property name="wrapping">
+              <bool>false</bool>
+             </property>
+             <property name="notchesVisible">
+              <bool>false</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="5">
+            <widget class="QLineEdit" name="lineEditVolumeRight"/>
+           </item>
+           <item row="3" column="4">
+            <widget class="QLabel" name="label_4">
+             <property name="text">
+              <string>Volume Right:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="2">
+            <widget class="QLineEdit" name="lineEditVolumeLeft"/>
+           </item>
+           <item row="1" column="2" colspan="6">
+            <widget class="QLineEdit" name="lineEditTurboFile"/>
+           </item>
+           <item row="7" column="9">
+            <widget class="QPushButton" name="pushButtonBrowseOutputFile">
+             <property name="text">
+              <string>Browse...</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QLabel" name="label_2">
+             <property name="text">
+              <string>Turbo speed file:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="2" colspan="6">
+            <widget class="QLineEdit" name="lineEditNormalFile"/>
+           </item>
+           <item row="0" column="8" rowspan="2">
+            <widget class="QPushButton" name="pushButtonPreLoad">
+             <property name="text">
+              <string>PreLoad</string>
              </property>
             </widget>
            </item>
@@ -358,8 +368,8 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>595</width>
-            <height>339</height>
+            <width>483</width>
+            <height>324</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_421">
@@ -582,8 +592,8 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>98</width>
-            <height>87</height>
+            <width>733</width>
+            <height>398</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_4">
@@ -602,7 +612,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <property name="spacing">
             <number>4</number>
            </property>
-           <item row="1" column="0">
+           <item row="1" column="1">
             <widget class="QTextEdit" name="textEditAbout">
              <property name="readOnly">
               <bool>true</bool>
@@ -627,7 +637,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
              </property>
             </widget>
            </item>
-           <item row="2" column="0">
+           <item row="3" column="1">
             <spacer name="verticalSpacer">
              <property name="orientation">
               <enum>Qt::Vertical</enum>
@@ -639,6 +649,13 @@ li.checked::marker { content: &quot;\2612&quot;; }
               </size>
              </property>
             </spacer>
+           </item>
+           <item row="2" column="1">
+            <widget class="QPushButton" name="pushButtonTest">
+             <property name="text">
+              <string>Debug/Test</string>
+             </property>
+            </widget>
            </item>
           </layout>
          </widget>
@@ -659,18 +676,34 @@ li.checked::marker { content: &quot;\2612&quot;; }
  </customwidgets>
  <tabstops>
   <tabstop>lineEditNormalFile</tabstop>
+  <tabstop>pushButtonBrowseNormalFile</tabstop>
   <tabstop>lineEditTurboFile</tabstop>
+  <tabstop>pushButtonBrowseTurboFile</tabstop>
   <tabstop>lineEditVolumeLeft</tabstop>
-  <tabstop>lineEditOutputFile</tabstop>
-  <tabstop>lineEditSampleRate</tabstop>
-  <tabstop>lineEditZeroTStates</tabstop>
-  <tabstop>lineEditOneTStates</tabstop>
-  <tabstop>lineEditBitOneThreshold</tabstop>
-  <tabstop>lineEditBitLoopMax</tabstop>
-  <tabstop>pushButtonGo</tabstop>
-  <tabstop>scrollArea_2</tabstop>
   <tabstop>dialVolumeLeft</tabstop>
+  <tabstop>lineEditVolumeRight</tabstop>
+  <tabstop>dialVolumeRight</tabstop>
+  <tabstop>pushButtonTune</tabstop>
+  <tabstop>lineEditOutputFile</tabstop>
+  <tabstop>pushButtonBrowseOutputFile</tabstop>
+  <tabstop>pushButtonGo</tabstop>
+  <tabstop>pushButtonClean</tabstop>
+  <tabstop>scrollArea</tabstop>
+  <tabstop>lineEditSampleRate</tabstop>
+  <tabstop>lineEditBitLoopMax</tabstop>
+  <tabstop>scrollArea_2</tabstop>
+  <tabstop>lineEditOneTStates</tabstop>
+  <tabstop>lineEditZeroTStates</tabstop>
+  <tabstop>lineEditBitOneThreshold</tabstop>
+  <tabstop>textEditOutput</tabstop>
   <tabstop>tabWidget</tabstop>
+  <tabstop>lineEditEndOfByteDelay</tabstop>
+  <tabstop>checkBoxFunAttribs</tabstop>
+  <tabstop>lineEditLoaderAddress</tabstop>
+  <tabstop>comboBoxCompressionType</tabstop>
+  <tabstop>comboBoxLoaderLocation</tabstop>
+  <tabstop>scrollArea_3</tabstop>
+  <tabstop>textEditAbout</tabstop>
  </tabstops>
  <resources/>
  <connections/>

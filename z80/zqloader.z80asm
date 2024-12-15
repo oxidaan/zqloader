@@ -411,18 +411,18 @@ TEXT_ERROR :
 
 
 // Copy 'lower' code
-// c++ must patch various parameters.
+// c++ can patch various parameters.
 // Called when TurboBlocks::CopyLoader seen in header block as received from C++ code.
 // At upper to avoid problems when overwriting itself
 COPY_ME:             
-COPY_ME_SP+*:           ld SP, 0                    // New SP c++ must patch this
+COPY_ME_SP+*:           ld SP, SCREEN_23RD + STACK_SIZE         // New SP c++ must patch this
 //COPY_ME_SP+*:           ld BC, 0                  // @DEBUG 
-COPY_ME_DEST+*:         ld DE, 0                    // Destination c++ must patch this
-COPY_ME_SOURCE_OFFSET+*:ld HL, 0                    // c++ must patch this eg ASM_CONTROL_CODE_START + ASM_CONTROL_CODE_LEN; offset from start of BASIC, place at end
-                        ld BC, ASM_CONTROL_CODE_LEN // length     
+COPY_ME_DEST+*:         ld DE, SCREEN_23RD + STACK_SIZE         // Destination c++ can patch this
+COPY_ME_SOURCE_OFFSET+*:ld HL, ASM_CONTROL_CODE_START           // c++ can patch this eg ASM_CONTROL_CODE_START + ASM_CONTROL_CODE_LEN; offset from start of BASIC, place at end
+                        ld BC, ASM_CONTROL_CODE_LEN             // length  (never patched)
 COPY_ME_LDDR_OR_LDIR:
-                        ldir                        // or lddr! c++ can patch this
-COPY_ME_END_JUMP+*:     jp 0                        // Continue at new location. c++ must patch this
+                        ldir                                    // or lddr! c++ can patch this (to lddr)
+COPY_ME_END_JUMP+*:     jp SCREEN_23RD + STACK_SIZE             // Continue at new location. c++ can patch this
 
  EXPORT COPY_ME_SP
  EXPORT COPY_ME_DEST

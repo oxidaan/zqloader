@@ -17,37 +17,47 @@
 #include <sstream>                  // todo some formating (double)
 #include <QTimer>
 #include "./ui_dialog.h"
+#include <datablock.h>
+#include <mutex>
 
+#include "spectrum_consts.h"
 #include "loader_defaults.h"        // consts with default settings for ZQLoader
+#include "widgetstreambuffer.h"
+
+#include <filesystem>
+namespace fs = std::filesystem;
 
 
-
-// Copilot...
-class QLabelStreamBuffer : public std::streambuf
+void WriteFunText(ZQLoader &p_zq_loader)
 {
-public:
-    QLabelStreamBuffer(QTextEdit* p_output) : m_output(p_output) {}
-
-protected:
-    virtual int overflow(int c) override
+    static int col = 32;
+    static bool first = true;
+    constexpr auto text = "+++++ ZQ LOADER BY OXIDAAN +++++ .  .  .  .  . SELECT TURBO FILE NAME TO LOAD, THEN PRESS GO!  .  .  .  .";
+    bool empty = false;
+    if(first)     // first
     {
-        if (c != EOF)
-        {
-            m_buffer += (char)c;
-        }
-        if(char(c) == '\n' || c == EOF)
-        {
-            m_output->insertPlainText(m_buffer);
-            m_output->moveCursor(QTextCursor::End);
-            m_buffer.clear();
-        }
-        return c;
+        // wipe screen
+        DataBlock all_attr;
+        all_attr.resize(768);
+        p_zq_loader.SetCompressionType(CompressionType::automatic);
+        p_zq_loader.AddDataBlock(std::move(all_attr), 16384 + 6 * 1024 );
+        first = false;
     }
-private:
-    QTextEdit* m_output;
-    QString m_buffer;
-};
-
+    else
+    {
+        DataBlock text_attr;
+        text_attr.resize(256);
+        empty = ZQLoader::WriteTextToAttr(text_attr, text, std::byte{}, false, col);    // 0_byte: random colors
+        // copy fun attributes into 48k data block
+        p_zq_loader.SetCompressionType(CompressionType::none);      // else ugly
+        p_zq_loader.AddDataBlock(std::move(text_attr), 16384 + 6 * 1024 + 512);
+    }
+    col --;
+    if(empty)
+    {
+        col = 31;
+    }
+}
 
 Dialog::Dialog(QWidget *parent)
     : QDialog(parent)
@@ -61,7 +71,8 @@ Dialog::Dialog(QWidget *parent)
     setWindowIcon(icon);
 
     // redirect cout to textEditOutput
-    auto buffer = new QLabelStreamBuffer(ui->textEditOutput);
+    ui->textEditOutput->moveCursor(QTextCursor::End);
+    auto buffer = new TextEditStreamBuffer(ui->textEditOutput);
     std::streambuf* oldCoutBuffer = std::cout.rdbuf(buffer);
     (void)oldCoutBuffer;
 
@@ -113,6 +124,11 @@ Dialog::Dialog(QWidget *parent)
             dialog.setNameFilter(p_filter);
             dialog.setWindowTitle(p_text);
             dialog.setFileMode(p_mode);
+            // Else hangs when (??)
+            // preload->cancel preload, open this dialog -> cancel ->  preload->cancel preload -> open this dialog:
+            // https://stackoverflow.com/questions/31983412/code-freezes-on-trying-to-open-qdialog
+            // 9 years old issue still not solved???
+            dialog.setOption(QFileDialog::DontUseNativeDialog, true);
             dialog.setAcceptMode(p_mode == QFileDialog::ExistingFiles ? QFileDialog::AcceptOpen :  QFileDialog::AcceptSave);
             if(dialog.exec() == QDialog::Accepted)
             {
@@ -129,7 +145,7 @@ Dialog::Dialog(QWidget *parent)
         QFileDialog::ExistingFiles);
     ConnectBrowse(ui->pushButtonBrowseTurboFile, ui->lineEditTurboFile,
         "Give turbo speed file to load",
-        "Tap/tzx files (*.tap *.tzx);;SnapShot files (*.z80;*.sna);;All files (*.*)",
+        "All Spectrum files (*.tap *.tzx *.z80 *.sna);;Tap/tzx files (*.tap *.tzx);;SnapShot files (*.z80 *.sna)';;All files (*.*)",
         QFileDialog::ExistingFiles);
     ConnectBrowse(ui->pushButtonBrowseOutputFile, ui->lineEditOutputFile,
         "Give output file to create",
@@ -155,11 +171,11 @@ Dialog::Dialog(QWidget *parent)
     
     connect(ui->pushButtonGo,&QPushButton::pressed, [this]
     {
-        if(m_zqloader.IsBusy())
+        if( m_state == State::Playing || m_state == State::Tuning)
         {
             // stop pressed (canceled)
-            m_zqloader.Stop();
-            SetState(State::Cancelled);
+            m_zqloader.Reset();
+            SetState(m_state == State::Tuning ? State::Idle : State::Cancelled);
         }
         else
         {
@@ -168,12 +184,42 @@ Dialog::Dialog(QWidget *parent)
         }
     });
 
+    connect(ui->pushButtonPreLoad,&QPushButton::pressed, [this]
+    {
+        if(m_state == State::Preloading )     
+        {
+            // stop /cancel preload
+            m_zqloader.Reset();
+            SetState(State::Cancelled);
+        }
+        else if(m_state == State::PreloadingFunAttribs )     
+        {
+            // this will stop fun attribs
+            m_zqloader.Stop();
+            SetState(State::Idle);
+        }
+        else
+        {
+            // start preload
+            m_zqloader.Reset();
+            fs::path filename1 = ui->lineEditNormalFile->text().toStdString();
+            m_zqloader.SetNormalFilename(filename1).SetTurboFilename("");
+
+            m_zqloader.SetSampleRate(ui->lineEditSampleRate->text().toInt());
+            m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());
+
+            std::cout << "Estimated duration: " << m_zqloader.GetEstimatedDuration().count() << "ms" << std::endl;
+            m_zqloader.Start();
+            SetState(State::Preloading);
+        }
+    });
+
     connect(ui->pushButtonTune,&QPushButton::pressed, [this]
     {
         if(m_zqloader.IsBusy())     
         {
             // stop tune
-            m_zqloader.Stop();
+            m_zqloader.Reset();
             SetState(State::Idle);
         }
         else
@@ -192,13 +238,28 @@ Dialog::Dialog(QWidget *parent)
         ui->textEditOutput->clear();
         ui->pushButtonClean->setEnabled(false);
     });
+    connect(ui->pushButtonTest,&QPushButton::pressed, [this]
+    {
+        m_zqloader.Test();
+    });
 
-
-    Load();
+    Load(); // settings
 
     m_zqloader.SetOnDone([this]
     {
-        emit signalDone();
+        // runs in miniadui thread
+        if(m_state == State::Preloading)
+        {
+            m_state = State::PreloadingFunAttribs;
+        }
+        else if( m_state == State::PreloadingFunAttribs)
+        {
+            WriteFunText(m_zqloader);
+        }
+        else if(m_state != State::Idle)
+        {
+            emit signalDone();      // swap to ui thread ->
+        }
     });
     connect(this, &Dialog::signalDone, this, [this] // this extra this is needed to go back to ui thread
     {
@@ -208,7 +269,10 @@ Dialog::Dialog(QWidget *parent)
             std::stringstream ss;
             ss << std::fixed << std::setprecision(1) << std::chrono::duration<double>(m_zqloader.GetTimeNeeded()).count();
             ui->progressBar->setFormat("Done, took " + QString::fromStdString(ss.str()) + "s");
+            ui->progressBar->setValue(100);
         }
+        m_zqloader.WaitUntilDone(); // else tape loading error
+        m_zqloader.Stop();      // keep preloaded state
     });
 
 
@@ -256,21 +320,32 @@ inline void Dialog::UpdateUI()
 // Update (button) enabled tate
 inline void Dialog::SetState(State p_state)
 {
+    m_state = p_state;
     switch(p_state)
     {
     case State::Playing:
         ui->pushButtonGo->setText("Stop");
+        ui->pushButtonPreLoad->setEnabled(false);
         ui->pushButtonClean->setEnabled(true);
         ui->pushButtonTune->setEnabled(false);
         break;
     case State::Tuning:
+        ui->pushButtonPreLoad->setEnabled(false);
         ui->pushButtonGo->setText("Stop");
         ui->pushButtonTune->setText("Stop");
+        break;
+    case State::Preloading:
+    case State::PreloadingFunAttribs:
+        ui->pushButtonGo->setText("Go!");
+        ui->pushButtonPreLoad->setText("Stop");
+        ui->pushButtonTune->setEnabled(false);
         break;
     case State::Cancelled:
         ui->progressBar->setFormat("Cancelled");
         // no break
     case State::Idle:
+        ui->pushButtonPreLoad->setEnabled(true);    //!m_zqloader.IsPreLoaded());
+        ui->pushButtonPreLoad->setText("PreLoad");
         ui->pushButtonGo->setText("Go!");
         ui->pushButtonTune->setText("Tune...");
         ui->pushButtonTune->setEnabled(true);
@@ -281,7 +356,7 @@ inline void Dialog::SetState(State p_state)
 
 inline void Dialog::RestoreDefaults()
 {
-    m_zqloader.Reset();
+    m_zqloader.Stop();
     SetState(State::Idle);
     ui->lineEditZeroTStates->setText(QString::number(loader_defaults::zero_duration));
     ui->lineEditOneTStates->setText(QString::number(loader_defaults::one_duration));
@@ -291,12 +366,16 @@ inline void Dialog::RestoreDefaults()
     ui->lineEditBitOneThreshold->setText(QString::number(loader_defaults::bit_one_threshold));
 
     ui->comboBoxCompressionType->setCurrentIndex(int(loader_defaults::compression_type));
+    ui->comboBoxLoaderLocation->setCurrentIndex(1);     // automatic.
+    ui->lineEditLoaderAddress->setText(QString::number(spectrum::SCREEN_23RD));
 
-    ui->lineEditSampleRate->setText(QString::number(loader_defaults::sample_rate));
+    ui->lineEditSampleRate->setText(QString::number(m_zqloader.GetDeviceSampleRate()));
     ui->lineEditVolumeLeft->setText(QString::number(loader_defaults::volume_left));
     ui->dialVolumeLeft->setValue(loader_defaults::volume_left);
     ui->lineEditVolumeRight->setText(QString::number(loader_defaults::volume_right));
     ui->dialVolumeRight->setValue(loader_defaults::volume_right);
+
+    ui->lineEditNormalFile->setText(QString::fromStdString(m_zqloader.GetZqLoaderFile().string()));
 }
 
 
@@ -304,8 +383,11 @@ inline void Dialog::RestoreDefaults()
 // Go pressed.
 inline void Dialog::Go()
 {
-    m_zqloader.Reset();
+    // this will stop fun attribs
+    SetState(State::Idle);
 
+    // might break ongoing pre-load: 
+    // m_zqloader.Reset();
     fs::path filename1 = ui->lineEditNormalFile->text().toStdString();
     fs::path filename2 = ui->lineEditTurboFile->text().toStdString();
 
@@ -339,14 +421,15 @@ inline void Dialog::Go()
     }
     m_zqloader.SetFunAttribs(ui->checkBoxFunAttribs->isChecked());
 
-    m_zqloader.SetNormalFilename(filename1).SetTurboFilename(filename2);
+    m_zqloader.SetNormalFilename(filename1);
+    m_zqloader.SetTurboFilename(filename2);
 
     m_zqloader.SetSampleRate(ui->lineEditSampleRate->text().toInt());
     m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());
 
     std::cout << "Estimated duration: " << m_zqloader.GetEstimatedDuration().count() << "ms" << std::endl;
     m_zqloader.Start();
-    if(m_zqloader.IsBusy())
+    if(m_zqloader.IsBusy())     // else already done eg writing wav file
     {
         SetState(State::Playing);
     }

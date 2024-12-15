@@ -14,7 +14,7 @@
 #include <functional>
 #include <filesystem>
 #include "types.h"          // CompressionType
-namespace fs = std::filesystem;
+
 
 #ifdef _MSC_VER
 #pragma warning(disable: 4251)    //  class '' needs to have dll-interface to be used by clients of class ''
@@ -33,6 +33,7 @@ namespace fs = std::filesystem;
 #define LIB_API
 #endif
 
+struct DataBlock;
 
 
 class LIB_API ZQLoader
@@ -51,13 +52,13 @@ public:
 
     /// Set path/to/file to normal speed load (tzx,tap)
     /// When empty use (and find) zqloader.tap.
-    ZQLoader &SetNormalFilename(fs::path p_filename);
+    ZQLoader &SetNormalFilename(std::filesystem::path p_filename);
 
     ///  Set path/to/file to turboload (tzx,tap,z80,sna)
-    ZQLoader &SetTurboFilename(fs::path p_filename);
+    ZQLoader &SetTurboFilename(std::filesystem::path p_filename);
 
     /// Set output file when action is write_wav or write_tzx.
-    ZQLoader &SetOutputFilename(fs::path p_filename);
+    ZQLoader &SetOutputFilename(std::filesystem::path p_filename);
 
     /// Set Volume (-100 -- 100).
     ZQLoader &SetVolume(int p_volume_left, int p_volume_right);
@@ -100,11 +101,17 @@ public:
     // Stop/abort sound thread
     ZQLoader& Stop();
 
+    ZQLoader & WaitUntilDone();
+
     ///  Busy (playing sound)?
     bool IsBusy() const;
+
+    bool IsPreLoaded() const;
     
     /// Play a infinite leader tone for tuning.
     ZQLoader &PlayleaderTone();
+
+    ZQLoader &AddDataBlock(DataBlock p_block, uint16_t p_start_address);
 
     /// Time at end so actual time needed once done.
     std::chrono::milliseconds GetTimeNeeded() const;
@@ -118,10 +125,21 @@ public:
 
     /// path to current zqloader.exe (this program)
     /// (only to help find zqloader.tap)
-    ZQLoader& SetExeFilename(fs::path p_filename);
+    ZQLoader& SetExeFilename(std::filesystem::path p_filename);
 
-        /// Set callback when done.
+    /// Set callback when done.
     ZQLoader& SetOnDone(DoneFun p_fun);
+
+    ///  Get miniadio native device sample rate
+    int GetDeviceSampleRate() const;
+
+    ///  Get path/to/zqloader.tap
+    std::filesystem::path GetZqLoaderFile() const;
+
+    void Test();
+
+    static bool WriteTextToAttr(DataBlock &out_attr, const std::string &p_text, std::byte p_color, bool p_center, int p_col);
+
 private:
     class Impl;
     std::unique_ptr<Impl> m_pimpl;

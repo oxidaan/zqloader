@@ -51,9 +51,25 @@ inline bool TapLoader::HandleTapBlock(DataBlock p_block, std::string p_zxfilenam
     return false;
 }
 
+/// Load a tap file from given stream. Stops when tap block was handled: that 
+/// is when HandleTapBlock returns true.
+/// p_zxfilename: the ZX Spectrum file name, eg used to filter / only load certain 
+/// program names.
+inline TapLoader& TapLoader::Read(std::istream& p_stream, const std::string &p_zxfilename)
+{
+    bool done = false;
+    while (p_stream.peek() && p_stream.good() && !done)
+    {
+        auto block = LoadTapBlock(p_stream);
+        done =       HandleTapBlock(std::move(block), p_zxfilename);   
+    }
+    return *this;
+}
+
 /// Load a tap file from given filename.
 /// p_zxfilename: the ZX Spectrum file name, eg used to filter / only load certain 
 /// program names.
+template<>
 TapLoader& TapLoader::Load(const fs::path &p_filename, const std::string &p_zxfilename)
 {
     std::ifstream fileread(p_filename, std::ios::binary);
@@ -64,7 +80,7 @@ TapLoader& TapLoader::Load(const fs::path &p_filename, const std::string &p_zxfi
     try
     {
         std::cout << "Loading file " << p_filename << std::endl;
-        Load(fileread, p_zxfilename);
+        Read(fileread, p_zxfilename);
         std::cout << std::endl;
     }
     catch(const std::exception &e)
@@ -76,17 +92,4 @@ TapLoader& TapLoader::Load(const fs::path &p_filename, const std::string &p_zxfi
 }
 
 
-/// Load a tap file from given stream. Stops when tap block was handled: that 
-/// is when HandleTapBlock returns true.
-/// p_zxfilename: the ZX Spectrum file name, eg used to filter / only load certain 
-/// program names.
-inline TapLoader& TapLoader::Load(std::istream& p_stream, const std::string &p_zxfilename)
-{
-    bool done = false;
-    while (p_stream.peek() && p_stream.good() && !done)
-    {
-        auto block = LoadTapBlock(p_stream);
-        done =       HandleTapBlock(std::move(block), p_zxfilename);   
-    }
-    return *this;
-}
+

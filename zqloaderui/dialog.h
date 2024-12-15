@@ -34,6 +34,8 @@ public:
         Idle,
         Playing,
         Tuning,
+        Preloading,
+        PreloadingFunAttribs,
         Cancelled
     };
     Dialog(QWidget *parent = nullptr);
@@ -53,6 +55,7 @@ signals:
 private:
     Ui::Dialog *ui;
     ZQLoader m_zqloader;
+    State m_state;
 };
 
 

@@ -1,11 +1,11 @@
-//==============================================================================
+// ==============================================================================
 // PROJECT:         zqloader
 // FILE:            taptoturboblocks.h
 // DESCRIPTION:     Definition of class TapToTurboBlocks.
-// 
+//
 // Copyright (c) 2023 Daan Scherft [Oxidaan]
 // This project uses the MIT license. See LICENSE.txt for details.
-//==============================================================================
+// ==============================================================================
 
 #pragma once
 
@@ -18,9 +18,10 @@
 /// Loads one or more tap blocks.
 /// Tries to read data from BASIC blocks (eg USR start address)
 /// HandleTapBlock function feeds incoming tab blocks to the TurboBlocks as given at CTOR.
-class TapToTurboBlocks 
+class TapToTurboBlocks
 {
 public:
+
     // CTOR taking TurboBlocks as sink.
     explicit TapToTurboBlocks(TurboBlocks& p_tblocks) :
         m_tblocks(p_tblocks)
@@ -42,13 +43,16 @@ public:
         return m_usr == 0 ? int(TurboBlocks::ReturnToBasic) : m_usr;
     }
 
+
     /// Get CLEAR address as found in BASIC block as in CLEAR xxxxx
     /// (As earlier found with TryFindClear)
     uint16_t GetClearAddress() const
     {
         return m_clear;
     }
+
 private:
+
     // Try to find (first) USR start address in given BASIC block
     // eg RANDOMIZE USR XXXXX
     // or RANDOMIZE USR VAL "XXXXX"
@@ -67,23 +71,23 @@ private:
     // CheckFun/p_check_fun must return true when matching a certain pattern to search for (depending on what to search for)
     // then looks for the number that follows.
     // Used by TryFindUsr / TryFindClear / TryFindLoadCode.
-    using CheckFun = std::function<int(const DataBlock&, int cnt)>;
+    using CheckFun = std::function<int (const DataBlock&, int cnt)>;
     static std::vector<uint16_t> TryFindInBasic(const DataBlock& p_basic_block, CheckFun p_check_fun);
 
 
     // read a number from basic either as VAL "XXXXX" or a 2 byte int.
-    // 0 when failed/not found. 
-    // (note when it is truly 0 makes no sense like RANDOMIZE USR 0, CLEAR 0, LOAD "" CODE 0) 
+    // 0 when failed/not found.
+    // (note when it is truly 0 makes no sense like RANDOMIZE USR 0, CLEAR 0, LOAD "" CODE 0)
     static uint16_t TryReadNumberFromBasic(const DataBlock& p_basic_block, int p_cnt);
 
-
 private:
-    spectrum::TapeHeader m_last_header;
-    spectrum::TapeBlockType m_last_block = spectrum::TapeBlockType::unknown;        // not header or data
-    int m_headercnt = 0;
-    int m_codecount = 0;
-    TurboBlocks& m_tblocks;
-    uint16_t m_usr = 0;                        // [RANDOMIZE] USX xxxxx found in BASIC
-    uint16_t m_clear = 0xff4a;                 // CLEAR xxxxx as found in BASIC. Default value here is SP found with debugger 
-    std::vector< uint16_t> m_loadcodes;        // multiple LOAD "" CODE xxxx found in BASIC
+
+    spectrum::TapeHeader      m_last_header;
+    spectrum::TapeBlockType   m_last_block = spectrum::TapeBlockType::unknown;      // not header or data
+    int                       m_headercnt  = 0;
+    int                       m_codecount  = 0;
+    TurboBlocks&              m_tblocks;
+    uint16_t                  m_usr        = 0;      // [RANDOMIZE] USX xxxxx found in BASIC
+    uint16_t                  m_clear      = 0xff4a; // CLEAR xxxxx as found in BASIC. Default value here is SP found with debugger
+    std::vector< uint16_t>    m_loadcodes;           // multiple LOAD "" CODE xxxx found in BASIC
 };

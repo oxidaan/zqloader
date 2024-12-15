@@ -1,11 +1,11 @@
-//==============================================================================
+// ==============================================================================
 // PROJECT:         zqloader
 // FILE:            sampletowav.cpp
 // DESCRIPTION:     Implementation for class SampleToWav.
-// 
+//
 // Copyright (c) 2023 Daan Scherft [Oxidaan]
 // This project uses the MIT license. See LICENSE.txt for details.
-//==============================================================================
+// ==============================================================================
 
 #include "sampletowav.h"
 #include <cstring>      // memcpy
@@ -18,11 +18,12 @@ inline size_t SampleToWav::GetDataByteSize() const
 }
 
 
+
 // Write wav header, needs data to be written first, because needs GetDataByteSize
 void SampleToWav::WriteHeader()
 {
     auto bits_per_sample = sizeof(SampleType) * 8;
-    auto num_channels = 2;
+    auto num_channels    = 2;
     auto sub_chunk1_size = 16;
     auto sub_chunk2_size = GetDataByteSize();
 
@@ -31,30 +32,32 @@ void SampleToWav::WriteHeader()
     memcpy(GetHeader().Format, "WAVE", 4);
     memcpy(GetHeader().Subchunk1ID, "fmt ", 4);
     GetHeader().Subchunk1Size = sub_chunk1_size;
-    GetHeader().AudioFormat = 1;        // PCM
-    GetHeader().NumChannels = uint16_t(num_channels);
-    GetHeader().SampleRate = m_sample_rate;
-    GetHeader().ByteRate = uint32_t(m_sample_rate * num_channels * bits_per_sample);
-    GetHeader().BlockAlign = uint16_t(num_channels * bits_per_sample / 8);
+    GetHeader().AudioFormat   = 1;      // PCM
+    GetHeader().NumChannels   = uint16_t(num_channels);
+    GetHeader().SampleRate    = m_sample_rate;
+    GetHeader().ByteRate      = uint32_t(m_sample_rate * num_channels * bits_per_sample);
+    GetHeader().BlockAlign    = uint16_t(num_channels * bits_per_sample / 8);
     GetHeader().BitsPerSample = uint16_t(bits_per_sample);
     memcpy(GetHeader().Subchunk2ID, "data", 4);
     GetHeader().Subchunk2Size = uint32_t(sub_chunk2_size);
 }
 
+
+
 SampleToWav &SampleToWav::Run()
 {
-    bool done = false;
     ReserveHeaderSpace();        // reserve space first!
     Doublesec sample_period = 1s / double(m_sample_rate);
-    //static Doublesec prev {};
+    // static Doublesec prev {};
+    bool done               = CheckDone();
     while(!done)
     {
         Doublesec time_to_wait = GetDurationWait();
-      //  if(time_to_wait != prev)
-      //  {
-      //      prev = time_to_wait;
-      //      std::cout << prev.count() << ' ';
-      //  }
+        //  if(time_to_wait != prev)
+        //  {
+        //      prev = time_to_wait;
+        //      std::cout << prev.count() << ' ';
+        //  }
         m_sample_time += sample_period;
         if (m_sample_time > time_to_wait)
         {
@@ -75,13 +78,11 @@ SampleToWav &SampleToWav::Run()
             // m_sample_time = time_to_wait - m_sample_time;
             m_sample_time = 0s;
 //            m_sample_time -= time_to_wait;
-            if (OnNextSample())
-            {
-                done = true;
-            }
+            OnNextSample();
+            done = CheckDone();
         }
-        SampleType value = m_edge ? std::numeric_limits<SampleType>::max():
-                                    std::numeric_limits<SampleType>::min();
+        SampleType value       = m_edge ? std::numeric_limits<SampleType>::max() :
+                                 std::numeric_limits<SampleType>::min();
         SampleType value_left  = SampleType(float(value) * m_volume_left);
         SampleType value_right = SampleType(float(value) * m_volume_right);
         AddSample(value_left);
@@ -91,6 +92,8 @@ SampleToWav &SampleToWav::Run()
     return *this;
 }
 
+
+
 /// Write stored buffer to given WAV file.
 SampleToWav& SampleToWav::WriteToFile(std::ostream &p_stream)
 {
@@ -99,8 +102,10 @@ SampleToWav& SampleToWav::WriteToFile(std::ostream &p_stream)
     return *this;
 }
 
+
+
 void SampleToWav::AddSample(SampleType p_sample)
 {
     m_data.push_back(std::byte(p_sample & 0xff));
-    m_data.push_back(std::byte( (p_sample>>8) & 0xff ));
+    m_data.push_back(std::byte((p_sample >> 8) & 0xff ));
 }

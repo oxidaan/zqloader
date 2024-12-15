@@ -26,12 +26,14 @@ class SampleSender
 {
 public:
 
+//    using NextSampleFun  = std::function<void (void)>;
     using NextSampleFun  = std::function<bool (void)>;
     using GetDurationFun = std::function<Doublesec (void)>;
     using GetEdgeFun     = std::function<Edge (void)>;
+    using CheckDoneFun   = std::function<bool (void)>;
    
-   SampleSender(const SampleSender&) = delete;
-   SampleSender &operator =(const SampleSender&) = delete;
+    SampleSender(const SampleSender&) = delete;
+    SampleSender &operator =(const SampleSender&) = delete;
 public:
 
     SampleSender() noexcept;
@@ -74,8 +76,13 @@ public:
     }
 
 
-
-
+    /// Set callback called (just) before miniaudio starts
+    /// Does not run in miniaudio thread/called from Start.
+    SampleSender& SetOnCheckDone(CheckDoneFun p_fun)
+    {
+        m_OnCheckDone = std::move(p_fun);
+        return *this;
+    }
 
     /// Intialize miniaudio when not done so already.
     SampleSender& Init();
@@ -126,6 +133,8 @@ public:
         return m_edge;
     }
 
+    static int GetDeviceSampleRate();
+
 private:
 
     void Reset();
@@ -144,7 +153,9 @@ private:
     // GetDurationWait -> GetEdge -> OnNextSample
     float GetNextSample(uint32_t p_samplerate);
 
+    // Callback:
     // Get duration to wait for next edge change based on what we need to do.
+    // called in miniaudio device thread
     Doublesec GetDurationWait() const
     {
         if (m_OnGetDurationWait)
@@ -155,7 +166,9 @@ private:
     }
 
 
-    /// Get value what edge needs to become eg toggle/one/zero.
+    // Callback:
+    // Get value what edge needs to become eg toggle/one/zero.
+    // called in miniaudio device thread
     Edge GetEdge() const
     {
         if (m_OnGetEdge)
@@ -165,8 +178,11 @@ private:
         return Edge::no_change;
     }
 
-
-    bool OnNextSample()
+    // Callback:
+    // Called when moving to next sample.
+    // Return true when at end.
+    // called in miniaudio device thread
+    bool NextSample()
     {
         if (m_OnNextSample)
         {
@@ -175,22 +191,32 @@ private:
         return false;
     }
 
+    // Callback:
+    // Are we done?
+    bool CheckDone()
+    {
+        if (m_OnCheckDone)
+        {
+            return m_OnCheckDone();
+        }
+        return true;
+    }
 
 
 private:
     std::unique_ptr<ma_device>   m_device;
-//    ma_device                   *m_device = nullptr;
+
 
     Event                        m_event;
-    int                          m_done         = 0;        // >0: done playing everything (no more samples)
-    static constexpr int         m_done_event_cnt  = 1;     // see https://github.com/mackron/miniaudio/discussions/490
+    int                          m_done         = 0;        
+    static constexpr int         m_done_event_cnt  = 10;    // see https://github.com/mackron/miniaudio/discussions/490
     bool                         m_edge         = false;    // output value toggles between 1/0
     Doublesec                    m_sample_time  = 0ms;      // time since last edge change
 
     NextSampleFun                m_OnNextSample;
     GetDurationFun               m_OnGetDurationWait;
     GetEdgeFun                   m_OnGetEdge;
-
+    CheckDoneFun                 m_OnCheckDone;
 
     float                        m_volume_left  = 1.0f;     // -1.0 .. 1.0
     float                        m_volume_right = 1.0f;     // -1.0 .. 1.0

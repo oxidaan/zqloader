@@ -110,6 +110,12 @@ void TestCompressor()
 //  "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader_test.bin"
 uint16_t Test(TurboBlocks& p_blocks, fs::path p_filename)
 {
+    (void)p_blocks;
+    (void)p_filename;
+            DataBlock text_attr;
+            text_attr.resize(2000);
+            WriteTextToAttr(text_attr, ToUpper("AAHELLO WORLD"), 0_byte);    // 0_byte: random colors
+            return 0;
 #if 0
     // Copy loader to screen, then use that to load an attribute block
     {
@@ -138,7 +144,7 @@ uint16_t Test(TurboBlocks& p_blocks, fs::path p_filename)
         return 0;
     }
 #endif
-#if 1
+#if 0
     // See zqloader_test.z80asm
     // p_blocks.CopyLoaderToScreen(16384);     // // can never work cannot print result (SP problems)
 

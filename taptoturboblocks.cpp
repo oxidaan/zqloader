@@ -1,11 +1,11 @@
-//==============================================================================
+// ==============================================================================
 // PROJECT:         zqloader
 // FILE:            taptoturboblocks.cpp
 // DESCRIPTION:     Implementation of class TapToTurboBlocks.
-// 
+//
 // Copyright (c) 2023 Daan Scherft [Oxidaan]
 // This project uses the MIT license. See LICENSE.txt for details.
-//==============================================================================
+// ==============================================================================
 
 
 #include "taptoturboblocks.h"
@@ -22,10 +22,10 @@
 bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, std::string p_zxfilename)
 {
     using namespace spectrum;
-    bool done = false;
+    bool done          = false;
     TapeBlockType type = TapeBlockType(p_block[0]);
     // kick of type and checksum
-    DataBlock block = p_block.size() >= 2 ? DataBlock(p_block.begin() + 1, p_block.end() - 1) : std::move(p_block);
+    DataBlock block    = p_block.size() >= 2 ? DataBlock(p_block.begin() + 1, p_block.end() - 1) : std::move(p_block);
     if (type == TapeBlockType::header)
     {
         // In tzx files sometimes header is 18 bytes instead of 17
@@ -55,8 +55,8 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, std::string p_zxfilenam
             m_last_header.m_type == TapeHeader::Type::screen)
         {
             auto start_adr = (m_loadcodes.size() > m_codecount) ?
-                m_loadcodes[m_codecount] :          // taking address from last unused LOAD "" CODE XXXXX as found in basic
-                m_last_header.GetStartAddress();
+                             m_loadcodes[m_codecount] : // taking address from last unused LOAD "" CODE XXXXX as found in basic
+                             m_last_header.GetStartAddress();
 
             m_tblocks.AddDataBlock(std::move(block), start_adr);
             m_codecount++;
@@ -96,9 +96,11 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, std::string p_zxfilenam
     return done;
 }
 
+
+
 // read a number from basic either as VAL "XXXXX" or a 2 byte int.
-// 0 when failed/not found. 
-// (note when it is truly 0 makes no sence like RANDOMIZE USR 0, CLEAR 0, LOAD "" CODE 0) 
+// 0 when failed/not found.
+// (note when it is truly 0 makes no sence like RANDOMIZE USR 0, CLEAR 0, LOAD "" CODE 0)
 inline uint16_t TapToTurboBlocks::TryReadNumberFromBasic(const DataBlock& p_basic_block, int p_cnt)
 {
     std::string valstring;
@@ -109,20 +111,20 @@ inline uint16_t TapToTurboBlocks::TryReadNumberFromBasic(const DataBlock& p_basi
     {
         // VAL "XXXX"
         p_cnt += 2;     // skip VAL "
-        c = p_basic_block[p_cnt];
+        c      = p_basic_block[p_cnt];
         while (c != std::byte('"') && p_cnt < p_basic_block.size())
         {
             valstring += char(c);
             p_cnt++;
-            c = p_basic_block[p_cnt];
+            c          = p_basic_block[p_cnt];
         }
         return uint16_t(std::atoi(valstring.c_str()));     // done
     }
     else if (p_cnt < p_basic_block.size() - 5 &&
-        c == 0x0E_byte &&
-        char(p_basic_block[p_cnt + 1]) == 0 &&
-        char(p_basic_block[p_cnt + 2]) == 0 &&
-        char(p_basic_block[p_cnt + 5]) == 0)
+             c == 0x0E_byte &&
+             char(p_basic_block[p_cnt + 1]) == 0 &&
+             char(p_basic_block[p_cnt + 2]) == 0 &&
+             char(p_basic_block[p_cnt + 5]) == 0)
     {
         // https://retrocomputing.stackexchange.com/questions/5932/why-does-this-basic-program-declare-variables-for-the-numbers-0-to-4
         // 0x0E is kind of int flag at ZX basic. Followed by two zero's.
@@ -133,6 +135,8 @@ inline uint16_t TapToTurboBlocks::TryReadNumberFromBasic(const DataBlock& p_basi
     }
     return 0;
 }
+
+
 
 inline std::vector<uint16_t> TapToTurboBlocks::TryFindInBasic(const DataBlock& p_basic_block, CheckFun p_check_fun)
 {
@@ -160,10 +164,12 @@ inline std::vector<uint16_t> TapToTurboBlocks::TryFindInBasic(const DataBlock& p
         {
             retval.push_back(uint16_t(check));
         }
-            
+
     }
     return retval;
 }
+
+
 
 // Try to find (first) USR start address in given BASIC block
 // eg RANDOMIZE USR XXXXX
@@ -171,16 +177,18 @@ inline std::vector<uint16_t> TapToTurboBlocks::TryFindInBasic(const DataBlock& p
 inline uint16_t TapToTurboBlocks::TryFindUsr(const DataBlock& p_basic_block)
 {
     auto values = TryFindInBasic(p_basic_block, [](const DataBlock& p_basic_block, int cnt)
-        {
-            bool b = cnt > 1 &&
-            p_basic_block[cnt] == 0xC0_byte && (               // USR
-                p_basic_block[cnt - 1] == 0xf9_byte ||         // RANDOMIZE USR
-                p_basic_block[cnt - 1] == 0xf5_byte ||         // PRINT USR
-                p_basic_block[cnt - 1] == std::byte('='));     // (LET x ) = USR
-            return int(b);
-        });
+    {
+        bool b = cnt > 1 &&
+            p_basic_block[cnt] == 0xC0_byte && (  // USR
+                p_basic_block[cnt - 1] == 0xf9_byte ||     // RANDOMIZE USR
+                p_basic_block[cnt - 1] == 0xf5_byte ||     // PRINT USR
+                p_basic_block[cnt - 1] == std::byte('=')); // (LET x ) = USR
+        return int(b);
+    });
     return values.size() ? values.front() : 0;
 }
+
+
 
 // Try to find (first) CLEAR XXXXX address in given BASIC block
 // eg CLEAR XXXXX
@@ -188,30 +196,31 @@ inline uint16_t TapToTurboBlocks::TryFindUsr(const DataBlock& p_basic_block)
 inline uint16_t TapToTurboBlocks::TryFindClear(const DataBlock& p_basic_block)
 {
     auto values = TryFindInBasic(p_basic_block, [](const DataBlock& p_basic_block, int cnt)
-        {
-            return int(p_basic_block[cnt] == 0xFD_byte);    // CLEAR
-        });
+    {
+        return int(p_basic_block[cnt] == 0xFD_byte); // CLEAR
+    });
     return values.size() ? values.front() : 0;
 }
+
+
 
 // Try to find all LOAD "" CODE XXXXX addresses in given BASIC block
 inline std::vector<uint16_t> TapToTurboBlocks::TryFindLoadCode(const DataBlock& p_basic_block)
 {
     return TryFindInBasic(p_basic_block, [](const DataBlock& p_basic_block, int cnt)
+    {
+        if( cnt > 0 &&
+            p_basic_block[cnt] == 0xAF_byte &&        // CODE
+            p_basic_block[cnt - 1] == std::byte('"')) // [LOAD "]" CODE
         {
-            if( cnt > 0 &&
-                p_basic_block[cnt] == 0xAF_byte &&           // CODE
-                p_basic_block[cnt - 1] == std::byte('"'))    // [LOAD "]" CODE
-            {
-                return 1;
-            }
-            if(cnt > 0 &&
-                p_basic_block[cnt] == 0xAA_byte &&           // SCREEN$
-                p_basic_block[cnt - 1] == std::byte('"'))
-            {
-                return 16384;       // so SCREEN$
-            }
-            return 0; 
-        });
+            return 1;
+        }
+        if(cnt > 0 &&
+            p_basic_block[cnt] == 0xAA_byte && // SCREEN$
+            p_basic_block[cnt - 1] == std::byte('"'))
+        {
+            return 16384; // so SCREEN$
+        }
+        return 0;
+    });
 }
-

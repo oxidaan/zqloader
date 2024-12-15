@@ -38,7 +38,7 @@ SampleSender& SampleSender::Init()
         ma_device_config config  = ma_device_config_init(ma_device_type_playback);
         config.playback.format   = ma_format_f32; // Set to ma_format_unknown to use the device's native format.
         config.playback.channels = 2;             // Set to 0 to use the device's native channel count.
-        config.sampleRate        = m_sample_rate; // @@ Set to 0 to use the device's native sample rate.
+        config.sampleRate        = m_sample_rate; // Set to 0 to use the device's native sample rate.
         config.dataCallback      = data_callback; // This function will be called when miniaudio needs more data.
         config.pUserData         = this;          // Can be accessed from the device object (device.pUserData).
 
@@ -57,9 +57,9 @@ SampleSender& SampleSender::Init()
 /// Start SampleSender / start miniaudio thread.
 SampleSender& SampleSender::Start()
 {
-    Reset();
     if (!IsRunning())
     {
+        Reset();
         Init();
         ma_device_start(m_device.get());     // The device is sleeping by default so you'll need to start it manually.
     }
@@ -102,13 +102,18 @@ bool SampleSender::IsRunning() const
 
 
 
+
+
+
 /// Run SampleSender (miniadio thread) so start, wait, stop.
+/// convenience.
 SampleSender& SampleSender::Run()
 {
     Start();
     WaitUntilDone();
-    std::this_thread::sleep_for(500ms); // otherwise stops before all data was send
+//    std::this_thread::sleep_for(500ms); // otherwise stops before all data was send
     // see https://github.com/mackron/miniaudio/discussions/490
+    // replaced with m_done_event_cnt
     Stop();
     return *this;
 }
@@ -125,6 +130,13 @@ void SampleSender::data_callback(ma_device * pDevice, void* pOutput, const void*
 }
 
 
+// static
+int SampleSender::GetDeviceSampleRate()
+{
+    SampleSender temp;
+    temp.Init();
+    return temp.m_device->sampleRate;
+}
 
 inline void SampleSender::Reset()
 {
@@ -143,6 +155,7 @@ inline void SampleSender::DataCallback(ma_device* pDevice, void* pOutput, uint32
     auto channels   = pDevice->playback.channels;   // # channels eg 2 is stereo
     float* foutput  = reinterpret_cast<float*>(pOutput);
     int index       = 0;
+    m_done = (m_done == 0) ? CheckDone() : m_done++;
     for (auto n = 0u; n < frameCount; n++)
     {
         float value = m_done ? 0.0f : GetNextSample(sampleRate);
@@ -155,7 +168,6 @@ inline void SampleSender::DataCallback(ma_device* pDevice, void* pOutput, uint32
     }
     if(m_done)
     {
-        m_done++;
         if(m_done > m_done_event_cnt)  // see https://github.com/mackron/miniaudio/discussions/490 
         {
             m_event.Signal();
@@ -195,7 +207,8 @@ inline float SampleSender::GetNextSample(uint32_t p_samplerate)
         // But this makes loading take a little longer than expected (s/a SpectrumLoader::GetDuration)
         // m_sample_time = m_sample_time - time_to_wait ;
         m_sample_time = 0s;
-        if (OnNextSample()) // true when at end.
+        //NextSample();   // true when at end.
+        if (NextSample()) // true when at end.
         {
             m_done = 1;       // >0 : at end
         }

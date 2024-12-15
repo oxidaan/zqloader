@@ -21,13 +21,16 @@
 #include "sampletowav.h"
 #include "loader_defaults.h"
 
+#include <filesystem>
+namespace fs = std::filesystem;
+
 
 
 class ZQLoader::Impl
 {
 public:
 
-    Impl() = default;
+    Impl()  = default;
     Impl(const Impl &) = delete;
     Impl(Impl &&) = default;
     Impl & operator = (Impl &&) = default;
@@ -43,19 +46,19 @@ public:
         m_normal_filename = std::move(p_filename);
         if(!m_is_zqloader)
         {
-            AddNormalSpeedfile(GetNormalFilename());
+            AddNormalSpeedFile(GetNormalFilename());
+        }
+        else
+        {
+            AddZqLoaderFile(GetNormalFilename());
         }
     }
 
-
-    void SetTurboFilename(fs::path p_filename)
+    void SetTurboFilename(fs::path p_filename )
     {
-        if(!p_filename.empty())
-        {
-            m_is_zqloader = true;
-            m_turbo_filename = std::move(p_filename);
-            AddTurboSpeedFile(GetTurboFilename());
-        }
+        m_is_zqloader = true;
+        m_turbo_filename = std::move(p_filename);
+        AddTurboSpeedFile(m_turbo_filename);
     }
 
 
@@ -138,13 +141,17 @@ public:
     // runs in miniaudio / samplesender thread
     void OnDone()
     {
-        m_time_needed = GetCurrentTime();
-        std::cout << "Took: " << std::dec << m_time_needed.count() << " ms" << std::endl;
-        m_is_busy = false;
+        if(m_is_busy)
+        {
+            m_time_needed = GetCurrentTime();
+            std::cout << "Took: " << std::dec << m_time_needed.count() << " ms" << std::endl;
+            m_is_busy = false;
+        }
         if(m_OnDone)
         {
             m_OnDone();
         }
+        
     }
 
     /// Set callback when done.
@@ -158,16 +165,23 @@ public:
     // See remark at  SampleSender::GetNextSample
     std::chrono::milliseconds GetEstimatedDuration() const
     {
-        if(m_time_estimated == 0ms)
-        {
-            m_time_estimated = std::chrono::duration_cast<std::chrono::milliseconds>(m_spectrumloader.GetDuration());
-        }
-        return m_time_estimated;
+        return std::chrono::duration_cast<std::chrono::milliseconds>(m_spectrumloader.GetEstimatedDuration());
     }
+
+
+    void PlayleaderTone()
+    {
+        m_spectrumloader.AddEndlessLeader();
+        m_spectrumloader.Attach(m_sample_sender);
+        m_sample_sender.SetVolume(m_volume_left, m_volume_right).SetSampleRate(m_sample_rate);
+        m_sample_sender.Start();            // Play!
+        m_is_busy = true;
+    }
+
 
     void Run(bool p_threaded)
     {
-        Check();
+       // Check();
         m_spectrumloader.SetOnDone([this]
         {
             OnDone();
@@ -185,7 +199,9 @@ public:
             }
             else
             {
-                m_sample_sender.Run();            // Play! Waif for finish
+                m_is_busy = true;
+                m_sample_sender.Run();            // Play! Wait for finish
+//                std::cout << "Took: " << std::dec << GetCurrentTime().count() << " ms" << std::endl;
             }
         }
         else if (m_action == Action::write_wav)
@@ -209,18 +225,38 @@ public:
         }
     }
 
-    /// Stop/cancel playing
+    void AddDataBlock(DataBlock p_block, uint16_t p_start_address)
+    {
+        m_turboblocks.AddDataBlock(std::move(p_block), p_start_address);
+        m_turboblocks.MoveToLoader(m_spectrumloader);
+    }
+
+
+    /// Stop/cancel playing immidiately
+    /// Keeps preloaded state
+    /// can cause tape loading error when not call WaitUntilDone
     void Stop()
     {
-        m_sample_sender.Stop();
+        auto is_preloaded = m_is_preloaded; // keep
         Reset();
+        m_is_preloaded = is_preloaded;
+    }
+
+    /// Wait until all data have send.
+    /// Note: at preloading fun attibutes this will probably 
+    /// wait forever.
+    void WaitUntilDone()
+    {
+        m_sample_sender.WaitUntilDone();
     }
 
     /// reset by move assigning empty/new instance.
+    /// (Will stop sending immidiately).
+    /// can cause tape loading error when not call WaitUntilDone
     void Reset()
     {
         auto onDone = std::move(m_OnDone);  // keep call back
-        SampleSender remove = std::move(m_sample_sender);   // <- Because move assign causes problems. Dtor target not called. So thread not stopped.
+        SampleSender remove = std::move(m_sample_sender);   // <- Because else move assign causes problems. Dtor target not called. So ma_device_uninit not called.
         *this = Impl();
         m_OnDone = std::move(onDone);
     }
@@ -228,10 +264,17 @@ public:
 
     bool IsBusy() const
     {
-        // return m_sample_sender.IsRunning();
-        return m_is_busy;
+        return m_sample_sender.IsRunning();     // stays busy during preloading attribs
+        // else not busy during fun attribs so cannot stop this.
+        //return m_is_busy;
     }
 
+    bool IsPreLoaded() const
+    {
+        return m_is_preloaded;
+    }
+
+    // Time last action took
     std::chrono::milliseconds GetTimeNeeded() const
     {
         return m_time_needed;
@@ -255,113 +298,10 @@ public:
         m_exe_path = std::move(p_filename);
     }
 
-    void PlayleaderTone()
-    {
-        m_spectrumloader.AddEndlessLeader();
-        m_spectrumloader.Attach(m_sample_sender);
-        m_sample_sender.SetVolume(m_volume_left, m_volume_right).SetSampleRate(m_sample_rate);
-        m_sample_sender.Start();            // Play!
-        m_is_busy = true;
-    }
-private:
-
-    // can auto create output file name out-off turbo filename.
-    fs::path GetOutputFilename() const
-    {
-        if(m_output_filename.empty() && !m_turbo_filename.empty())
-        {
-            // When -w or -wav is given create output filename out of 2nd given filename (filename2)
-            auto outputfilename = m_turbo_filename;
-            if( m_action == Action::write_wav )
-            {
-                outputfilename.replace_extension("wav");
-                return outputfilename;
-            }
-            if( m_action == Action::write_tzx )
-            {
-                outputfilename.replace_extension("tzx");
-                return outputfilename;
-            }
-        }
-        if(m_output_filename.empty())
-        {
-            throw std::runtime_error("Could not determine output filename");
-        }
-        return m_output_filename;
-    }
 
 
-    std::ofstream OpenFileToWrite(fs::path p_filename, bool p_allow_overwrite)
-    {
-        if (!p_allow_overwrite && std::filesystem::exists(p_filename))
-        {
-            throw std::runtime_error("File to write (" + p_filename.string() + ") already exists. Please remove first.");
-        }
-        std::ofstream filewrite(p_filename, std::ios::binary);
-        if (!filewrite)
-        {
-            throw std::runtime_error("Could not open file " + p_filename.string() + " for writing");
-        }
-        return filewrite;
-    }
-
-
-    // Add given normal speed file (tap/tzx) to m_spectrumloader
-    void AddNormalSpeedfile(fs::path p_filename)
-    {
-        if(!p_filename.empty())
-        {
-            std::cout << "Processing normal speed file: " << p_filename << std::endl;
-            // filename is tap/tzx file to be normal loaded into the ZX Spectrum.
-            if (ToLower(p_filename.extension().string()) == ".tap")
-            {
-                AddNormalSpeedfile<TapLoader>(p_filename, m_spectrumloader);
-            }
-            else if (ToLower(p_filename.extension().string()) == ".tzx")
-            {
-                AddNormalSpeedfile<TzxLoader>(p_filename, m_spectrumloader);
-            }
-            else
-            {
-                throw std::runtime_error("Unknown file type for filename: " + p_filename.string() + " (extension not tap / tzx)");
-            }
-        }
-    }
-
-
-    // Add given file (tap/tzx) to given SpectrumLoader so uses normal speed
-    // TLoader is TapLoader or TzxLoader
-    template<class Tloader>
-    void AddNormalSpeedfile(fs::path p_filename, SpectrumLoader &p_spectrum_loader)
-    {
-        Tloader tap_or_tzx_loader;
-        tap_or_tzx_loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string)
-                                              {
-                                                  p_spectrum_loader.AddLeaderPlusData(std::move(p_block), spectrum::g_tstate_quick_zero, 1750ms); // .AddPause(100ms);
-                                                  return false;
-                                              }
-                                              );
-        tap_or_tzx_loader.Load(p_filename, "");
-    }
-
-
-    // Add given file (tap/tzx) to given TurboBlocks so uses turbo speed
-    // TLoader is TapLoader or TzxLoader
-    template<class Tloader>
-    void AddFileToTurboBlocks(fs::path p_filename, TurboBlocks &p_tblocks)
-    {
-        TapToTurboBlocks tab_to_turbo_blocks{ p_tblocks };
-        Tloader tap_or_tzx_loader;
-        tap_or_tzx_loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string p_zxfilename)
-                                              {
-                                                  return tab_to_turbo_blocks.HandleTapBlock(std::move(p_block), p_zxfilename);
-                                              }
-                                              );
-        tap_or_tzx_loader.Load(p_filename, "");
-        p_tblocks.Finalyze(tab_to_turbo_blocks.GetUsrAddress(), tab_to_turbo_blocks.GetClearAddress());
-    }
-
-
+    /// Find the path/to/zqloader.tap 
+    /// Throws when not found.
     fs::path FindZqLoaderTapfile(fs::path p_filename)
     {
         if(ToLower(p_filename.stem().string()) != "zqloader")
@@ -402,11 +342,161 @@ A second filename argument and/or parameters are only usefull when using zqloade
         }
         return filename;
     }
+    void Test()
+    {
+        extern uint16_t Test(TurboBlocks & p_blocks, fs::path p_filename);
+        auto adr = Test(m_turboblocks, "");
+        m_turboblocks.Finalize(adr).MoveToLoader(m_spectrumloader);
+    }
+
+private:
+
+
+
+    std::ofstream OpenFileToWrite(fs::path p_filename, bool p_allow_overwrite)
+    {
+        if (!p_allow_overwrite && std::filesystem::exists(p_filename))
+        {
+            throw std::runtime_error("File to write (" + p_filename.string() + ") already exists. Please remove first.");
+        }
+        std::ofstream filewrite(p_filename, std::ios::binary);
+        if (!filewrite)
+        {
+            throw std::runtime_error("Could not open file " + p_filename.string() + " for writing");
+        }
+        return filewrite;
+    }
+
+
+    // Add given normal speed file (tap/tzx) to m_spectrumloader
+    void AddNormalSpeedFile(fs::path p_filename)
+    {
+        if(!p_filename.empty())
+        {
+            std::cout << "Processing normal speed file: " << p_filename << std::endl;
+            // filename is tap/tzx file to be normal loaded into the ZX Spectrum.
+            if (ToLower(p_filename.extension().string()) == ".tap")
+            {
+                AddNormalSpeedFile<TapLoader>(p_filename, m_spectrumloader);
+            }
+            else if (ToLower(p_filename.extension().string()) == ".tzx")
+            {
+                AddNormalSpeedFile<TzxLoader>(p_filename, m_spectrumloader);
+            }
+            else
+            {
+                throw std::runtime_error("Unknown file type for filename: " + p_filename.string() + " (extension not tap / tzx)");
+            }
+        }
+    }
+
+    void AddZqLoaderFile(fs::path p_filename)
+    {
+        if(!m_is_preloaded)
+        {
+            auto filename = FindZqLoaderTapfile(p_filename);
+            m_turboblocks.AddZqLoader(filename);                 // zqloader.tap
+        }
+    }
+
+    void AddTurboSpeedFile(fs::path p_filename)
+    {
+        if(!m_turboblocks.IsZqLoaderAdded())
+        {
+            AddZqLoaderFile(GetNormalFilename());
+        }
+
+        if (ToLower(p_filename.extension().string()) == ".tap")
+        {
+            std::cout << "Processing tap file: " << p_filename << " (turbo speed)" << std::endl;
+            AddFileToTurboBlocks<TapLoader>(p_filename, m_turboblocks);
+        }
+        else if (ToLower(p_filename.extension().string()) == ".tzx")
+        {
+            std::cout << "Processing tzx file: " << p_filename << " (turbo speed)" << std::endl;
+            AddFileToTurboBlocks<TzxLoader>(p_filename, m_turboblocks);
+        }
+        else if (ToLower(p_filename.extension().string()) == ".z80" ||
+                 ToLower(p_filename.extension().string()) == ".sna")
+        {
+            std::cout << "Processing snapshot file: " << p_filename << " (turbo speed)" << std::endl;
+            AddSnapshotToTurboBlocks(p_filename, m_turboblocks);
+        }
+        else if(!p_filename.empty())
+        {
+            throw std::runtime_error("Unknown file type for filename: " + p_filename.string() + " (extension not tap / tzx / z80)");
+        }
+
+        // empty turbo file means preload.
+        m_is_preloaded = p_filename.empty();
+
+        m_turboblocks.MoveToLoader(m_spectrumloader);
+    }
+
+
+    
+    // Add given file (tap/tzx) to given TurboBlocks so uses turbo speed
+    // TLoader is TapLoader or TzxLoader
+    // Finalize already called
+    template<class Tloader>
+    void AddFileToTurboBlocks(fs::path p_filename, TurboBlocks &p_tblocks)
+    {
+        TapToTurboBlocks tab_to_turbo_blocks{ p_tblocks };
+        Tloader tap_or_tzx_loader;
+        tap_or_tzx_loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string p_zxfilename)
+                                              {
+                                                  return tab_to_turbo_blocks.HandleTapBlock(std::move(p_block), p_zxfilename);
+                                              }
+                                              );
+        tap_or_tzx_loader.Load(p_filename, "");
+        p_tblocks.Finalize(tab_to_turbo_blocks.GetUsrAddress(), tab_to_turbo_blocks.GetClearAddress());
+    }
+
+    // Add given snapshot file (z80/sna) to given TurboBlocks so uses turbo speed
+    // Finalize already called
+    void AddSnapshotToTurboBlocks(fs::path p_filename, TurboBlocks &p_tblocks)
+    {
+        SnapShotLoader snapshotloader;
+        // Read file snapshotregs.bin (created by sjasmplus) -> regblock
+        fs::path snapshot_regs_filename = FindZqLoaderTapfile(GetNormalFilename());
+        snapshot_regs_filename.replace_filename("snapshotregs");
+        snapshot_regs_filename.replace_extension("bin");
+        DataBlock regblock;
+        regblock.LoadFromFile(snapshot_regs_filename);
+        if(!p_tblocks.IsZqLoaderAdded())      // else already done at AddZqLoader 
+        {
+            fs::path filename_exp = FindZqLoaderTapfile(GetNormalFilename());
+            filename_exp.replace_extension("exp");          // zqloader.exp (symbols)
+            p_tblocks.SetSymbolFilename(filename_exp);      
+        }
+        snapshotloader.Load(p_filename).SetRegBlock(std::move(regblock)).MoveToTurboBlocks(p_tblocks, m_new_loader_location, m_use_fun_attribs);
+        p_tblocks.Finalize(snapshotloader.GetUsrAddress());
+    }
+
+
+
+    // Add given file (tap/tzx) to given SpectrumLoader so uses normal speed
+    // TLoader is TapLoader or TzxLoader
+    template<class Tloader>
+    void AddNormalSpeedFile(fs::path p_filename, SpectrumLoader &p_spectrum_loader)
+    {
+        Tloader tap_or_tzx_loader;
+        tap_or_tzx_loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string)
+                                              {
+                                                  p_spectrum_loader.AddLeaderPlusData(std::move(p_block), spectrum::g_tstate_quick_zero, 1750ms); // .AddPause(100ms);
+                                                  return false;
+                                              }
+                                              );
+        tap_or_tzx_loader.Load(p_filename, "");
+    }
+
+
+
 
     
     void Check()
     {
-        if(m_is_zqloader && GetTurboFilename().empty())
+        if(m_is_zqloader && m_turbo_filename.empty())
         {
             throw std::runtime_error(1 + &*R"(
 When using zqloader.tap a 2nd filename is needed as runtime argument,
@@ -416,7 +506,7 @@ except waiting.
 )");
         }
 
-        if(GetTurboFilename().empty() && GetNormalFilename().empty())
+        if(m_turbo_filename.empty() && GetNormalFilename().empty())
         {
             throw std::runtime_error(1 + &*R"(
 No files added. Nothing to do.
@@ -425,57 +515,34 @@ Please add a normal and or turbo speed file.
         }
     }
 
-    void Test()
+
+
+
+    // Determine output (wav/tzx) filename to write.
+    // Can auto create output file name out-off turbo filename.
+    fs::path GetOutputFilename() const
     {
-        extern uint16_t Test(TurboBlocks & p_blocks, fs::path p_filename);
-        auto adr = Test(m_turboblocks, "");
-        m_turboblocks.Finalyze(adr).MoveToLoader(m_spectrumloader);
+        if(m_output_filename.empty() && !m_turbo_filename.empty())
+        {
+            // When -w or -wav is given create output filename out of 2nd given filename (filename2)
+            auto outputfilename = m_turbo_filename;
+            if( m_action == Action::write_wav )
+            {
+                outputfilename.replace_extension("wav");
+                return outputfilename;
+            }
+            if( m_action == Action::write_tzx )
+            {
+                outputfilename.replace_extension("tzx");
+                return outputfilename;
+            }
+        }
+        if(m_output_filename.empty())
+        {
+            throw std::runtime_error("Could not determine output filename");
+        }
+        return m_output_filename;
     }
-
-
-    void AddSnapshotToTurboBlocks(fs::path p_filename, TurboBlocks &p_tblocks)
-    {
-        Z80SnapShotLoader snapshotloader;
-        // Read file snapshotregs.bin (created by sjasmplus) -> regblock
-        fs::path snapshot_regs_filename = FindZqLoaderTapfile(GetNormalFilename());
-        snapshot_regs_filename.replace_filename("snapshotregs");
-        snapshot_regs_filename.replace_extension("bin");
-        DataBlock regblock;
-        regblock.LoadFromFile(snapshot_regs_filename);
-        snapshotloader.Load(p_filename).SetRegBlock(std::move(regblock)).MoveToTurboBlocks(p_tblocks, m_new_loader_location, m_use_fun_attribs);
-        p_tblocks.Finalyze(snapshotloader.GetUsrAddress());
-    }
-
-
-    void AddTurboSpeedFile(fs::path p_filename2)
-    {
-        auto filename = FindZqLoaderTapfile(GetNormalFilename());
-
-        m_turboblocks.LoadZqLoader(filename);                 // zqloader.tap
-
-        if (ToLower(p_filename2.extension().string()) == ".tap")
-        {
-            std::cout << "Processing tap file: " << p_filename2 << " (turbo speed)" << std::endl;
-            AddFileToTurboBlocks<TapLoader>(p_filename2, m_turboblocks);
-        }
-        else if (ToLower(p_filename2.extension().string()) == ".tzx")
-        {
-            std::cout << "Processing tzx file: " << p_filename2 << " (turbo speed)" << std::endl;
-            AddFileToTurboBlocks<TzxLoader>(p_filename2, m_turboblocks);
-        }
-        else if (ToLower(p_filename2.extension().string()) == ".z80" ||
-                 ToLower(p_filename2.extension().string()) == ".sna")
-        {
-            std::cout << "Processing snapshot file: " << p_filename2 << " (turbo speed)" << std::endl;
-            AddSnapshotToTurboBlocks(p_filename2, m_turboblocks);
-        }
-        else
-        {
-            throw std::runtime_error("Unknown file type for filename: " + p_filename2.string() + " (extension not tap / tzx / z80)");
-        }
-        m_turboblocks.MoveToLoader(m_spectrumloader);
-    }
-
 
     fs::path GetNormalFilename() const
     {
@@ -486,11 +553,6 @@ Please add a normal and or turbo speed file.
         return m_normal_filename;
     }
 
-
-    fs::path GetTurboFilename() const
-    {
-        return m_turbo_filename;
-    }
 
 private:
 
@@ -503,7 +565,6 @@ private:
     int                                     m_volume_left         = loader_defaults::volume_left;
     int                                     m_volume_right        = loader_defaults::volume_right;
     int                                     m_sample_rate         = loader_defaults::sample_rate;
-    bool                                    m_is_zqloader         = false; // zqloader.tap seen
     bool                                    m_allow_overwrite     = false; // see OpenFileToWrite
     fs::path                                m_normal_filename;             // usually zqloader.tap
     fs::path                                m_turbo_filename;
@@ -512,11 +573,12 @@ private:
     Action                                  m_action = Action::play_audio;
 
     bool                                    m_is_busy = false;
+    bool                                    m_is_zqloader         = false; // zqloader.tap seen
+    bool                                    m_is_preloaded = false;
     DoneFun                                 m_OnDone;
 
     std::chrono::steady_clock::time_point   m_start_time{};
     std::chrono::milliseconds               m_time_needed{};
-    mutable std::chrono::milliseconds       m_time_estimated{};
 }; // class ZQLoader::Impl
 
 
@@ -529,6 +591,7 @@ ZQLoader::ZQLoader()
 
 ZQLoader::~ZQLoader()
 {}  // = default;
+
 
 
 ZQLoader& ZQLoader::SetNormalFilename(fs::path p_filename)
@@ -641,6 +704,7 @@ ZQLoader& ZQLoader::Reset()
     return *this;
 }
 
+/// Not threaded, (or wait for thread)
 ZQLoader& ZQLoader::Run()
 {
     m_pimpl->Run(false);
@@ -648,7 +712,7 @@ ZQLoader& ZQLoader::Run()
 }
 
 
-
+/// threaded (returns immidiately)
 ZQLoader& ZQLoader::Start()
 {
     m_pimpl->Run(true);
@@ -664,6 +728,11 @@ ZQLoader& ZQLoader::Stop()
 }
 
 
+ZQLoader& ZQLoader::WaitUntilDone()
+{
+    m_pimpl->WaitUntilDone();
+    return *this;
+}
 
 
 
@@ -673,6 +742,12 @@ bool ZQLoader::IsBusy() const
 {
     return m_pimpl->IsBusy();
 }
+
+bool ZQLoader::IsPreLoaded() const
+{
+    return m_pimpl->IsPreLoaded();
+}
+
 
 ZQLoader& ZQLoader::PlayleaderTone()
 {
@@ -699,6 +774,7 @@ std::chrono::milliseconds ZQLoader::GetEstimatedDuration() const
     return m_pimpl->GetEstimatedDuration();
 }
 
+
 ZQLoader &ZQLoader::SetExeFilename(fs::path p_filename)
 {
     m_pimpl->SetExeFilename(std::move(p_filename));
@@ -710,5 +786,32 @@ ZQLoader &ZQLoader::SetExeFilename(fs::path p_filename)
 ZQLoader& ZQLoader::SetOnDone(DoneFun p_fun)
 {
     m_pimpl->SetOnDone(std::move(p_fun));
+    return *this;
+}
+
+int ZQLoader::GetDeviceSampleRate() const
+{
+    return SampleSender::GetDeviceSampleRate();
+}
+
+std::filesystem::path ZQLoader::GetZqLoaderFile() const
+{
+    return m_pimpl->FindZqLoaderTapfile("zqloader.tap");
+}
+
+void ZQLoader::Test()
+{
+    return m_pimpl->Test();
+}
+
+// static
+bool ZQLoader::WriteTextToAttr(DataBlock& out_attr, const std::string& p_text, std::byte p_color, bool p_center, int p_col)
+{
+    return ::WriteTextToAttr(out_attr, p_text, p_color, p_center, p_col);
+}
+
+ZQLoader& ZQLoader::AddDataBlock(DataBlock p_block, uint16_t p_start_address)
+{
+    m_pimpl->AddDataBlock(std::move(p_block), p_start_address);
     return *this;
 }

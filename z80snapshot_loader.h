@@ -1,7 +1,7 @@
 //==============================================================================
 // PROJECT:         zqloader
 // FILE:            z80snapshotloader.h
-// DESCRIPTION:     Definition of class Z80SnapShotLoader.
+// DESCRIPTION:     Definition of class SnapShotLoader.
 // 
 // Copyright (c) 2023 Daan Scherft [Oxidaan]
 // This project uses the MIT license. See LICENSE.txt for details.
@@ -12,15 +12,15 @@
 #include "datablock.h"
 #include <cstdint>
 #include <iosfwd>
-#include <filesystem>
+
 
 class TurboBlocks;
 class Symbols;
 
 
-/// Loads Z80 snapshot files.
+/// Loads .Z80 or .sna snapshot files.
 /// See https://worldofspectrum.org/faq/reference/z80format.htm
-class Z80SnapShotLoader
+class SnapShotLoader
 {
 #pragma pack(push, 1)
     // z80 snapshot header https://worldofspectrum.org/faq/reference/z80format.htm
@@ -114,22 +114,23 @@ class Z80SnapShotLoader
     static_assert(sizeof(SnaSnapshotShotHeader) == 27, "Sizeof SnaSnapshotShotHeader must be 27");
 
 public:
-    Z80SnapShotLoader()
+    SnapShotLoader()
     {}
 
-    ///  Load Z80 snapshot file from given filename.
-    Z80SnapShotLoader& Load(const std::filesystem::path &p_filename);
+    ///  Load Z80 or sna snapshot file from given filename.
+    template <typename TPath>
+    SnapShotLoader& Load(const TPath &p_filename);
 
     ///  Load Z80 snapshot file from given stream.
-    Z80SnapShotLoader& LoadZ80(std::istream& p_stream);
+    SnapShotLoader& LoadZ80(std::istream& p_stream);
     ///  Load sna snapshot file from given stream.
-    Z80SnapShotLoader& LoadSna(std::istream& p_stream);
+    SnapShotLoader& LoadSna(std::istream& p_stream);
 
     /// The given datablock should be a sjasmplus generated block with
     /// some Z80 code to set all registers.
     /// Typically would be snapshotregs.bin.
     /// Together with Symbols will replace data there with actual snapshot register values.
-    Z80SnapShotLoader& SetRegBlock(DataBlock p_snapshot_regs_block)
+    SnapShotLoader& SetRegBlock(DataBlock p_snapshot_regs_block)
     {
         m_reg_block = std::move(p_snapshot_regs_block);
         return *this;
@@ -170,4 +171,4 @@ private:
     std::string m_name;
 };
 
-void WriteTextToAttr(DataBlock& out_attr, const std::string& p_text1, std::byte p_color, bool p_center = true, int p_col = 0);
+bool WriteTextToAttr(DataBlock& out_attr, const std::string& p_text1, std::byte p_color, bool p_center = true, int p_col = 0);

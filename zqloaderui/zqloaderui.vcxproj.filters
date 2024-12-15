@@ -1,40 +1,27 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>qml;cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
     <Filter Include="Translation Files">
       <UniqueIdentifier>{639EADAA-A684-42e4-A9AD-28FC9BCB8F7C}</UniqueIdentifier>
       <Extensions>ts</Extensions>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="dialog.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="dialog.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <QtUic Include="dialog.ui">
-      <Filter>Source Files</Filter>
-    </QtUic>
-  </ItemGroup>
-  <ItemGroup>
-    <QtMoc Include="dial.h">
-      <Filter>Source Files</Filter>
-    </QtMoc>
-    <QtMoc Include="dialog.h">
-      <Filter>Source Files</Filter>
-    </QtMoc>
+    <QtMoc Include="dial.h" />
+    <QtMoc Include="dialog.h" />
+    <QtMoc Include="widgetstreambuffer.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\resource\zqloader.rc" />
   </ItemGroup>
   <ItemGroup>
     <QtRcc Include="..\resource\zqloader.qrc" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="dialog.ui" />
   </ItemGroup>
 </Project>

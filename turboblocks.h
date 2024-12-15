@@ -17,6 +17,7 @@
 #include "types.h"           // CompressionType
 #include "loader_defaults.h"
 
+
 class TurboBlock;
 class SpectrumLoader;
 
@@ -59,8 +60,36 @@ public:
     ~TurboBlocks();
 
 
-    /// Load at normal speed, typically loads zqloader.tap.
-    TurboBlocks& LoadZqLoader(const std::filesystem::path& p_filename);
+    /// Load given file at normal speed, typically loads zqloader.tap.
+    template <class TPath>
+    TurboBlocks& AddZqLoader(const TPath& p_filename);
+
+    ///  Is ZqLoader added (with AddZqLoader above)?
+    bool IsZqLoaderAdded() const
+    {
+        return m_zqloader_code.size() != 0;
+    }
+
+    /// Add given Datablock as Turboblock at given address.
+    /// Check if zqloader (upper) is overlapped.
+    /// Check if zqloader (lower, at basic) is overlapped.
+    TurboBlocks& AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr);
+
+
+    /// Convenience. Add a Datablock as Turboblock at given symbol name address (see class Symbols).
+    TurboBlocks& AddDataBlock(DataBlock&& p_block, const std::string& p_symbol)
+    {
+        return AddDataBlock(std::move(p_block), m_symbols.GetSymbol(p_symbol));
+    }
+
+    /// p_usr_address: when done loading all blocks end start machine code here as in RANDOMIZE USR xxxx
+    /// p_clear_address: when done loading put stack pointer here, which is a bit like CLEAR xxxx
+    TurboBlocks& Finalize(uint16_t p_usr_address, uint16_t p_clear_address = 0);
+
+    /// Move all added turboblocks to SpectrumLoader as given at CTOR.
+    /// Call after Finalize.
+    void MoveToLoader(SpectrumLoader& p_spectrumloader);
+
 
     /// Set durations in T states for zero and one pulses.
     TurboBlocks& SetDurations(int p_zero_duration, int p_one_duration, int p_end_of_byte_delay);
@@ -95,17 +124,6 @@ public:
     }
 
 
-    /// Add given Datablock as Turboblock at given address.
-    /// Check if zqloader (upper) is overlapped.
-    /// Check if zqloader (lower, at basic) is overlapped.
-    TurboBlocks& AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr);
-
-
-    /// Convenience. Add a Datablock as Turboblock at given symbol name address (see class Symbols).
-    TurboBlocks& AddDataBlock(DataBlock&& p_block, const std::string& p_symbol)
-    {
-        return AddDataBlock(std::move(p_block), m_symbols.GetSymbol(p_symbol));
-    }
 
 
     /// Add just a header with a 'copy to screen' command (no data)
@@ -120,12 +138,6 @@ public:
     }
 
 
-    /// p_usr_address: when done loading all blocks end start machine code here as in RANDOMIZE USR xxxx
-    /// p_clear_address: when done loading put stack pointer here, which is a bit like CLEAR xxxx
-    TurboBlocks& Finalyze(uint16_t p_usr_address, uint16_t p_clear_address = 0);
-
-    /// Move all added turboblocks to SpectrumLoader as given at CTOR.
-    void MoveToLoader(SpectrumLoader& p_spectrumloader);
 
     /// Convenience public read access to Symbols as loaded by CTOR.
     const Symbols& GetSymbols() const
@@ -136,11 +148,12 @@ public:
 
     // Length needed when loader code needs to be moved away from BASIC location
     uint16_t GetLoaderCodeLength(bool p_with_registers) const;
-
+   
+   template <class TPath>
+    TurboBlocks&SetSymbolFilename(const TPath &p_symbol_file_name);
 private:
 
-    template <class TPath>
-    TurboBlocks&SetSymbolFilename(const TPath &p_symbol_file_name);
+
 
     bool HandleZqLoaderTapBlock(DataBlock p_block);
 

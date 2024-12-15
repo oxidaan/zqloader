@@ -203,7 +203,7 @@ int main(int argc, char** argv)
 
         // When outputfile="path/to/filename" or -w or -wav given: 
         // Convert to wav file instead of outputting sound
-        zqloader.SetOutputFilename(cmdline.GetParameter("outputfile", ""));
+        zqloader.SetOutputFilename(fs::path(cmdline.GetParameter("outputfile", "")));
         if(cmdline.HasParameter("wav") || cmdline.HasParameter("w"))
         {
             zqloader.SetAction(ZQLoader::Action::write_wav);
@@ -220,7 +220,7 @@ int main(int argc, char** argv)
                                     cmdline.GetParameter("end_of_byte_delay", 0));
 
         zqloader.SetVolume(cmdline.GetParameter("volume_left", loader_defaults::volume_left),cmdline.GetParameter("volume_right", loader_defaults::volume_right));
-
+        // zqloader.SetCompressionType(CompressionType::none); // @DEBUG
 
         if(cmdline.HasParameter("usescreen") || cmdline.HasParameter("s"))
         {
