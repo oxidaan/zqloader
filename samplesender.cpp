@@ -155,9 +155,9 @@ inline void SampleSender::DataCallback(ma_device* pDevice, void* pOutput, uint32
     auto channels   = pDevice->playback.channels;   // # channels eg 2 is stereo
     float* foutput  = reinterpret_cast<float*>(pOutput);
     int index       = 0;
-    m_done = (m_done == 0) ? CheckDone() : m_done++;
     for (auto n = 0u; n < frameCount; n++)
     {
+        m_done = (m_done == 0) ? CheckDone() : m_done + 1;
         float value = m_done ? 0.0f : GetNextSample(sampleRate);
         for (auto chan = 0u; chan < channels; chan++)
         {
@@ -207,11 +207,11 @@ inline float SampleSender::GetNextSample(uint32_t p_samplerate)
         // But this makes loading take a little longer than expected (s/a SpectrumLoader::GetDuration)
         // m_sample_time = m_sample_time - time_to_wait ;
         m_sample_time = 0s;
-        //NextSample();   // true when at end.
-        if (NextSample()) // true when at end.
-        {
-            m_done = 1;       // >0 : at end
-        }
+        NextSample();   // true when at end.
+        //if (NextSample()) // true when at end.
+        //{
+            //m_done = 1;       // >0 : at end
+        //}
     }
     return m_edge ? 1.0f : -1.0f;
 }

@@ -39,11 +39,11 @@ public:
 
     void SetNormalFilename(fs::path p_filename)
     {
+        m_normal_filename = std::move(p_filename);
         if(!m_is_zqloader)
         {
-            m_is_zqloader = ToLower(p_filename.stem().string()) == "zqloader";
+            m_is_zqloader = ToLower(m_normal_filename.stem().string()) == "zqloader";
         }
-        m_normal_filename = std::move(p_filename);
         if(!m_is_zqloader)
         {
             AddNormalSpeedFile(GetNormalFilename());
@@ -56,9 +56,12 @@ public:
 
     void SetTurboFilename(fs::path p_filename )
     {
-        m_is_zqloader = true;
-        m_turbo_filename = std::move(p_filename);
-        AddTurboSpeedFile(m_turbo_filename);
+        if(!p_filename.empty())
+        {
+            m_turbo_filename = std::move(p_filename);
+            m_is_zqloader = true;
+            AddTurboSpeedFile(m_turbo_filename);
+        }
     }
 
 
@@ -181,7 +184,7 @@ public:
 
     void Run(bool p_threaded)
     {
-       // Check();
+        Check();
         m_spectrumloader.SetOnDone([this]
         {
             OnDone();
@@ -272,6 +275,13 @@ public:
     bool IsPreLoaded() const
     {
         return m_is_preloaded;
+    }
+
+    void SetPreload()
+    {
+        AddZqLoaderFile(GetNormalFilename());
+        m_turboblocks.MoveToLoader(m_spectrumloader);
+        m_is_preloaded = true;
     }
 
     // Time last action took
@@ -392,7 +402,7 @@ private:
 
     void AddZqLoaderFile(fs::path p_filename)
     {
-        if(!m_is_preloaded)
+        if(!m_is_preloaded && !m_turboblocks.IsZqLoaderAdded())
         {
             auto filename = FindZqLoaderTapfile(p_filename);
             m_turboblocks.AddZqLoader(filename);                 // zqloader.tap
@@ -401,10 +411,8 @@ private:
 
     void AddTurboSpeedFile(fs::path p_filename)
     {
-        if(!m_turboblocks.IsZqLoaderAdded())
-        {
-            AddZqLoaderFile(GetNormalFilename());
-        }
+        AddZqLoaderFile(GetNormalFilename());
+
 
         if (ToLower(p_filename.extension().string()) == ".tap")
         {
@@ -426,9 +434,6 @@ private:
         {
             throw std::runtime_error("Unknown file type for filename: " + p_filename.string() + " (extension not tap / tzx / z80)");
         }
-
-        // empty turbo file means preload.
-        m_is_preloaded = p_filename.empty();
 
         m_turboblocks.MoveToLoader(m_spectrumloader);
     }
@@ -496,7 +501,7 @@ private:
     
     void Check()
     {
-        if(m_is_zqloader && m_turbo_filename.empty())
+        if(m_is_zqloader && m_turbo_filename.empty() && !m_is_preloaded)
         {
             throw std::runtime_error(1 + &*R"(
 When using zqloader.tap a 2nd filename is needed as runtime argument,
@@ -741,6 +746,12 @@ ZQLoader& ZQLoader::WaitUntilDone()
 bool ZQLoader::IsBusy() const
 {
     return m_pimpl->IsBusy();
+}
+
+ZQLoader & ZQLoader::SetPreload()
+{
+    m_pimpl->SetPreload();
+    return *this;
 }
 
 bool ZQLoader::IsPreLoaded() const

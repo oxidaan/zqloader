@@ -203,7 +203,7 @@ Dialog::Dialog(QWidget *parent)
             // start preload
             m_zqloader.Reset();
             fs::path filename1 = ui->lineEditNormalFile->text().toStdString();
-            m_zqloader.SetNormalFilename(filename1).SetTurboFilename("");
+            m_zqloader.SetNormalFilename(filename1).SetPreload();
 
             m_zqloader.SetSampleRate(ui->lineEditSampleRate->text().toInt());
             m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());

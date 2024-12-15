@@ -106,6 +106,9 @@ public:
     ///  Busy (playing sound)?
     bool IsBusy() const;
 
+    
+    ZQLoader &SetPreload();
+
     bool IsPreLoaded() const;
     
     /// Play a infinite leader tone for tuning.
