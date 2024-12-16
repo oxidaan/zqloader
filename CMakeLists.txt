@@ -1,23 +1,22 @@
+# ==============================================================================
+# PROJECT:         zqloader
+# FILE:            CMakeLists.txt
+# DESCRIPTION:     CMake Project for zqloader
+#
+# Copyright (c) 2024 Daan Scherft [Oxidaan]
+# This project uses the MIT license. See LICENSE.txt for details.
+# ==============================================================================
+# Main zqloader
+# defines targets for zqloaderlib and zqloader (console) application
+# includes zqloaderui and the z80 sjasmplus subdirecory projects
+
 cmake_minimum_required(VERSION 3.12)
 
 
 
 project(zqloader VERSION 0.1.0 LANGUAGES CXX)
 
-find_program(HAVE_SJSASMPLUS sjasmplus)
-if(NOT HAVE_SJSASMPLUS)
-    message("sjasmplus not found! Make sure it is in the PATH. Skipping z80 assembly.")
-    # Cant build so install the files that were committed in repository
-    install(FILES  
-            z80/zqloader.exp  
-            z80/zqloader.tap  
-            z80/snapshotregs.bin
-            DESTINATION bin
-            )
-else()
-    message("sjasmplus found at ${HAVE_SJSASMPLUS}")
-    add_subdirectory(z80)
-endif()
+add_subdirectory(z80)
 
 set(TARGET_LIB ${PROJECT_NAME}lib)
 set(TARGET_EXE ${PROJECT_NAME})
@@ -54,7 +53,7 @@ set(DOCUMENTATION
 )    
 
 
-# Common library contianing bulk of code
+# Common library containing bulk of code
 add_library(${TARGET_LIB} SHARED  ${SOURCE_LIB} ${INCLUDE} ${DOCUMENTATION} )
 
 # We need c++17
@@ -124,6 +123,7 @@ if(MSVC)
     zqloader.rc)
 endif()
 
+# The console application
 add_executable(${TARGET_EXE}  ${SOURCE_EXE} ${INCLUDE} )
 target_link_libraries(${TARGET_EXE} ${TARGET_LIB})
 

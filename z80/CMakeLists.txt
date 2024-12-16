@@ -1,9 +1,34 @@
+# ==============================================================================
+# PROJECT:         zqloader_z80
+# FILE:            CMakeLists.txt
+# DESCRIPTION:     CMake project for z80/sjasmplus project for zqloader.
+#
+# Copyright (c) 2024 Daan Scherft [Oxidaan]
+# This project uses the MIT license. See LICENSE.txt for details.
+# ==============================================================================
+
+
+
 cmake_minimum_required(VERSION 3.12)
 
 project(zqloader_z80)
 
-find_program(WHERE_IS_SJASMPLUS sjasmplus)
-get_filename_component(SJASMPLUS_PATH  ${WHERE_IS_SJASMPLUS}  DIRECTORY)       # default for PATH_TO_SJASMPLUS
+find_program(HAVE_SJSASMPLUS sjasmplus)
+if(NOT HAVE_SJSASMPLUS)
+    message(WARNING "sjasmplus not found! Make sure it is in the PATH. Skipping z80 assembly.")
+    # Cant build so install the files that were committed in repository
+    install(FILES
+            z80/zqloader.exp
+            z80/zqloader.tap
+            z80/snapshotregs.bin
+            DESTINATION bin
+            )
+    return()
+else()
+    message("sjasmplus found at ${HAVE_SJSASMPLUS}")
+endif()
+
+get_filename_component(SJASMPLUS_PATH  ${HAVE_SJSASMPLUS}  DIRECTORY)       # default for PATH_TO_SJASMPLUS
 set(PATH_TO_SJASMPLUS ${SJASMPLUS_PATH} CACHE PATH "Location of sjasmplus (directory)")
 
 # The directory location of the found binary is not necessary the location of the sjasmplus examples.
@@ -14,11 +39,11 @@ if (IS_DIRECTORY ${PATH_TO_SJASMPLUS}/examples)
 endif()
 
 if (NOT IS_DIRECTORY ${SJASMPLUS_PATH}/examples)
-    message(FATAL_ERROR "Sjasmplus examples not found.
+    message(WARNING "Sjasmplus examples not found. Skipping z80 assembly.
 Please give directory of sjasmplus as parameter PATH_TO_SJASMPLUS; examples must be there (now: ${SJASMPLUS_PATH})
 Eg: cmake -DPATH_TO_SJASMPLUS=path/to/sjasmplus
 (Or completely remove sjasmplus to skip z80 assembly)")
-
+    return()
 else()
     message("sjasmplus examples found at ${SJASMPLUS_PATH}/examples")
 endif()

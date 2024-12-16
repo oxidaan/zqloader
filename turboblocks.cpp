@@ -282,7 +282,7 @@ private:
     void MoveToLoader(TLoader& p_loader, std::chrono::milliseconds p_pause_before, int p_zero_duration, int p_one_duration, int p_end_of_byte_delay)
     {
         Check();
-        if(!ProbablyIsFunAttribute())   // avoid extensive logging
+        //if(!ProbablyIsFunAttribute())   // avoid extensive logging
         {
             std::cout << "Pause before = " << p_pause_before.count() << "ms" << std::endl;
             DebugDump();
@@ -718,6 +718,7 @@ void TurboBlocks::AddTurboBlock(TurboBlock&& p_block)
 /// p_clear_address: when done loading put stack pointer here, which is a bit like CLEAR xxxxx
 TurboBlocks &TurboBlocks::Finalize(uint16_t p_usr_address, uint16_t p_clear_address)
 {
+
     if(m_loader_copy_start && !IsZqLoaderAdded())
     {
         std::cout << "ZQLoader already (pre) loaded or not present, cannot patch loader copy code, will use screen." << std::endl;
@@ -786,6 +787,10 @@ TurboBlocks &TurboBlocks::Finalize(uint16_t p_usr_address, uint16_t p_clear_addr
         // What should be done after last block
         m_turbo_blocks.back().SetUsrStartAddress(p_usr_address ? p_usr_address : TurboBlocks::ReturnToBasic);    // now is last block
         m_turbo_blocks.back().SetClearAddress(p_clear_address);
+    }
+    else
+    {
+        throw std::runtime_error("No blocks present that could be turboloaded (note: can only handle code blocks, not BASIC)");
     }
     return *this;
 }

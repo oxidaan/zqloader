@@ -444,7 +444,7 @@ private:
     // TLoader is TapLoader or TzxLoader
     // Finalize already called
     template<class Tloader>
-    void AddFileToTurboBlocks(fs::path p_filename, TurboBlocks &p_tblocks)
+    void AddFileToTurboBlocks(const fs::path &p_filename, TurboBlocks &p_tblocks)
     {
         TapToTurboBlocks tab_to_turbo_blocks{ p_tblocks };
         Tloader tap_or_tzx_loader;
@@ -511,7 +511,7 @@ except waiting.
 )");
         }
 
-        if(m_turbo_filename.empty() && GetNormalFilename().empty())
+        if(m_spectrumloader.GetEstimatedDuration() == 0ms)
         {
             throw std::runtime_error(1 + &*R"(
 No files added. Nothing to do.
