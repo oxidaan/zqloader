@@ -26,7 +26,6 @@ class SampleSender
 {
 public:
 
-//    using NextSampleFun  = std::function<void (void)>;
     using NextSampleFun  = std::function<bool (void)>;
     using GetDurationFun = std::function<Doublesec (void)>;
     using GetEdgeFun     = std::function<Edge (void)>;
@@ -151,7 +150,7 @@ private:
     // Get next single sound sample,
     // called in miniaudio device thread (from DataCallback)
     // GetDurationWait -> GetEdge -> OnNextSample
-    float GetNextSample(uint32_t p_samplerate);
+    float GetNextSample(uint32_t p_samplerate, bool &out_done);
 
     // Callback:
     // Get duration to wait for next edge change based on what we need to do.
@@ -193,14 +192,8 @@ private:
 
     // Callback:
     // Are we done?
-    bool CheckDone()
-    {
-        if (m_OnCheckDone)
-        {
-            return m_OnCheckDone();
-        }
-        return true;
-    }
+    bool CheckDone();
+
 
 
 private:

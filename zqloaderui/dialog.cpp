@@ -28,6 +28,7 @@
 namespace fs = std::filesystem;
 
 
+///  Yes!
 void WriteFunText(ZQLoader &p_zq_loader)
 {
     static int col = 32;
@@ -55,7 +56,7 @@ void WriteFunText(ZQLoader &p_zq_loader)
     col --;
     if(empty)
     {
-        col = 31;
+        col = 31;       // repeat
     }
 }
 
@@ -194,8 +195,8 @@ Dialog::Dialog(QWidget *parent)
         }
         else if(m_state == State::PreloadingFunAttribs )     
         {
-            // this will stop fun attribs
-            m_zqloader.Stop();
+            // this will stop fun attribs, but keep preloaded
+            //m_zqloader.Stop();      
             SetState(State::Idle);
         }
         else
@@ -247,12 +248,12 @@ Dialog::Dialog(QWidget *parent)
 
     m_zqloader.SetOnDone([this]
     {
-        // runs in miniadui thread
+        // runs in miniadio thread
         if(m_state == State::Preloading)
         {
             m_state = State::PreloadingFunAttribs;
         }
-        else if( m_state == State::PreloadingFunAttribs)
+        if( m_state == State::PreloadingFunAttribs)
         {
             WriteFunText(m_zqloader);
         }
@@ -263,16 +264,19 @@ Dialog::Dialog(QWidget *parent)
     });
     connect(this, &Dialog::signalDone, this, [this] // this extra this is needed to go back to ui thread
     {
-        SetState(State::Idle);
-        if(m_zqloader.GetTimeNeeded() != 0ms)
+        if(!m_zqloader.IsBusy())        // double check
         {
-            std::stringstream ss;
-            ss << std::fixed << std::setprecision(1) << std::chrono::duration<double>(m_zqloader.GetTimeNeeded()).count();
-            ui->progressBar->setFormat("Done, took " + QString::fromStdString(ss.str()) + "s");
-            ui->progressBar->setValue(100);
+            SetState(State::Idle);
+            if(m_zqloader.GetTimeNeeded() != 0ms)
+            {
+                std::stringstream ss;
+                ss << std::fixed << std::setprecision(1) << std::chrono::duration<double>(m_zqloader.GetTimeNeeded()).count();
+                ui->progressBar->setFormat("Done, took " + QString::fromStdString(ss.str()) + "s");
+                ui->progressBar->setValue(100);
+            }
+            m_zqloader.WaitUntilDone(); // else tape loading error
+            m_zqloader.Reset();         // do not keep preloaded state
         }
-        m_zqloader.WaitUntilDone(); // else tape loading error
-        m_zqloader.Stop();      // keep preloaded state
     });
 
 
@@ -383,8 +387,12 @@ inline void Dialog::RestoreDefaults()
 // Go pressed.
 inline void Dialog::Go()
 {
-    // this will stop fun attribs
-    SetState(State::Idle);
+    if(m_state == State::PreloadingFunAttribs)
+    {
+        // this will stop fun attribs
+        SetState(State::Idle);
+      //  m_zqloader.WaitUntilDone();
+    }
 
     // might break ongoing pre-load: 
     // m_zqloader.Reset();

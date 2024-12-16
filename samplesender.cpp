@@ -147,6 +147,31 @@ inline void SampleSender::Reset()
     m_event.Reset();
 }
 
+inline bool SampleSender::CheckDone()
+{
+    bool done = true;
+    if (m_OnCheckDone)
+    {
+        done = m_OnCheckDone();
+    }
+    if(!done)
+    {
+        if(m_done)
+        {
+            m_event.Reset();
+        }
+    }
+    else
+    {
+        m_done++;
+        if(m_done > m_done_event_cnt)  // see https://github.com/mackron/miniaudio/discussions/490 
+        {
+            m_event.Signal();
+        }
+    }
+    return done;
+}
+
 /// Get next sound samples,
 /// called in miniaudio device thread
 inline void SampleSender::DataCallback(ma_device* pDevice, void* pOutput, uint32_t frameCount)
@@ -155,10 +180,10 @@ inline void SampleSender::DataCallback(ma_device* pDevice, void* pOutput, uint32
     auto channels   = pDevice->playback.channels;   // # channels eg 2 is stereo
     float* foutput  = reinterpret_cast<float*>(pOutput);
     int index       = 0;
+    bool done = CheckDone();
     for (auto n = 0u; n < frameCount; n++)
     {
-        m_done = (m_done == 0) ? CheckDone() : m_done + 1;
-        float value = m_done ? 0.0f : GetNextSample(sampleRate);
+        float value = done ? 0.0f : GetNextSample(sampleRate, done);    // GetNextSample can also set m_done
         for (auto chan = 0u; chan < channels; chan++)
         {
             foutput[index] = (chan == 0) ? m_volume_left * value :
@@ -166,13 +191,7 @@ inline void SampleSender::DataCallback(ma_device* pDevice, void* pOutput, uint32
             index++;
         }
     }
-    if(m_done)
-    {
-        if(m_done > m_done_event_cnt)  // see https://github.com/mackron/miniaudio/discussions/490 
-        {
-            m_event.Signal();
-        }
-    }
+
 }
 
 
@@ -180,7 +199,7 @@ inline void SampleSender::DataCallback(ma_device* pDevice, void* pOutput, uint32
 /// Get next sample (audio value), depending on attached Pulsers.
 /// This is typically 1.0 or -1.0 depending on edge; s/a GetEdge.
 /// (any volume setting not used here)
-inline float SampleSender::GetNextSample(uint32_t p_samplerate)
+inline float SampleSender::GetNextSample(uint32_t p_samplerate, bool &out_done)
 {
     Doublesec sample_period = 1s / double(p_samplerate);
     m_sample_time += sample_period;
@@ -207,11 +226,7 @@ inline float SampleSender::GetNextSample(uint32_t p_samplerate)
         // But this makes loading take a little longer than expected (s/a SpectrumLoader::GetDuration)
         // m_sample_time = m_sample_time - time_to_wait ;
         m_sample_time = 0s;
-        NextSample();   // true when at end.
-        //if (NextSample()) // true when at end.
-        //{
-            //m_done = 1;       // >0 : at end
-        //}
+        out_done = NextSample(); // true when at end.
     }
     return m_edge ? 1.0f : -1.0f;
 }

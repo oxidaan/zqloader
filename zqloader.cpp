@@ -267,9 +267,10 @@ public:
 
     bool IsBusy() const
     {
-        return m_sample_sender.IsRunning();     // stays busy during preloading attribs
+        //return m_sample_sender.IsRunning();     // stays busy during preloading attribs
         // else not busy during fun attribs so cannot stop this.
-        //return m_is_busy;
+        // else double check @ signalDone not working
+        return m_is_busy;
     }
 
     bool IsPreLoaded() const

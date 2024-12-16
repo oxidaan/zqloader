@@ -282,7 +282,7 @@ private:
     void MoveToLoader(TLoader& p_loader, std::chrono::milliseconds p_pause_before, int p_zero_duration, int p_one_duration, int p_end_of_byte_delay)
     {
         Check();
-        //if(!ProbablyIsFunAttribute())   // avoid extensive logging
+        if(!ProbablyIsFunAttribute())   // avoid extensive logging
         {
             std::cout << "Pause before = " << p_pause_before.count() << "ms" << std::endl;
             DebugDump();

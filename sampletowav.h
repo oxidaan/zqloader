@@ -46,7 +46,7 @@ class SampleToWav
 
 public:
 
-    using NextSampleFun  = std::function<void (void)>;
+    using NextSampleFun  = std::function<bool (void)>;
     using GetDurationFun = std::function<Doublesec (void)>;
     using GetEdgeFun     = std::function<Edge (void)>;
     using CheckDoneFun   = std::function<bool (void)>;
@@ -196,12 +196,13 @@ private:
     }
 
 
-    void OnNextSample()
+    bool OnNextSample()
     {
         if (m_OnNextSample)
         {
-            m_OnNextSample();
+            return m_OnNextSample();
         }
+        return false;
     }
 
 
