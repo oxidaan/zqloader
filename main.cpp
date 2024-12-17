@@ -203,7 +203,7 @@ int main(int argc, char** argv)
 
         // When outputfile="path/to/filename" or -w or -wav given: 
         // Convert to wav file instead of outputting sound
-        zqloader.SetOutputFilename(fs::path(cmdline.GetParameter("outputfile", "")));
+        zqloader.SetOutputFilename(fs::path(cmdline.GetParameter("outputfile", "")), cmdline.HasParameter("overwrite") || cmdline.HasParameter("o"));
         if(cmdline.HasParameter("wav") || cmdline.HasParameter("w"))
         {
             zqloader.SetAction(ZQLoader::Action::write_wav);

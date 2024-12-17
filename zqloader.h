@@ -58,7 +58,7 @@ public:
     ZQLoader &SetTurboFilename(std::filesystem::path p_filename);
 
     /// Set output file when action is write_wav or write_tzx.
-    ZQLoader &SetOutputFilename(std::filesystem::path p_filename);
+    ZQLoader &SetOutputFilename(std::filesystem::path p_filename, bool p_allow_overwrite);
 
     /// Set Volume (-100 -- 100).
     ZQLoader &SetVolume(int p_volume_left, int p_volume_right);

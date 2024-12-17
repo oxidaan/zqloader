@@ -11,7 +11,7 @@
 #include "dialog.h"
 #include <streambuf>
 #include <iostream>
-//#include <sstream>                  // todo some formating (double)
+#include <sstream>                  
 #include <QFileDialog>
 #include <QSettings>
 #include <QTextEdit>
@@ -413,7 +413,7 @@ inline void Dialog::Go()
 
     // When outputfile="path/to/filename" or -w or -wav given: 
     // Convert to wav file instead of outputting sound
-    m_zqloader.SetOutputFilename(outputfilename);
+    m_zqloader.SetOutputFilename(outputfilename, true);     // allow overwrite for now
 
     m_zqloader.SetBitLoopMax     (ui->lineEditBitLoopMax->text().toInt()).
                SetBitOneThreshold(ui->lineEditBitOneThreshold->text().toInt()).

@@ -39,12 +39,6 @@
         }
         "Entry"
         {
-        "MsmKey" = "8:_772DC7572386839539BE6F23A4007F06"
-        "OwnerKey" = "8:_F59873146BEA4677B5BC7CB4FA6D8670"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
         "MsmKey" = "8:_7E77D582CDE741A3B6060592D66DAB41"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
@@ -82,6 +76,12 @@
         "Entry"
         {
         "MsmKey" = "8:_B6561CA910596CC5B91BB3DEC80EEEC1"
+        "OwnerKey" = "8:_F59873146BEA4677B5BC7CB4FA6D8670"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_B84E076D57AAB7B089A4701AD6CCC716"
         "OwnerKey" = "8:_F59873146BEA4677B5BC7CB4FA6D8670"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -406,6 +406,26 @@
             {
             "SourcePath" = "8:api-ms-win-crt-runtime-l1-1-0.dll"
             "TargetName" = "8:api-ms-win-crt-runtime-l1-1-0.dll"
+            "Tag" = "8:"
+            "Folder" = "8:_298281ABCFE74545B54C14C5058F78FE"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:TRUE"
+            "IsolateTo" = "8:"
+            }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_B84E076D57AAB7B089A4701AD6CCC716"
+            {
+            "SourcePath" = "8:api-ms-win-crt-string-l1-1-0.dll"
+            "TargetName" = "8:api-ms-win-crt-string-l1-1-0.dll"
             "Tag" = "8:"
             "Folder" = "8:_298281ABCFE74545B54C14C5058F78FE"
             "Condition" = "8:"
@@ -763,15 +783,15 @@
         {
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:ZQLoader"
-        "ProductCode" = "8:{CE42574C-BE2B-44FD-8BBA-59FFCBEBA03B}"
-        "PackageCode" = "8:{8532D2C3-57A0-4C1C-9060-411000D51BA1}"
+        "ProductCode" = "8:{098220DC-E4C6-464D-9D09-3146A1AEE9E9}"
+        "PackageCode" = "8:{243C1169-8555-4BF1-85CE-42E26006109C}"
         "UpgradeCode" = "8:{2B674A83-1BC1-4D53-ABD1-3A75DC4C7100}"
         "AspNetVersion" = "8:2.0.50727.0"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:TRUE"
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:FALSE"
-        "ProductVersion" = "8:1.1.0"
+        "ProductVersion" = "8:2.0.0"
         "Manufacturer" = "8:Oxidaan"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"

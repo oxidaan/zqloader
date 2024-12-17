@@ -65,7 +65,7 @@ public:
     }
 
 
-    void SetOutputFilename(fs::path p_outputfilename)
+    void SetOutputFilename(fs::path p_outputfilename, bool p_allow_overwrite)
     {
         if (ToLower(p_outputfilename.extension().string()) == ".tzx")
         {
@@ -75,6 +75,7 @@ public:
         {
             m_action = Action::write_wav;
         }
+        m_allow_overwrite = p_allow_overwrite;
         m_output_filename = std::move(p_outputfilename);
     }
 
@@ -204,7 +205,7 @@ public:
             {
                 m_is_busy = true;
                 m_sample_sender.Run();            // Play! Wait for finish
-//                std::cout << "Took: " << std::dec << GetCurrentTime().count() << " ms" << std::endl;
+                // Reset();
             }
         }
         else if (m_action == Action::write_wav)
@@ -217,6 +218,7 @@ public:
             wav_writer.SetVolume(m_volume_left, m_volume_right).SetSampleRate(m_sample_rate);
             wav_writer.WriteToFile(filewrite);
             std::cout << "Written " << outputfilename << " with size: " << wav_writer.GetSize() << " and duration: " << wav_writer.GetDuration().count() << "s" << std::endl;
+            Reset();
         }
         else if (m_action == Action::write_tzx)
         {
@@ -225,6 +227,7 @@ public:
             std::ofstream filewrite = OpenFileToWrite(outputfilename, m_allow_overwrite);
             m_spectrumloader.WriteTzxFile(filewrite);
             std::cout << "Written " << outputfilename << std::endl;
+            Reset();
         }
     }
 
@@ -235,16 +238,6 @@ public:
     }
 
 
-    /// Stop/cancel playing immidiately
-    /// Keeps preloaded state
-    /// can cause tape loading error when not call WaitUntilDone
-    void Stop()
-    {
-        auto is_preloaded = m_is_preloaded; // keep
-        Reset();
-        m_is_preloaded = is_preloaded;
-    }
-
     /// Wait until all data have send.
     /// Note: at preloading fun attibutes this will probably 
     /// wait forever.
@@ -253,9 +246,21 @@ public:
         m_sample_sender.WaitUntilDone();
     }
 
+    /// Stop/cancel playing immidiately
+    /// Keeps preloaded state
+    /// Can cause tape loading error when not calling WaitUntilDone first.
+    void Stop()
+    {
+        auto is_preloaded = m_is_preloaded; // keep
+        Reset();
+        m_is_preloaded = is_preloaded;
+    }
+
+
+
     /// reset by move assigning empty/new instance.
     /// (Will stop sending immidiately).
-    /// can cause tape loading error when not call WaitUntilDone
+    /// Can cause tape loading error when not calling WaitUntilDone first.
     void Reset()
     {
         auto onDone = std::move(m_OnDone);  // keep call back
@@ -284,6 +289,8 @@ public:
         m_turboblocks.MoveToLoader(m_spectrumloader);
         m_is_preloaded = true;
     }
+
+
 
     // Time last action took
     std::chrono::milliseconds GetTimeNeeded() const
@@ -619,9 +626,9 @@ ZQLoader& ZQLoader::SetTurboFilename(fs::path p_filename)
 
 
 
-ZQLoader& ZQLoader::SetOutputFilename(fs::path p_filename)
+ZQLoader& ZQLoader::SetOutputFilename(fs::path p_filename, bool p_allow_overwrite)
 {
-    m_pimpl->SetOutputFilename(std::move(p_filename));
+    m_pimpl->SetOutputFilename(std::move(p_filename), p_allow_overwrite);
     return *this;
 }
 
@@ -757,6 +764,8 @@ ZQLoader & ZQLoader::SetPreload()
     m_pimpl->SetPreload();
     return *this;
 }
+
+
 
 bool ZQLoader::IsPreLoaded() const
 {
