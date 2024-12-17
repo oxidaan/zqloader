@@ -19,7 +19,7 @@
 ///     When basic: try get addresses like RANDOMIZE USR XXXXX
 ///     When code: Add to list of blocks to (turbo) load
 /// p_zxfilename: when given check if name matches before accepting header.
-bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, std::string p_zxfilename)
+bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, const std::string &p_zxfilename)
 {
     using namespace spectrum;
     bool done          = false;
@@ -61,7 +61,7 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, std::string p_zxfilenam
             m_tblocks.AddDataBlock(std::move(block), start_adr);
             m_codecount++;
         }
-        if (m_last_header.m_type == TapeHeader::Type::basic_program)
+        else if (m_last_header.m_type == TapeHeader::Type::basic_program)
         {
             if (m_codecount == 0)
             {
@@ -83,8 +83,6 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, std::string p_zxfilenam
                 {
                     std::cout << "Found LOAD \"\" CODE " << code << " in BASIC" << std::endl;
                 }
-
-
             }
             else
             {
@@ -138,7 +136,7 @@ inline uint16_t TapToTurboBlocks::TryReadNumberFromBasic(const DataBlock& p_basi
 
 
 
-inline std::vector<uint16_t> TapToTurboBlocks::TryFindInBasic(const DataBlock& p_basic_block, CheckFun p_check_fun)
+inline std::vector<uint16_t> TapToTurboBlocks::TryFindInBasic(const DataBlock& p_basic_block, const CheckFun &p_check_fun)
 {
     int seen = 0;       // When >0 recently saw pattern to search for
     std::vector<uint16_t> retval;

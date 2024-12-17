@@ -58,7 +58,7 @@ int Key()
 void Version()
 {
     std::cout << 1 + &*R"(
-ZQLoader version 1.1
+ZQLoader version 2.0
 (C) 2024 Daan Scherft[Oxidaan].
 https://github.com/oxidaan/zqloader
 This project uses the miniaudio library by David Read. (https://miniaud.io/)

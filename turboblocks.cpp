@@ -365,9 +365,7 @@ private:
     }
 
 
-    // Move prepared data out of here. Append checksum.
-    // Do some final checks and calculate checksum.
-    // Makes data empty (moved away from)
+    // Get prepared data.
     const DataBlock &GetData() const
     {
         return m_data;
@@ -577,6 +575,12 @@ TurboBlocks& TurboBlocks::AddZqLoader(const fs::path& p_filename)
 
 
 
+/// Get # turbo blocks added
+size_t TurboBlocks::size() const
+{
+    return m_turbo_blocks.size() + (m_upper_block != nullptr);
+}
+
 /// Add given Datablock as TurboBlock at given address.
 /// Check if zqloader (upper) is overlapped.
 /// Check if zqloader (lower, at basic) is overlapped.
@@ -721,7 +725,7 @@ TurboBlocks &TurboBlocks::Finalize(uint16_t p_usr_address, uint16_t p_clear_addr
 
     if(m_loader_copy_start && !IsZqLoaderAdded())
     {
-        std::cout << "ZQLoader already (pre) loaded or not present, cannot patch loader copy code, will use screen." << std::endl;
+        std::cout << "ZQLoader already (pre) loaded or not present, cannot patch loader copy code, will use screen to move loader to." << std::endl;
     }
     if(m_loader_copy_start && IsZqLoaderAdded())
     {
@@ -775,6 +779,7 @@ TurboBlocks &TurboBlocks::Finalize(uint16_t p_usr_address, uint16_t p_clear_addr
         }
         // Add upperblock (when present) as last to list
         AddTurboBlock(std::move(*m_upper_block));
+        m_upper_block = nullptr;
     }
 
     if (m_turbo_blocks.size() > 0)
@@ -788,10 +793,7 @@ TurboBlocks &TurboBlocks::Finalize(uint16_t p_usr_address, uint16_t p_clear_addr
         m_turbo_blocks.back().SetUsrStartAddress(p_usr_address ? p_usr_address : TurboBlocks::ReturnToBasic);    // now is last block
         m_turbo_blocks.back().SetClearAddress(p_clear_address);
     }
-    else
-    {
-        throw std::runtime_error("No blocks present that could be turboloaded (note: can only handle code blocks, not BASIC)");
-    }
+
     return *this;
 }
 

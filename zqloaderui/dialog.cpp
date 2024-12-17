@@ -9,12 +9,13 @@
 
 
 #include "dialog.h"
-#include <QFileDialog>
-#include <QSettings>
 #include <streambuf>
 #include <iostream>
+//#include <sstream>                  // todo some formating (double)
+#include <QFileDialog>
+#include <QSettings>
 #include <QTextEdit>
-#include <sstream>                  // todo some formating (double)
+#include <QDesktopServices>
 #include <QTimer>
 #include "./ui_dialog.h"
 #include <datablock.h>
@@ -79,7 +80,9 @@ Dialog::Dialog(QWidget *parent)
 
 
 
-    // connect/sync volume dials and edits
+
+
+    // connect/sync volume dials and edits for 2 volumes
     auto ConnectVolume = [this](Dial *p_dial, QLineEdit *p_edit)
     {
         connect(p_dial, &QDial::sliderMoved, [=]
@@ -113,7 +116,7 @@ Dialog::Dialog(QWidget *parent)
     ConnectVolume(ui->dialVolumeLeft,  ui->lineEditVolumeLeft);
     ConnectVolume(ui->dialVolumeRight, ui->lineEditVolumeRight);
 
-
+    // common connect code for three browse buttons
     auto ConnectBrowse  = [this](QPushButton *p_button, QLineEdit *p_edit, QString p_text, QString p_filter, QFileDialog::FileMode p_mode)
     {
         connect(p_button, &QPushButton::pressed, [=]
@@ -153,6 +156,12 @@ Dialog::Dialog(QWidget *parent)
         "Wav files (*.wav);;Tzx files (*.tzx);;All files (*.*)",
         QFileDialog::AnyFile);
 
+
+    // make hyperlinks work in about text
+    connect(ui->labelAbout, &QLabel::linkActivated, [](const QString & link)
+    {
+        QDesktopServices::openUrl(link);
+    });
 
     // make close button work would otherwise reject
     connect(ui->buttonBox->button(QDialogButtonBox::Close), &QPushButton::clicked, [this]

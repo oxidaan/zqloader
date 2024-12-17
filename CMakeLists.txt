@@ -14,7 +14,7 @@ cmake_minimum_required(VERSION 3.12)
 
 
 
-project(zqloader VERSION 0.1.0 LANGUAGES CXX)
+project(zqloader VERSION 2.0.0 LANGUAGES CXX)
 
 add_subdirectory(z80)
 

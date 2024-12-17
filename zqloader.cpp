@@ -450,12 +450,15 @@ private:
         TapToTurboBlocks tab_to_turbo_blocks{ p_tblocks };
         Tloader tap_or_tzx_loader;
         tap_or_tzx_loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string p_zxfilename)
-                                              {
-                                                  return tab_to_turbo_blocks.HandleTapBlock(std::move(p_block), p_zxfilename);
-                                              }
-                                              );
+        {
+            return tab_to_turbo_blocks.HandleTapBlock(std::move(p_block), p_zxfilename);
+        });
         tap_or_tzx_loader.Load(p_filename, "");
         p_tblocks.Finalize(tab_to_turbo_blocks.GetUsrAddress(), tab_to_turbo_blocks.GetClearAddress());
+        if(p_tblocks.size() == 0)
+        {
+            throw std::runtime_error("No blocks present in file: '" + p_filename.string() + "' that could be turboloaded (note: can only handle code blocks, not BASIC)");
+        }
     }
 
     // Add given snapshot file (z80/sna) to given TurboBlocks so uses turbo speed

@@ -70,6 +70,9 @@ public:
         return m_zqloader_code.size() != 0;
     }
 
+    /// Get # turbo blocks added
+    size_t size() const;
+
     /// Add given Datablock as Turboblock at given address.
     /// Check if zqloader (upper) is overlapped.
     /// Check if zqloader (lower, at basic) is overlapped.

@@ -34,7 +34,7 @@ public:
     ///     When basic: try get addresses like RANDOMIZE USR XXXXX
     ///     When code: Add to list of blocks to (turbo) load as given at CTOR.
     /// p_zxfilename: when !empty check if name matches before accepting header.
-    bool HandleTapBlock(DataBlock p_block, std::string p_zxfilename);
+    bool HandleTapBlock(DataBlock p_block, const std::string &p_zxfilename);
 
     /// Get MC start address as found in BASIC block as in RANDOMIZE USR xxxxx
     /// (As earlier found with TryFindUsr)
@@ -72,7 +72,7 @@ private:
     // then looks for the number that follows.
     // Used by TryFindUsr / TryFindClear / TryFindLoadCode.
     using CheckFun = std::function<int (const DataBlock&, int cnt)>;
-    static std::vector<uint16_t> TryFindInBasic(const DataBlock& p_basic_block, CheckFun p_check_fun);
+    static std::vector<uint16_t> TryFindInBasic(const DataBlock& p_basic_block, const CheckFun &p_check_fun);
 
 
     // read a number from basic either as VAL "XXXXX" or a 2 byte int.
