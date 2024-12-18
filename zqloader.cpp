@@ -285,6 +285,7 @@ public:
 
     void SetPreload()
     {
+        m_is_zqloader = true;
         AddZqLoaderFile(GetNormalFilename());
         m_turboblocks.MoveToLoader(m_spectrumloader);
         m_is_preloaded = true;
@@ -356,7 +357,7 @@ A second filename argument and/or parameters are only usefull when using zqloade
         }
         if (!std::filesystem::exists(filename))
         {
-            throw std::runtime_error("ZQLoader file " + p_filename.string() + " not found");
+            throw std::runtime_error("ZQLoader file " + p_filename.string() + " not found. Please give path/to/zqloader.tap. (this is the tap file that contains the ZX Spectrum turboloader)");
         }
         return filename;
     }
@@ -818,6 +819,7 @@ int ZQLoader::GetDeviceSampleRate() const
     return SampleSender::GetDeviceSampleRate();
 }
 
+// For restore defaults only
 std::filesystem::path ZQLoader::GetZqLoaderFile() const
 {
     return m_pimpl->FindZqLoaderTapfile("zqloader.tap");

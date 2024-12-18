@@ -19,6 +19,7 @@
 /// SetOnGetDurationWait
 /// SetOnNextSample
 /// SetOnGetEdge
+/// SetOnCheckDone
 class SampleToWav
 {
     using SampleType = int16_t;

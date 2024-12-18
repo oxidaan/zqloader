@@ -22,6 +22,7 @@ struct ma_device;
 /// SetOnGetDurationWait
 /// SetOnNextSample
 /// SetOnGetEdge
+/// SetOnCheckDone
 class SampleSender
 {
 public:

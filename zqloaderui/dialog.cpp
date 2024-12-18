@@ -260,12 +260,14 @@ Dialog::Dialog(QWidget *parent)
         // runs in miniadio thread
         if(m_state == State::Preloading)
         {
+            std::cout << "Preloading done! Select a turbo file and press Go!..." << std::endl;
             m_state = State::PreloadingFunAttribs;
         }
         if( m_state == State::PreloadingFunAttribs)
         {
             WriteFunText(m_zqloader);
-        }
+            std::cout << '*' << std::flush;
+       }
         else if(m_state != State::Idle)
         {
             emit signalDone();      // swap to ui thread ->
@@ -339,7 +341,6 @@ inline void Dialog::SetState(State p_state)
     case State::Playing:
         ui->pushButtonGo->setText("Stop");
         ui->pushButtonPreLoad->setEnabled(false);
-        ui->pushButtonClean->setEnabled(true);
         ui->pushButtonTune->setEnabled(false);
         break;
     case State::Tuning:
@@ -396,6 +397,7 @@ inline void Dialog::RestoreDefaults()
 // Go pressed.
 inline void Dialog::Go()
 {
+    std::cout << "\n" << std::endl;
     if(m_state == State::PreloadingFunAttribs)
     {
         // this will stop fun attribs
@@ -450,6 +452,7 @@ inline void Dialog::Go()
     {
         SetState(State::Playing);
     }
+    ui->pushButtonClean->setEnabled(true);
 }
 
 // Save all line edits + dialog position

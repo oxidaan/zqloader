@@ -54,6 +54,11 @@ protected:
         }
         return c;
     }
+    int sync() override
+    {
+        emit signalBufferFull();     // Swap to QT's ui thread
+        return std::streambuf::sync();
+    }
 signals:
     void signalBufferFull();
 private:

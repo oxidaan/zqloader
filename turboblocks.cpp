@@ -374,7 +374,9 @@ private:
     // To avoid extensive logging 
     bool ProbablyIsFunAttribute() const
     {
-        return m_data_size == 256 && GetDestAddress() == spectrum::ATTR_23RD;
+        return (m_data_size == 256 && GetDestAddress() == spectrum::ATTR_23RD) ||
+               (m_data_size == 768 && GetDestAddress() == spectrum::ATTR_BEGIN);
+
     }
 
 
