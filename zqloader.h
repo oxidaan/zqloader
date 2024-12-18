@@ -1,7 +1,9 @@
 //==============================================================================
 // PROJECT:         zqloader
 // FILE:            zqloader.h
-// DESCRIPTION:     Definition of class SampleToWav.
+// DESCRIPTION:     Definition of class ZQLoader.
+//                  This is the main ZQLoader interface used for both commandline
+//                  as qt ui tool.
 // 
 // Copyright (c) 2024 Daan Scherft [Oxidaan]
 // This project uses the MIT license. See LICENSE.txt for details.
@@ -35,7 +37,8 @@
 
 struct DataBlock;
 
-
+/// This is the main ZQLoader interface used for both commandline
+/// as qt ui tool.
 class LIB_API ZQLoader
 {
 public:

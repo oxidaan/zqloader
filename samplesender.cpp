@@ -159,6 +159,7 @@ inline bool SampleSender::CheckDone()
         if(m_done)
         {
             m_event.Reset();
+            m_done = 0;
         }
     }
     else

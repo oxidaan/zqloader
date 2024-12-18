@@ -1,11 +1,14 @@
-// ==============================================================================
+//==============================================================================
 // PROJECT:         zqloader
-// FILE:            zqloader.cpp
-// DESCRIPTION:     Definition of class SampleToWav.
-//
-// Copyright (c) 2023 Daan Scherft [Oxidaan]
+// FILE:            zqloader.h
+// DESCRIPTION:     Implementation of class ZQLoader.
+//                  This is the main ZQLoader interface used for both commandline
+//                  as qt ui tool.
+// 
+// Copyright (c) 2024 Daan Scherft [Oxidaan]
 // This project uses the MIT license. See LICENSE.txt for details.
-// ==============================================================================
+//==============================================================================
+// uses pimpl
 
 #include "tools.h"
 #include "zqloader.h"

@@ -30,20 +30,18 @@ namespace fs = std::filesystem;
 
 
 ///  Yes!
-void WriteFunText(ZQLoader &p_zq_loader)
+void WriteFunText(ZQLoader &p_zq_loader, bool p_first)
 {
     static int col = 32;
-    static bool first = true;
     constexpr auto text = "+++++ ZQ LOADER BY OXIDAAN +++++ .  .  .  .  . SELECT TURBO FILE NAME TO LOAD, THEN PRESS GO!  .  .  .  .";
     bool empty = false;
-    if(first)     // first
+    if(p_first)     // first
     {
         // wipe screen
         DataBlock all_attr;
         all_attr.resize(768);
         p_zq_loader.SetCompressionType(CompressionType::automatic);
         p_zq_loader.AddDataBlock(std::move(all_attr), 16384 + 6 * 1024 );
-        first = false;
     }
     else
     {
@@ -262,12 +260,13 @@ Dialog::Dialog(QWidget *parent)
         {
             std::cout << "Preloading done! Select a turbo file and press Go!..." << std::endl;
             m_state = State::PreloadingFunAttribs;
+            WriteFunText(m_zqloader, true);
         }
-        if( m_state == State::PreloadingFunAttribs)
+        else if( m_state == State::PreloadingFunAttribs)
         {
-            WriteFunText(m_zqloader);
+            WriteFunText(m_zqloader, false);
             std::cout << '*' << std::flush;
-       }
+        }
         else if(m_state != State::Idle)
         {
             emit signalDone();      // swap to ui thread ->
