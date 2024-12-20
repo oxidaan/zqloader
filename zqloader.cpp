@@ -267,8 +267,10 @@ public:
     void Reset()
     {
         auto onDone = std::move(m_OnDone);  // keep call back
+        auto exe_path = std::move(m_exe_path);
         SampleSender remove = std::move(m_sample_sender);   // <- Because else move assign causes problems. Dtor target not called. So ma_device_uninit not called.
         *this = Impl();
+        m_exe_path = std::move(exe_path);
         m_OnDone = std::move(onDone);
     }
 
@@ -334,7 +336,7 @@ A second filename argument and/or parameters are only usefull when using zqloade
 )");
         }
         fs::path filename = p_filename;
-        if(p_filename == p_filename.filename())     // giver just zqloader.tap w/o path so try to find
+        if(p_filename == p_filename.filename())     // given just zqloader.tap w/o path so try to find
         {
             // Try to find zqloader.tap file
             if (!std::filesystem::exists(p_filename))
@@ -360,7 +362,9 @@ A second filename argument and/or parameters are only usefull when using zqloade
         }
         if (!std::filesystem::exists(filename))
         {
-            throw std::runtime_error("ZQLoader file " + p_filename.string() + " not found. Please give path/to/zqloader.tap. (this is the tap file that contains the ZX Spectrum turboloader)");
+            throw std::runtime_error("ZQLoader file " + p_filename.string() + " not found. ("
+            + m_exe_path.string() + ", " + std::filesystem::current_path().string() +
+            ") Please give path/to/zqloader.tap. (this is the tap file that contains the ZX Spectrum turboloader)");
         }
         return filename;
     }
