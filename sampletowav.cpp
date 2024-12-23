@@ -88,6 +88,8 @@ SampleToWav &SampleToWav::Run()
         AddSample(value_left);
         AddSample(value_right);
     }
+    AddSample(0);       // fixes loading in ZXSpin
+    AddSample(0);       // fixes loading in ZXSpin
     WriteHeader();
     return *this;
 }
