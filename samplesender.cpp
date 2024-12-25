@@ -29,7 +29,7 @@ SampleSender::~SampleSender()
 }
 
 
-
+/// TODO "add output sink/device selection for those why have more than one sound card?"
 /// Intialize miniadio when not done so already.
 SampleSender& SampleSender::Init()
 {

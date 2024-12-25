@@ -288,9 +288,14 @@ private:
             DebugDump();
         }
 
-        PausePulser().SetLength(p_pause_before).MoveToLoader(p_loader);                 // pause before
+        if(p_pause_before > 0ms)
+        {
+            PausePulser().SetLength(p_pause_before).MoveToLoader(p_loader);                 // pause before
+        }
         TonePulser().SetPattern(500, 500).SetLength(200ms).MoveToLoader(p_loader);      // leader
-        TonePulser().SetPattern(250).SetLength(1).MoveToLoader(p_loader);               // sync
+//        TonePulser().SetPattern(500).SetLength(200ms).MoveToLoader(p_loader);         // (same) leader
+        TonePulser().SetPattern(250).SetLength(1).MoveToLoader(p_loader);             // sync
+//        PausePulser().SetLength(250).SetEdge(Edge::toggle).MoveToLoader(p_loader);      // sync (same)
 
         const auto &data = GetData();
         DataBlock header(data.begin(), data.begin() + sizeof(Header));      // split

@@ -72,8 +72,8 @@ struct GeneralizedDataBlock
 
     struct SymDef           // Pilot / sync / data symbols ('alphabet') definition table #=asp
     {
-        Edge   m_edge;      // exactly same as our Edge enum type
-        // WORD pulse_lengths[];    // Size of this is #npp for pulse-symdef; #npd for data-symdef
+        Edge   m_edge;      // exactly same as our Edge enum type eg 0 is toggle
+        // WORD pulse_lengths[];    // Size of this is #npp for pulse-symdef; #npd for data-symdef (written 'manually')
     };
 
     static_assert(sizeof(SymDef) == sizeof(BYTE), "Sizeof SymDef must be 1");
@@ -82,7 +82,7 @@ struct GeneralizedDataBlock
     struct Prle
     {
         BYTE   m_symbol;            // ref to pulse-symdef number so 0 - asp-1 (basicly: what pulse to use)
-        WORD   m_repetitions;       // How ofte is the above pulse repeated
+        WORD   m_repetitions;       // How often is the above pulse repeated
     };
 
     size_t GetBlockLength(size_t p_size_of_data) const
@@ -109,7 +109,17 @@ struct GeneralizedDataBlock
                (sizeof(SymDef) + npd * sizeof(WORD)) * asd +
                p_size_of_data;
     }
-
+    std::ostream &operator << (std::ostream &&p_stream)
+    {
+        p_stream << "block_length = " << block_length
+                 << "pause = " << pause 
+                 << "totp = " << totp 
+                 << "npp = " << npp 
+                 << "asp = " << asp 
+                 << "totd = " << totd 
+                 << "npd = " << npd 
+                 << "asd = " << asd << std::endl;
+    }
 
 };
 
@@ -387,27 +397,39 @@ void TonePulser::WriteAsTzxBlock(std::ostream &p_stream) const
 {
     if(m_pattern.size() == 1)
     {
-        std::cout << "TonePulser::WriteAsTzxBlock:Puretone " << m_pattern[0] << ' ' << ((m_max_pulses * m_pattern[0]) * spectrum::g_tstate_dur).count() << std::endl;
+        std::cout << "TonePulser::WriteAsTzxBlock:Puretone patt=" << m_pattern[0] << " #pulses=" << m_max_pulses << " Dur=" << ((m_max_pulses * m_pattern[0]) * spectrum::g_tstate_dur).count() << "sec" << std::endl;
         WriteBinary<TzxBlockType>(p_stream, TzxBlockType::Puretone);
+        std::cout << "  ";
         WriteBinary<WORD>(p_stream, WORD(m_pattern[0]));
         WriteBinary<WORD>(p_stream, WORD(m_max_pulses));
+    }
+    else if(m_pattern.size() == 2 && m_pattern[0] == m_pattern[1])
+    {
+        std::cout << "TonePulser::WriteAsTzxBlock:Puretone patt=" << m_pattern[0] << " #pulses=" << 2 * m_max_pulses << " Dur=" << ((2 * m_max_pulses * m_pattern[0]) * spectrum::g_tstate_dur).count() << "sec" << std::endl;
+        WriteBinary<TzxBlockType>(p_stream, TzxBlockType::Puretone);
+        std::cout << "  ";
+        WriteBinary<WORD>(p_stream, WORD(m_pattern[0]));
+        WriteBinary<WORD>(p_stream, WORD(2 * m_max_pulses ));
     }
     else
     {
         // need to write as GeneralizedDataBlock (instead of Puretone) because pulses have different length
-        WriteBinary<TzxBlockType>(p_stream, TzxBlockType::GeneralizedDataBlock);
         GeneralizedDataBlock generalized_data_block{};
         generalized_data_block.pause        = 0;
         generalized_data_block.totp         = 1;
         generalized_data_block.npp          = BYTE(m_pattern.size());
         generalized_data_block.asp          = 1;
 
-        generalized_data_block.totd         = 0;
+        generalized_data_block.totd         = 0;        // no data
         generalized_data_block.npd          = 0;
-        generalized_data_block.asd          = 0;
+        generalized_data_block.asd          = 0;        // 0 = 256?
         generalized_data_block.block_length = DWORD(generalized_data_block.GetBlockLength(0));
-        std::cout << "TonePulser::WriteAsTzxBlock:GeneralizedDataBlock pattern-size=" << m_pattern.size() << " m_max_pulses=" << m_max_pulses << " block_length=" << generalized_data_block.block_length << std::endl;
+        std::cout << "TonePulser::WriteAsTzxBlock:GeneralizedDataBlock pattern-size=" << m_pattern.size() << " #pulses=" << m_max_pulses << " block_length=" << generalized_data_block.block_length << std::endl;
+        WriteBinary<TzxBlockType>(p_stream, TzxBlockType::GeneralizedDataBlock);
+        std::cout << "  ";
         WriteBinary(p_stream, generalized_data_block);
+        std::cout << "  ";
+        // Symbol definitions 
         // for(int n = 0; n < generalized_data_block.asp; n++)      // there is one only
         {
             GeneralizedDataBlock::SymDef symdef{};
@@ -418,6 +440,8 @@ void TonePulser::WriteAsTzxBlock(std::ostream &p_stream) const
                 WriteBinary(p_stream, WORD(m_pattern[i]));
             }
         }
+        std::cout << "  ";
+        // Symbol sequence (which symbol + count)
         // for (int n = 0; n < generalized_data_block.totp; n++)     // there is one only
         {
             GeneralizedDataBlock::Prle prle{};
@@ -427,7 +451,7 @@ void TonePulser::WriteAsTzxBlock(std::ostream &p_stream) const
         }
         // no data so no SYMDEF[ASD]/PRLE[TOTD]
     }
-
+    std::cout << std::endl;
 }
 
 
@@ -437,7 +461,7 @@ void PausePulser::WriteAsTzxBlock(std::ostream& p_stream) const
     if(m_duration_in_tstates > 0xffff && m_edge == Edge::no_change)
     {
         auto len_in_ms = WORD((1000 * m_duration_in_tstates * spectrum::g_tstate_dur).count());
-        std::cout << "PausePulser::WriteAsTzxBlock:Pause " << len_in_ms << "ms" << std::endl;
+        std::cout << "PausePulser::WriteAsTzxBlock:Pause " << len_in_ms << "ms; (TStates=" << m_duration_in_tstates << ")" << std::endl;
         WriteBinary<TzxBlockType>(p_stream, TzxBlockType::PauseOrStopthetapecommand);
         WriteBinary(p_stream, len_in_ms);
     }
@@ -445,7 +469,6 @@ void PausePulser::WriteAsTzxBlock(std::ostream& p_stream) const
     {
         // need to write as GeneralizedDataBlock because PauseOrStopthetapecommand is not accurate
         // enough and might need edge at end of pause
-        WriteBinary<TzxBlockType>(p_stream, TzxBlockType::GeneralizedDataBlock);
         GeneralizedDataBlock generalized_data_block{};
         generalized_data_block.pause        = 0;
         generalized_data_block.totp         = 2;    // pause, then the edge
@@ -456,19 +479,25 @@ void PausePulser::WriteAsTzxBlock(std::ostream& p_stream) const
         generalized_data_block.npd          = 0;
         generalized_data_block.asd          = 0;
         generalized_data_block.block_length = DWORD(generalized_data_block.GetBlockLength(0));
-        std::cout << "PausePulser::WriteAsTzxBlock:GeneralizedDataBlock" << std::endl;
+        std::cout << "PausePulser::WriteAsTzxBlock:GeneralizedDataBlock TStates=" << m_duration_in_tstates << " Egde= " << m_edge << std::endl;
+        WriteBinary<TzxBlockType>(p_stream, TzxBlockType::GeneralizedDataBlock);
+        std::cout << "  ";
         WriteBinary(p_stream, generalized_data_block);
+        std::cout << "  ";
 
-        // first symdef for pause
+
+        // first symdef for pause (need to wait first)
         GeneralizedDataBlock::SymDef symdef{};
         symdef.m_edge = Edge::no_change;
         WriteBinary(p_stream, symdef);
         WriteBinary(p_stream, WORD(m_duration_in_tstates));
+        std::cout << "  ";
 
         // 2nd symdef for edge
         symdef.m_edge = m_edge;
         WriteBinary(p_stream, symdef);
         WriteBinary(p_stream, WORD(0));
+        std::cout << "  ";
 
         GeneralizedDataBlock::Prle prle{};
         prle.m_symbol      = 0; // first symbol
@@ -478,29 +507,31 @@ void PausePulser::WriteAsTzxBlock(std::ostream& p_stream) const
         prle.m_symbol      = 1; // 2nd symbol
         prle.m_repetitions = 1;
         WriteBinary(p_stream, prle);
-
     }
+    std::cout << std::endl;
 }
 
 
 
 void DataPulser::WriteAsTzxBlock(std::ostream& p_stream) const
 {
-    WriteBinary<TzxBlockType>(p_stream, TzxBlockType::GeneralizedDataBlock);
     GeneralizedDataBlock generalized_data_block{};
     generalized_data_block.pause        = 0;
 
-    generalized_data_block.totp         = 0;
+    generalized_data_block.totp         = 0;        // no pilot/sync block here
     generalized_data_block.npp          = 0;
     generalized_data_block.asp          = 0;
 
-    generalized_data_block.totd         = DWORD(GetTotalSize() * 8);
-    generalized_data_block.npd          = BYTE(std::max(m_zero_pattern.size(), m_one_pattern.size()));
+    generalized_data_block.totd         = DWORD(GetTotalSize() * 8);        // so # bits
+    generalized_data_block.npd          = BYTE(std::max(m_zero_pattern.size(), m_one_pattern.size()));  // eg 2 for standard, 1 for turbo
     generalized_data_block.asd          = 2; // we have a pattern for 1 and for 0
 
     generalized_data_block.block_length = DWORD(generalized_data_block.GetBlockLength(GetTotalSize()));
-    std::cout << "DataPulser::WriteAsTzxBlock:GeneralizedDataBlock #bytes=" << GetTotalSize() << " m_max_pulses=" << " block_length=" << generalized_data_block.block_length << std::endl;
+    std::cout << "DataPulser::WriteAsTzxBlock:GeneralizedDataBlock blocklen=" << generalized_data_block.GetBlockLength(GetTotalSize()) << " #bytes=" << GetTotalSize() << " totd=" << generalized_data_block.totd << " m_max_pulses=" << " block_length=" << generalized_data_block.block_length << std::endl;
+    WriteBinary<TzxBlockType>(p_stream, TzxBlockType::GeneralizedDataBlock);
+    std::cout << "  ";
     WriteBinary(p_stream, generalized_data_block);
+    std::cout << "  ";
     // no pulses, so no SYMDEF[ASP]/PRLE[TOTP]
     for(int n = 0; n < generalized_data_block.asd; n++)
     {
@@ -510,12 +541,16 @@ void DataPulser::WriteAsTzxBlock(std::ostream& p_stream) const
         const auto & pattern = (n == 0) ? m_zero_pattern : m_one_pattern;
         for (int i = 0; i < generalized_data_block.npd; i++)
         {
-            WriteBinary(p_stream, (n < pattern.size()) ? WORD(pattern[n]) : WORD(0));
+            WriteBinary(p_stream, (i < pattern.size()) ? WORD(pattern[i]) : WORD(0));
         }
+        std::cout << "  ";
     }
 
+    std::cout << "   ";
     for(int i = 0; i < GetTotalSize(); i++)
     {
         WriteBinary(p_stream, GetByte(i));
     }
+    std::cout << std::endl;
+    
 }

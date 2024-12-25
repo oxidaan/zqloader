@@ -28,6 +28,8 @@ enum class Edge : uint8_t
     one,
 };
 
+std::ostream& operator << (std::ostream& p_stream, Edge p_enum);
+
 // order must match dialog combobox
 enum class CompressionType : uint8_t
 {

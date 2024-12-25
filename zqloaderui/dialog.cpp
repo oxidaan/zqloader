@@ -302,6 +302,7 @@ Dialog::Dialog(QWidget *parent)
     // commandline file parameter given, start immidiately
     if(QCoreApplication::arguments().size() > 1)
     {
+        std::cout << "Commandline parameter given: loading: " << QCoreApplication::arguments()[1].toStdString() << std::endl;
         ui->lineEditTurboFile->setText(QCoreApplication::arguments()[1]);
         // maybe not nice to have loading sounds unprepared: 
         // Go();
