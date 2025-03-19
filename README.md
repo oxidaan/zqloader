@@ -5,6 +5,8 @@ This is a turbo loader used to load machine code games into a **real** unmodifie
 
 This loader is capable of loading a 48K game in about *25-30 seconds*. (Jetset Willy snapshot in 19 seconds!). This time includes the time of loading the loader itself (which uses traditional ROM loader/speed) plus a splash screen.  
 
+See demo at https://www.youtube.com/watch?v=mMA2A-ZmxiA
+
 The idea is that when using a computer to generate the loading-sounds a much higher speed can be achieved as compared to the old tapes. After all the accuracy when generating loading sounds from a computer is much higher than those old wobbly tape recorders.   
 
 The loader is coded into a BASIC `REM` statement to have it loaded in one step, thus avoiding the need to load an additional machine code block (which would take extra time). At the ZX Spectrum all you have to type is `LOAD ""`.
