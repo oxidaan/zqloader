@@ -201,7 +201,7 @@ private:
     std::unique_ptr<ma_device>   m_device;
 
 
-    Event                        m_event;
+    Event                        m_event;                   // for WaitUntilDone
     int                          m_done         = 0;        
     static constexpr int         m_done_event_cnt  = 10;    // see https://github.com/mackron/miniaudio/discussions/490
     bool                         m_edge         = false;    // output value toggles between 1/0

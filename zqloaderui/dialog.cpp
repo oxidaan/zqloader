@@ -236,6 +236,7 @@ Dialog::Dialog(QWidget *parent)
             m_zqloader.Reset();
             m_zqloader.SetSampleRate(ui->lineEditSampleRate->text().toInt());
             m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());
+            m_zqloader.SetSpectrumClock(ui->lineEditClock->text().toInt());
             m_zqloader.PlayleaderTone();
             SetState(State::Tuning);
         }
@@ -390,6 +391,8 @@ inline void Dialog::RestoreDefaults()
     ui->dialVolumeRight->setValue(loader_defaults::volume_right);
 
     ui->lineEditNormalFile->setText(QString::fromStdString(m_zqloader.GetZqLoaderFile().string()));
+
+    ui->lineEditClock->setText(QString::number(spectrum::g_spectrum_clock));
 }
 
 
@@ -422,21 +425,21 @@ inline void Dialog::Go()
                SetDurations      (ui->lineEditZeroTStates->text().toInt(),
                                   ui->lineEditOneTStates->text().toInt(),
                                   ui->lineEditEndOfByteDelay->text().toInt());
-
+    m_zqloader.SetSpectrumClock(ui->lineEditClock->text().toInt());
     m_zqloader.SetCompressionType(CompressionType(ui->comboBoxCompressionType->currentIndex()));                                    
 
     if(ui->comboBoxLoaderLocation->currentIndex() == 0)
     {
-        m_zqloader.SetUseScreen();
+        m_zqloader.SetSnapshotLoaderLocation(ZQLoader::LoaderLocation::screen);
     }
     else if(ui->comboBoxLoaderLocation->currentIndex() == 1)
     {
-        m_zqloader.SetNewLoaderLocation(0);
+        m_zqloader.SetSnapshotLoaderLocation(ZQLoader::LoaderLocation::automatic);
     }
     else
     {
-        int adr = ui->lineEditLoaderAddress->text().toInt();
-        m_zqloader.SetNewLoaderLocation(adr);
+        uint16_t adr = ui->lineEditLoaderAddress->text().toInt();
+        m_zqloader.SetSnapshotLoaderLocation(adr);
     }
     m_zqloader.SetFunAttribs(ui->checkBoxFunAttribs->isChecked());
 

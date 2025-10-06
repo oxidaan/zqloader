@@ -48,6 +48,11 @@ public:
         write_wav,
         write_tzx,
     };
+    enum class LoaderLocation
+    {
+        automatic,
+        screen,
+    };
     using DoneFun = std::function<void(void)>;
 public:
     ZQLoader();
@@ -79,15 +84,18 @@ public:
     /// Set compression used: none/rle/automatic.
     ZQLoader& SetCompressionType(CompressionType p_compression_type);
 
+    /// Set clock frequency in hz
+    ZQLoader& SetSpectrumClock(int p_hz);
+
     /// What to do (on Run/Start):
     /// Play sound/ or write wav file/ or write tzx file.
     ZQLoader& SetAction(Action p_what);
 
-    /// When loading snapshot put loader at screen.
-    ZQLoader &SetUseScreen();
+    /// Address where to put loader when loading snapshot, 0 = auto.
+    ZQLoader &SetSnapshotLoaderLocation(uint16_t p_address);
 
     /// Address where to put loader when loading snapshot, 0 = auto.
-    ZQLoader &SetNewLoaderLocation(uint16_t p_address);
+    ZQLoader &SetSnapshotLoaderLocation(LoaderLocation p_where);
 
     /// Overwrite loader when at screen with attributes?
     ZQLoader &SetFunAttribs(bool p_value);

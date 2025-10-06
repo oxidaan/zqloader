@@ -12,13 +12,13 @@
 // #include <chrono>
 #include <vector>
 #include <memory>           // std::unique_ptr
-#include <functional>       // std::bind
+#include <functional>       // std::function
 #include "types.h"
 #include "datablock.h"      // Datablock used
 #include "spectrum_consts.h"
 #include <mutex>
 #include <cstddef>          // std::byte
-
+#include "spectrum_consts.h"
 
 class Pulser;
 class SampleSender;
@@ -117,12 +117,22 @@ public:
     template<class TSampleSender>
     SpectrumLoader& Attach(TSampleSender& p_sample_sender)
     {
-        p_sample_sender.
-            SetOnGetDurationWait(std::bind(&SpectrumLoader::GetDurationWait, this)).
-            SetOnGetEdge(std::bind(&SpectrumLoader::GetEdge, this)).
-            SetOnNextSample(std::bind(&SpectrumLoader::Next, this)).
-            SetOnCheckDone(std::bind(&SpectrumLoader::CheckDone, this));
-
+        p_sample_sender.SetOnGetDurationWait([this]
+            {
+                return GetDurationWait();
+            });
+        p_sample_sender.SetOnGetEdge([this]
+            { 
+                return GetEdge();
+            });
+        p_sample_sender.SetOnNextSample([this]
+            {
+                return Next();
+            });
+        p_sample_sender.SetOnCheckDone([this]
+            {   
+                return CheckDone();
+            });
         return *this;
     }
 
@@ -139,6 +149,15 @@ public:
     /// Not 100% accurate because discrepancy between miniaudio sample rate and time we actually need.
     Doublesec GetEstimatedDuration() const;
 
+    SpectrumLoader &SetTstateDuration(Doublesec p_to_what) 
+    {
+        m_tstate_dur = p_to_what;
+        return *this;
+    }
+    Doublesec GetTstateDuration() const
+    {
+        return m_tstate_dur;
+    }
 private:
 
     // CallBack; runs in miniaudio thread
@@ -184,5 +203,5 @@ private:
     size_t              m_current_pulser = 0;
     DoneFun             m_OnDone;
     mutable Doublesec   m_time_estimated{};
-
+    Doublesec           m_tstate_dur = spectrum::g_tstate_dur;
 }; // class SpectrumLoader

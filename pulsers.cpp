@@ -10,7 +10,7 @@
 
 
 #include "pulsers.h"
-#include "spectrum_consts.h"        // g_tstate_dur
+//#include "spectrum_consts.h"        // g_tstate_dur
 
 
 
@@ -26,13 +26,13 @@ PausePulser& PausePulser::SetLength(int p_states)
 PausePulser& PausePulser::SetLength(std::chrono::milliseconds p_duration)
 {
    // std::cout << "Pause = " << p_duration.count() << "ms" << std::endl;
-    m_duration_in_tstates = int(p_duration / spectrum::g_tstate_dur);
+    m_duration_in_tstates = int(p_duration / m_tstate_dur);
     return *this;
 }
 
 Doublesec PausePulser::GetDuration() const
 {
-    return m_duration_in_tstates * spectrum::g_tstate_dur;
+    return m_duration_in_tstates * m_tstate_dur;
 }
 
 /// Set length in # of pulses that is # complete patterns.
@@ -58,7 +58,7 @@ TonePulser& TonePulser::SetLength(std::chrono::milliseconds p_duration)
     auto pat_dur = GetPatternDuration();
     if (pat_dur)
     {
-        m_max_pulses = unsigned(p_duration / (spectrum::g_tstate_dur * pat_dur));
+        m_max_pulses = unsigned(p_duration / (m_tstate_dur * pat_dur));
         unsigned pattsize = unsigned(m_pattern.size());
         m_max_pulses += pattsize - (m_max_pulses % pattsize);    // round up to next multiple of pattsize
     }
@@ -71,7 +71,7 @@ TonePulser& TonePulser::SetLength(std::chrono::milliseconds p_duration)
 
 Doublesec TonePulser::GetDuration() const
 {
-    return m_max_pulses * GetPatternDuration() * spectrum::g_tstate_dur;
+    return m_max_pulses * GetPatternDuration() * m_tstate_dur;
 }
 
 
@@ -90,5 +90,5 @@ Doublesec DataPulser::GetDuration() const
     while(!me -> Next());
     me->m_bitnum = bitnumb4;
     me->m_pulsnum = pulsnumb4;
-    return tstates * spectrum::g_tstate_dur;
+    return tstates * m_tstate_dur;
 }

@@ -282,7 +282,7 @@ private:
     void MoveToLoader(TLoader& p_loader, std::chrono::milliseconds p_pause_before, int p_zero_duration, int p_one_duration, int p_end_of_byte_delay)
     {
         Check();
-        if(!ProbablyIsFunAttribute())   // avoid extensive logging
+        if(!ProbablyIsFunAttribute() && p_pause_before > 0ms)   // avoid extensive logging
         {
             std::cout << "Pause before = " << p_pause_before.count() << "ms" << std::endl;
             DebugDump();
@@ -290,11 +290,11 @@ private:
 
         if(p_pause_before > 0ms)
         {
-            PausePulser().SetLength(p_pause_before).MoveToLoader(p_loader);                 // pause before
+            PausePulser(p_loader.GetTstateDuration()).SetLength(p_pause_before).MoveToLoader(p_loader);                 // pause before
         }
-        TonePulser().SetPattern(500, 500).SetLength(200ms).MoveToLoader(p_loader);      // leader
+        TonePulser(p_loader.GetTstateDuration()).SetPattern(500, 500).SetLength(200ms).MoveToLoader(p_loader);      // leader
 //        TonePulser().SetPattern(500).SetLength(200ms).MoveToLoader(p_loader);         // (same) leader
-        TonePulser().SetPattern(250).SetLength(1).MoveToLoader(p_loader);             // sync
+        TonePulser(p_loader.GetTstateDuration()).SetPattern(250).SetLength(1).MoveToLoader(p_loader);             // sync
 //        PausePulser().SetLength(250).SetEdge(Edge::toggle).MoveToLoader(p_loader);      // sync (same)
 
         const auto &data = GetData();
@@ -314,10 +314,10 @@ private:
     template<class TLoader>
     void MoveToLoader(TLoader& p_loader, DataBlock p_block, int p_zero_duration, int p_one_duration, int p_end_of_byte_delay)
     {
-        PausePulser().SetLength(500).SetEdge(Edge::toggle).MoveToLoader(p_loader); // extra mini sync before
+        PausePulser(p_loader.GetTstateDuration()).SetLength(500).SetEdge(Edge::toggle).MoveToLoader(p_loader); // extra mini sync before
 
-        DataPulser()                                                               // data
-        .SetZeroPattern(p_zero_duration)                                           // works with ONE_MAX 12 ONE_MIN 4
+        DataPulser(p_loader.GetTstateDuration())                      // data
+        .SetZeroPattern(p_zero_duration)                              // works with ONE_MAX 12 ONE_MIN 4
         .SetOnePattern(p_one_duration)
         .SetEndOfByteDelay(p_end_of_byte_delay)
         .SetData(std::move(p_block))

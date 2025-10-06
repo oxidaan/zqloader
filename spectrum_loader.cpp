@@ -34,7 +34,7 @@ inline void SpectrumLoader::StandbyToActive()
 
 SpectrumLoader& SpectrumLoader::AddLeader(std::chrono::milliseconds p_duration)
 {
-    TonePulser().SetPattern(spectrum::g_tstate_leader).
+    TonePulser(GetTstateDuration()).SetPattern(spectrum::g_tstate_leader).
     SetLength(p_duration).
     MoveToLoader(*this);
     return *this;
@@ -45,7 +45,7 @@ SpectrumLoader& SpectrumLoader::AddLeader(std::chrono::milliseconds p_duration)
 /// Convenience: add ZX Spectrum standard leader that goes on forever: for tuning.
 SpectrumLoader& SpectrumLoader::AddEndlessLeader()
 {
-    TonePulser().SetPattern(spectrum::g_tstate_leader).
+    TonePulser(GetTstateDuration()).SetPattern(spectrum::g_tstate_leader).
     SetInfiniteLength().
     MoveToLoader(*this);
     return *this;
@@ -57,7 +57,7 @@ SpectrumLoader& SpectrumLoader::AddEndlessLeader()
 /// https://worldofspectrum.org/faq/reference/48kreference.htm
 SpectrumLoader& SpectrumLoader::AddSync()
 {
-    TonePulser().SetPattern(spectrum::g_tstate_sync1, spectrum::g_tstate_sync2).MoveToLoader(*this);
+    TonePulser(GetTstateDuration()).SetPattern(spectrum::g_tstate_sync1, spectrum::g_tstate_sync2).MoveToLoader(*this);
     return *this;
 }
 
@@ -67,7 +67,7 @@ SpectrumLoader& SpectrumLoader::AddSync()
 /// This is raw data so should already include startbyte + checksum
 SpectrumLoader& SpectrumLoader::AddData(DataBlock p_data, int p_pulslen)
 {
-    DataPulser().
+    DataPulser(GetTstateDuration()).
     SetZeroPattern(p_pulslen, p_pulslen).                   //  eg 855, 855
     SetOnePattern(2 * p_pulslen, 2 * p_pulslen).            //  eg 1710, 1710
     SetData(std::move(p_data)).
@@ -80,7 +80,7 @@ SpectrumLoader& SpectrumLoader::AddData(DataBlock p_data, int p_pulslen)
 /// Convenience: add ZX Spectrum standard pause (eg before 2nd leader)
 SpectrumLoader& SpectrumLoader::AddPause(std::chrono::milliseconds p_duration)
 {
-    PausePulser().SetLength(p_duration).MoveToLoader(*this);
+    PausePulser(GetTstateDuration()).SetLength(p_duration).MoveToLoader(*this);
     return *this;
 }
 
@@ -142,7 +142,7 @@ bool SpectrumLoader::Next()
 Doublesec SpectrumLoader::GetDurationWait() const
 {
     Pulser& current = GetCurrentPulser();
-    return current.GetTstate() * spectrum::g_tstate_dur;
+    return current.GetTstate() * m_tstate_dur;
 }
 
 

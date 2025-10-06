@@ -120,6 +120,10 @@ public:
         m_turboblocks.SetCompressionType(p_compression_type);
     }
 
+    void SetSpectrumClock(int p_spectrum_clock)
+    {
+        m_spectrumloader.SetTstateDuration(1s / double(p_spectrum_clock));
+    }
 
     void SetAction(Action p_what)
     {
@@ -127,13 +131,9 @@ public:
     }
 
 
-    void SetUseScreen()
-    {
-        m_new_loader_location = spectrum::SCREEN_23RD;
-    }
 
 
-    void SetNewLoaderLocation(uint16_t p_address)
+    void SetSnapshotLoaderLocation(uint16_t p_address)
     {
         m_new_loader_location = p_address;
     }
@@ -688,6 +688,12 @@ ZQLoader& ZQLoader::SetCompressionType(CompressionType p_compression_type)
     return *this;
 }
 
+ZQLoader& ZQLoader::SetSpectrumClock(int p_spectrum_clock)
+{
+    m_pimpl->SetSpectrumClock(p_spectrum_clock);
+    return *this;
+}
+
 
 
 ZQLoader& ZQLoader::SetAction(Action p_what)
@@ -698,19 +704,27 @@ ZQLoader& ZQLoader::SetAction(Action p_what)
 
 
 
-ZQLoader& ZQLoader::SetUseScreen()
+ZQLoader& ZQLoader::SetSnapshotLoaderLocation(uint16_t p_address)
 {
-    m_pimpl->SetUseScreen();
+    m_pimpl->SetSnapshotLoaderLocation(p_address);
+    return *this;
+}
+
+ZQLoader& ZQLoader::SetSnapshotLoaderLocation(LoaderLocation p_where)
+{
+    if (p_where == LoaderLocation::automatic)
+    {
+        m_pimpl->SetSnapshotLoaderLocation(0);
+    }
+    else if (p_where == LoaderLocation::screen)
+    {
+        m_pimpl->SetSnapshotLoaderLocation(spectrum::SCREEN_23RD);
+    }
+    
     return *this;
 }
 
 
-
-ZQLoader& ZQLoader::SetNewLoaderLocation(uint16_t p_address)
-{
-    m_pimpl->SetNewLoaderLocation(p_address);
-    return *this;
-}
 
 
 

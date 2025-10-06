@@ -29,7 +29,10 @@ class Pulser
     Pulser(const Pulser &)= delete;
 
 public:
-    Pulser() = default;
+    Pulser(Doublesec p_tstate_dur) 
+        : m_tstate_dur(p_tstate_dur)  // T-state duration in seconds
+    {
+    }
     Pulser(Pulser&&) = default;
     virtual ~Pulser() {}
     virtual int GetTstate() const = 0;      // Get # TStates to wait    
@@ -39,6 +42,7 @@ public:
     virtual Doublesec GetDuration() const = 0;  // get expected duration
 protected:
     unsigned m_pulsnum = 0;                         // increased after each edge
+    const Doublesec m_tstate_dur;
 
 };
 
@@ -52,7 +56,9 @@ class PausePulser : public Pulser
     PausePulser(const PausePulser&) = delete;
     using Clock = std::chrono::system_clock;
 public:
-    PausePulser() = default;
+    PausePulser(Doublesec p_tstate_dur) : Pulser(p_tstate_dur)
+    {
+    }
     PausePulser(PausePulser&&) = default;
 
     /// Set length of pause in milliseconds.
@@ -119,7 +125,9 @@ class TonePulser : public Pulser
     TonePulser(const TonePulser&) = delete;
     using Clock = std::chrono::system_clock;
 public:
-    TonePulser() = default;
+    TonePulser(Doublesec p_tstate_dur) : Pulser(p_tstate_dur)
+    {
+    }
     TonePulser(TonePulser&&) = default;
 
     /// Set tone pattern using one ore more given T-state durations.
@@ -211,7 +219,9 @@ class DataPulser : public Pulser
 {
     DataPulser(const DataPulser&) = delete;
 public:
-    DataPulser() = default;
+    DataPulser(Doublesec p_tstate_dur) : Pulser(p_tstate_dur)
+    {
+    }
     DataPulser(DataPulser&&) = default;
 
 
@@ -468,7 +478,10 @@ class DebugPulser : public Pulser
     DebugPulser(const DebugPulser&) = delete;
     using Clock = std::chrono::system_clock;
 public:
-    DebugPulser() = default;
+    DebugPulser(Doublesec p_tstate_dur) : Pulser(p_tstate_dur)
+    {
+    }
+        
     DebugPulser(DebugPulser&&) = default;
 
 
