@@ -103,9 +103,9 @@ public:
     }
 
 
-    void SetBitOneThreshold(int p_value)
+    void SetZeroMax(int p_value)
     {
-        m_turboblocks.SetBitOneThreshold(p_value);
+        m_turboblocks.SetZeroMax(p_value);
     }
 
 
@@ -666,9 +666,9 @@ ZQLoader& ZQLoader::SetBitLoopMax(int p_value)
 
 
 
-ZQLoader& ZQLoader::SetBitOneThreshold(int p_value)
+ZQLoader& ZQLoader::SetZeroMax(int p_value)
 {
-    m_pimpl->SetBitOneThreshold(p_value);
+    m_pimpl->SetZeroMax(p_value);
     return *this;
 }
 

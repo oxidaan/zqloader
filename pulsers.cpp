@@ -10,7 +10,6 @@
 
 
 #include "pulsers.h"
-//#include "spectrum_consts.h"        // g_tstate_dur
 
 
 

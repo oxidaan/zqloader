@@ -246,6 +246,7 @@ public:
     /// When != 0 switches to 'pulse mode' having fixed length pulses (given here) being 
     /// high or low for 1 or zero as RS-232.
     /// Needs start and stop bits for synchronisation.
+    /// (Tried but not working for ZX Spectrum, but might work for other machines).
     DataPulser& SetPulsDuration(int p_puls_duration)
     {
         m_puls_duration = p_puls_duration;
@@ -365,7 +366,9 @@ private:
         if(  (m_bitnum % 8) == 0 &&            // before first bit of all bytes except
              m_bitnum != 0 &&                  // very first bit
              m_pulsnum == 0)                   // also only before first pulse of first bit pattern
+        {
              return m_delay_duration;
+        }
         return 0;
     }
 
@@ -457,11 +460,10 @@ private:
 
     std::vector<int> m_zero_pattern;
     std::vector<int> m_one_pattern;
-    int m_puls_duration = 0;        // when !0 go to puls mode (! toggle), then this duration of each pulse.
+    int m_puls_duration = 0;        // when !0 go to puls mode (rs232 like) (! toggle), then this duration of each pulse.
     int m_start_duration = 0;       // In puls mode: start bit duration default s/a m_puls_duration
-                                    // else extra wait duration and end of byte to store byte.
     int m_stop_duration = 0;        // stop bit duration  default s/a m_puls_duration
-    int m_delay_duration = 0;
+    int m_delay_duration = 0;       // extra wait duration and end of byte to store byte.
     bool m_start_bit = true;        // value for start bit. Stopbit is always !m_start_bit
     // and m_start_bit should also be true, see table at zqloader.asm.
     // this means sync should end with 0!

@@ -79,7 +79,6 @@ Dialog::Dialog(QWidget *parent)
 
 
 
-
     // connect/sync volume dials and edits for 2 volumes
     auto ConnectVolume = [this](Dial *p_dial, QLineEdit *p_edit)
     {
@@ -378,7 +377,7 @@ inline void Dialog::RestoreDefaults()
     ui->lineEditEndOfByteDelay->setText(QString::number(loader_defaults::end_of_byte_delay));
         
     ui->lineEditBitLoopMax->setText(QString::number(loader_defaults::bit_loop_max));
-    ui->lineEditBitOneThreshold->setText(QString::number(loader_defaults::bit_one_threshold));
+    ui->lineEditZeroMax->setText(QString::number(loader_defaults::zero_max));
 
     ui->comboBoxCompressionType->setCurrentIndex(int(loader_defaults::compression_type));
     ui->comboBoxLoaderLocation->setCurrentIndex(1);     // automatic.
@@ -397,7 +396,7 @@ inline void Dialog::RestoreDefaults()
 
 
 
-// Go pressed.
+// 'Go' pressed.
 inline void Dialog::Go()
 {
     std::cout << "\n" << std::endl;
@@ -421,7 +420,7 @@ inline void Dialog::Go()
     m_zqloader.SetOutputFilename(outputfilename, true);     // allow overwrite for now
 
     m_zqloader.SetBitLoopMax     (ui->lineEditBitLoopMax->text().toInt()).
-               SetBitOneThreshold(ui->lineEditBitOneThreshold->text().toInt()).
+               SetZeroMax        (ui->lineEditZeroMax->text().toInt()).
                SetDurations      (ui->lineEditZeroTStates->text().toInt(),
                                   ui->lineEditOneTStates->text().toInt(),
                                   ui->lineEditEndOfByteDelay->text().toInt());

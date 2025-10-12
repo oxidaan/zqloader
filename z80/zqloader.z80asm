@@ -49,8 +49,8 @@ LEADER_MIN              EQU 8
 SYNC_MAX                EQU LEADER_MIN-1 //  a sync is between SYNC_MIN and SYNC_MAX
 SYNC_MIN                EQU 4           
 
-ONE_MAX                 EQU 12          // max cycles a 1 should take, else error (can be overwritten at c++)
-ONE_MIN                 EQU 4           // boundary #cycles between 0 and 1 (can be overwritten at c++)
+ONE_MAX                 EQU 12          // max cycles a 1 should take, else timeout error (can be overwritten at c++)
+ZERO_MAX                EQU 3           // boundary #cycles between 0 and 1 (can be overwritten at c++)
 
 
 //----------------------------------------------------------------------------
@@ -558,38 +558,34 @@ wait_for_first_edge:
 // C: last IN value to check changes; border color at WAIT_FOR_EDGE
 // B: timer count down at WAIT_FOR_EDGE
 // D: ONE_MAX, used to to quickly put in B (init value for timer count down)
-// E: ONE_MAX+2-ONE_MIN, used to to quickly compare to B
+// E: ONE_MAX-ZERO_MAX, used to to quickly compare to B
 // A: temporary storage
 //
-// eg ONE_MAX (12#), ONE_MIN(6#)
-// B out-> 12#11 10 09 08 07 06 05 04 03 02 01  00    # ->B out
-//          1  2  3  4  5  6# 7  8  9 10 11 12  (12)  # cycles (#INs done)
-//          0  0  0  0  0  1  1  1  1  1  1  1  t/o     (- = to soon)
+// eg ONE_MAX (12#) -> D = 12 , ZERO_MAX(3) -> E = 12-3 = 9
+// B out-> 11 10 09 08 07 06 05 04 03 02 01  00    # ->B out
+//          1  2  3  4  5  6# 7  8  9 10 11  t/o   # cycles (#INs done)
+// result:  0  0  0  1  1  1  1  1  1  1  1  t/o
 LOAD_BYTES:   
 
 BIT_LOOP_MAX+*:     ld D, ONE_MAX               // eg 12 can also be set from C++ code
-BIT_ONE_THESHLD+*:  ld E, ONE_MAX+1-ONE_MIN     // eg 12+2-4 = 10, can also be set from C++ code
+BIT_ONE_THESHLD+*:  ld E, ONE_MAX-ZERO_MAX      // eg 12-3 = 9, can also be set from C++ code
 
     ld B, 200                   // @Opt Mini sync
-    call WAIT_FOR_EDGE          // @Opt Mini sync
-    ret z                       // @Opt Mini sync
-    nop                         // makes it bit cycle time exactly.
-// Time between WAIT_FOR_EDGE calls: 42T
-// Min Time between IN's 42T + 69T = 111T           -> 42T + 62T = 104T
-// Max Time between IN's 82T + 69T = 151T           -> 82T + 62T = 144T
-// entire byte = 391T + 8 * 69 = 943T (~118T per bit @@)        -> 391+8*62=887    ->  ~111T per bit
-// bit loop is unrolled (8x).
-// Because between last and first bit relatively more time is taken -
-// update checksum; increading dest(HL); decreasing count (DE);  check for done;  the jump back:
-// the increase/decrease of HL resp. DE is done in the middle (called #spreading))
-// as is not checking for timeout (spare one RETZ)
+    call WAIT_FOR_EDGE          // @Opt Mini sync 62T states since last in
+    ret z                       // @Opt Mini sync 5 T states
+    nop                         // makes it bit cycle time exactly (78T). 4 T states -> 71 T
+
+// wait_for_edge_loop2: 43T
+// (Orginally bit loop was unrolled (8x) and used call to WAIT_FOR_EDGE.)
+// This version has copied inline code avoiding call to WAIT_FOR_EDGE - but not loop unroll.
+// Does not detect keypress - can end with timeout if no edges are seen (eg sound stops).
 
 .next_byte  
-    ld L, 1                     // end marker
-.next_bit
-    ld B, D                     // # counts eg 12
+    ld L, 1                     // end marker 7T
+.next_bit                       // bit-loop: 91 T
+    ld B, D                     // # counts until timeout eg 12  Note: B is decreased before IN unlike WAIT_FOR_EDGE
 
-.wait_for_edge_loop2:    
+.wait_for_edge_loop2:           // wait-loop: 43T
     dec B                       // Dec. cycle count (carry not touched) 43 since in
     ret z                       // 5/11T t/o, note carry still not set    (c=0 z=1)
     // ld A,$7F 	            // Maybe not needed. Read from port 0x7FFE, read BREAK and EAR. 49 + 16 since prev. IN is 59 
@@ -607,13 +603,13 @@ BIT_ONE_THESHLD+*:  ld E, ONE_MAX+1-ONE_MIN     // eg 12+2-4 = 10, can also be s
     out ($FE),A                 // toggle border color      // 000EMBBB hope 'd5�d7 are not used'
     
     ld A, B
-    cp E                        // (eg 12+2-6=8) Becomes a '1' when E > B
+    cp E                        // (eg 12-3=9) Becomes a '1' when E > B
     rl L    
     jp nc, .next_bit            // endmarker @ L reached?    
 
     // -- We now have a new byte in L --
 
-    // store loaded byte L ->(HL')
+    // store loaded byte L ->(HL') 57 T
     ld A, L
     exx
         ld (HL), A              // HL'= storage pointer
@@ -630,13 +626,14 @@ load_done:
 
 //============================================================================
 // WAIT_FOR_EDGE
-// Before before IN: 7 T states excl. call excl. IN itself      -> 0T
+// Note: B is decreased after IN.
+// Before before IN: 0 T states excl. call excl. IN itself (in is first instruction)     
 // Since last IN: 62 T States including IN itself and ret
-// Cycle time between IN's : 22 + 12 + 16 = 50 T        -> 43 T
-// Immidiate edge seen: (1 IN) 69 T states, excl. call incl. ret; B not changed  -> 62T
-// 1 cycle (2 IN's):               50 + 69 = 119 T states B = B-1       -> 105
-// n cycle (n+1 IN's):         (n*50) + 69       T states B = B-n       -> (n * 43 + 62)
-// timeout done B IN's       (B-1)*50 + 69       T States B = 0         -> (B-1)*43 + 62
+// Cycle time between IN's : 43 T
+// Immidiate edge seen: (1 IN) 62 T states, excl. call incl. ret; B not changed  
+// 1 cycle (2 IN's):               43 + 62 = 105 T states B = B-1
+// n cycle (n+1 IN's):         (n*43) + 62       T states B = B-n
+// timeout done B IN's       (B-1)*42 + 62       T States B = 0         
 // C is last edge plus border color, flips when changed: 0E001BBB #2
 // H the C xor value, must be 0b01000111 (or ob01011111)
 // B in is max counter out: counts left.

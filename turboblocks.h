@@ -112,9 +112,9 @@ public:
 
 
     /// Set this ZQLoader parameter
-    TurboBlocks& SetBitOneThreshold(int p_value)
+    TurboBlocks& SetZeroMax(int p_value)
     {
-        m_bit_one_threshold = p_value;
+        m_zero_max = p_value;
         return *this;
     }
 
@@ -191,8 +191,8 @@ private:
     int                           m_zero_duration           = loader_defaults::zero_duration;
     int                           m_one_duration            = loader_defaults::one_duration;
     int                           m_end_of_byte_delay       = loader_defaults::end_of_byte_delay;
-    int                           m_bit_loop_max            = loader_defaults::bit_loop_max;   
-    int                           m_bit_one_threshold       = loader_defaults::bit_one_threshold;
+    int                           m_bit_loop_max            = loader_defaults::bit_loop_max;        // aka ONE_MAX, the wait for edge loop counter until timeout  
+    int                           m_zero_max                = loader_defaults::zero_max;            // aka ZERO_MAX sees a 'one' when waited more than this number of cycli at wait for edge
 }; // class TurboBlocks
 
 

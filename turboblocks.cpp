@@ -317,7 +317,7 @@ private:
         PausePulser(p_loader.GetTstateDuration()).SetLength(500).SetEdge(Edge::toggle).MoveToLoader(p_loader); // extra mini sync before
 
         DataPulser(p_loader.GetTstateDuration())                      // data
-        .SetZeroPattern(p_zero_duration)                              // works with ONE_MAX 12 ONE_MIN 4
+        .SetZeroPattern(p_zero_duration)                              // works with ONE_MAX 12 ZERO_MAX 4
         .SetOnePattern(p_one_duration)
         .SetEndOfByteDelay(p_end_of_byte_delay)
         .SetData(std::move(p_block))
@@ -859,9 +859,9 @@ inline bool TurboBlocks::HandleZqLoaderTapBlock(DataBlock p_block)
         {
             SetDataToZqLoaderTap("BIT_LOOP_MAX", std::byte(m_bit_loop_max));
         }
-        if ( m_bit_one_threshold)           // when 0 dont set(SetBitOneThreshold)
+        if ( m_zero_max)           // when 0 dont set(SetZeroMax)
         {
-            auto val = (m_bit_loop_max ? m_bit_loop_max : 12) + 1 - m_bit_one_threshold;
+            auto val = (m_bit_loop_max ? m_bit_loop_max : loader_defaults::bit_loop_max) - m_zero_max;
             SetDataToZqLoaderTap("BIT_ONE_THESHLD", std::byte(val));
         }
     }

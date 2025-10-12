@@ -213,11 +213,11 @@ int main(int argc, char** argv)
             zqloader.SetAction(ZQLoader::Action::write_tzx);
         }
 
-        zqloader.SetBitLoopMax     (cmdline.GetParameter<int>("bit_loop_max", 0)).
-                 SetBitOneThreshold(cmdline.GetParameter<int>("bit_one_threshold", 0)).
-                 SetDurations      (cmdline.GetParameter("zero_tstates", 0),
-                                    cmdline.GetParameter("one_tstates", 0),
-                                    cmdline.GetParameter("end_of_byte_delay", 0));
+        zqloader.SetBitLoopMax(cmdline.GetParameter<int>("bit_loop_max", 0)).
+                    SetZeroMax(cmdline.GetParameter<int>("bit_one_threshold", 0)).
+                  SetDurations(cmdline.GetParameter("zero_tstates", 0),
+                               cmdline.GetParameter("one_tstates", 0),
+                               cmdline.GetParameter("end_of_byte_delay", 0));
 
         zqloader.SetVolume(cmdline.GetParameter("volume_left", loader_defaults::volume_left),cmdline.GetParameter("volume_right", loader_defaults::volume_right));
         // zqloader.SetCompressionType(CompressionType::none); // @DEBUG

@@ -10,10 +10,8 @@
 #include "spectrum_loader.h"
 #include "loadbinary.h"
 #include "pulsers.h"
-#include "spectrum_consts.h"        // g_tstate_dur
 
 
-/// Convenience: add ZX Spectrum standard leader.
 
 
 SpectrumLoader::SpectrumLoader()                                = default;
@@ -32,6 +30,7 @@ inline void SpectrumLoader::StandbyToActive()
 
 
 
+/// Convenience: add ZX Spectrum standard leader.
 SpectrumLoader& SpectrumLoader::AddLeader(std::chrono::milliseconds p_duration)
 {
     TonePulser(GetTstateDuration()).SetPattern(spectrum::g_tstate_leader).
