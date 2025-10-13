@@ -15,7 +15,8 @@ project(zqloader_z80)
 
 find_program(HAVE_SJSASMPLUS sjasmplus)
 if(NOT HAVE_SJSASMPLUS)
-    message(WARNING "sjasmplus not found! Make sure it is in the PATH. Skipping z80 assembly.")
+    message(WARNING "sjasmplus not found! Make sure it is in the PATH. Skipping z80 assembly.
+(Will install the files that were committed in repository instead)")
     # Cant build so install the files that were committed in repository
     install(FILES
             z80/zqloader.exp
@@ -42,7 +43,14 @@ if (NOT IS_DIRECTORY ${SJASMPLUS_PATH}/examples)
     message(WARNING "Sjasmplus examples not found. Skipping z80 assembly.
 Please give directory of sjasmplus as parameter PATH_TO_SJASMPLUS; examples must be there (now: ${SJASMPLUS_PATH})
 Eg: cmake -DPATH_TO_SJASMPLUS=path/to/sjasmplus
-(Or completely remove sjasmplus to skip z80 assembly)")
+(Will install the files that were committed in repository instead)")
+    # Cant build so install the files that were committed in repository
+    install(FILES
+            z80/zqloader.exp
+            z80/zqloader.tap
+            z80/snapshotregs.bin
+            DESTINATION bin
+            )
     return()
 else()
     message("sjasmplus examples found at ${SJASMPLUS_PATH}/examples")
