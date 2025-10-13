@@ -118,6 +118,7 @@ struct GeneralizedDataBlock
                  << "totd = " << totd 
                  << "npd = " << npd 
                  << "asd = " << asd << std::endl;
+        return p_stream;
     }
 
 };

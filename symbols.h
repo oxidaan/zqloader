@@ -11,7 +11,7 @@
 
 #include <map>
 #include <string>
-
+#include <cstdint>
 
 
 /// Loads and maintains named z80 symbols as saved by sjasmplus to an export file.
