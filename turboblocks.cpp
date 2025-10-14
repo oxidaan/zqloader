@@ -939,10 +939,11 @@ TurboBlocks &TurboBlocks::SetDurations(int p_zero_duration, int p_one_duration, 
     {
         m_one_duration = p_one_duration;
     }
-    if (p_end_of_byte_delay != 0)
+    if (p_end_of_byte_delay != 0)       
     {
         m_end_of_byte_delay = p_end_of_byte_delay;
     }
     std::cout << "Around " << (1000ms / spectrum::g_tstate_dur) / ((m_zero_duration + m_one_duration) / 2) << " bps" << std::endl;
     return *this;
 }
+

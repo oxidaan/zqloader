@@ -1,3 +1,4 @@
+#include "zqloader.h"
 //==============================================================================
 // PROJECT:         zqloader
 // FILE:            zqloader.h
@@ -850,6 +851,7 @@ void ZQLoader::Test()
 {
     return m_pimpl->Test();
 }
+
 
 // static
 bool ZQLoader::WriteTextToAttr(DataBlock& out_attr, const std::string& p_text, std::byte p_color, bool p_center, int p_col)

@@ -152,6 +152,7 @@ public:
 
     void Test();
 
+
     static bool WriteTextToAttr(DataBlock &out_attr, const std::string &p_text, std::byte p_color, bool p_center, int p_col);
 
 private:

@@ -49,8 +49,8 @@ LEADER_MIN              EQU 8
 SYNC_MAX                EQU LEADER_MIN-1 //  a sync is between SYNC_MIN and SYNC_MAX
 SYNC_MIN                EQU 4           
 
-ONE_MAX                 EQU 12          // max cycles a 1 should take, else timeout error (can be overwritten at c++)
-ZERO_MAX                EQU 3           // boundary #cycles between 0 and 1 (can be overwritten at c++)
+ONE_MAX                 EQU 12          // max cycles a 1 should take, else timeout error (can be overwritten at c++ at BIT_LOOP_MAX)
+ZERO_MAX                EQU 3           // max #INS to see a 'zero' (else 'one') (can be overwritten at c++ at BIT_ONE_THESHLD; (BIT_ONE_THESHLD=ONE_MAX-ZERO_MAX)
 
 
 //----------------------------------------------------------------------------
@@ -562,7 +562,7 @@ wait_for_first_edge:
 // A: temporary storage
 //
 // eg ONE_MAX (12#) -> D = 12 , ZERO_MAX(3) -> E = 12-3 = 9
-// B out-> 11 10 09 08 07 06 05 04 03 02 01  00    # ->B out
+// B out-> 11 10 09 08 07 06 05 04 03 02 01  00    # ->B out (B is decreased before IN unlike WAIT_FOR_EDGE)
 //          1  2  3  4  5  6# 7  8  9 10 11  t/o   # cycles (#INs done)
 // result:  0  0  0  1  1  1  1  1  1  1  1  t/o
 LOAD_BYTES:   

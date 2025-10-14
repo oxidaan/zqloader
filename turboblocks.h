@@ -119,6 +119,7 @@ public:
     }
 
 
+
     /// Set compression type.
     TurboBlocks& SetCompressionType(CompressionType p_compression_type)
     {

@@ -372,12 +372,15 @@ inline void Dialog::RestoreDefaults()
 {
     m_zqloader.Stop();
     SetState(State::Idle);
+    ui->lineEditWantedZeroCyclii->setText(QString::number(loader_defaults::wanted_zero_cyclii));
+    ui->lineEditZeroMax->setText(QString::number(loader_defaults::zero_max));
+    ui->lineEditWantedOneCyclii->setText(QString::number(loader_defaults::wanted_one_cyclii));
+    ui->lineEditBitLoopMax->setText(QString::number(loader_defaults::bit_loop_max));
+
     ui->lineEditZeroTStates->setText(QString::number(loader_defaults::zero_duration));
     ui->lineEditOneTStates->setText(QString::number(loader_defaults::one_duration));
     ui->lineEditEndOfByteDelay->setText(QString::number(loader_defaults::end_of_byte_delay));
         
-    ui->lineEditBitLoopMax->setText(QString::number(loader_defaults::bit_loop_max));
-    ui->lineEditZeroMax->setText(QString::number(loader_defaults::zero_max));
 
     ui->comboBoxCompressionType->setCurrentIndex(int(loader_defaults::compression_type));
     ui->comboBoxLoaderLocation->setCurrentIndex(1);     // automatic.
@@ -394,11 +397,42 @@ inline void Dialog::RestoreDefaults()
     ui->lineEditClock->setText(QString::number(spectrum::g_spectrum_clock));
 }
 
+inline double TStateToCycle(int p_tstate)
+{
+   double retval = double(p_tstate -  loader_tstates::bit_loop_duration) / loader_tstates::wait_for_edge_loop_duration;
+   return retval >= 0 ? retval : 0;
+}
+inline int CycleToTstate(double p_cyclii)
+{
+    return int(loader_tstates::bit_loop_duration + p_cyclii * loader_tstates::wait_for_edge_loop_duration);
+}
+
+
+inline void Dialog::CheckLoaderParameters() const
+{
+    int zero_tstates = ui->lineEditZeroTStates->text().toInt();    
+    int one_tstates = ui->lineEditOneTStates->text().toInt();    
+    int zero_max  = ui->lineEditZeroMax->text().toInt();
+
+    auto zero_maxtstates = CycleToTstate(zero_max);
+    if(one_tstates < zero_maxtstates )
+    {
+        throw std::runtime_error("'one_tstates' to small minumum = " + std::to_string(zero_maxtstates));
+    }
+    if(zero_tstates > zero_maxtstates )
+    {
+        throw std::runtime_error("'one_tstates' to big maximum = " + std::to_string(zero_maxtstates));
+    }
+    (void)zero_tstates;
+
+}
+
 
 
 // 'Go' pressed.
 inline void Dialog::Go()
 {
+CheckLoaderParameters();
     std::cout << "\n" << std::endl;
     if(m_state == State::PreloadingFunAttribs)
     {
