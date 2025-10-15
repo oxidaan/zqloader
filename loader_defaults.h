@@ -20,11 +20,11 @@ constexpr int end_of_byte_delay            = byte_loop_loop_duration - bit_loop_
 namespace loader_defaults
 {
 constexpr double wanted_zero_cyclii        = 0.0;
-constexpr int zero_max                     = 3;   // max #INs to see a zero.  when 0 dont set (so keep defaults at zqloader.z80asm) (old: 4->3) aka ZERO_MAX
-                                                  // must be > wanted_zero_cyclii + 1
+constexpr int zero_max                     = 3;   // max #INs to see a zero.  Minimal 1 (needs at least one IN to see edge) (old: 4->3) aka ZERO_MAX
+                                                  // must be > wanted_zero_cyclii + 1   (eg >= 2)
 constexpr double wanted_one_cyclii         = 3.5;   // must be > zero_max
 
-constexpr int bit_loop_max                 = 12;  // max #INs before timeout. when 0 dont set (so keep defaults at zqloader.z80asm) (old: 12)
+constexpr int bit_loop_max                 = 20;  // max #INs before timeout. when 0 dont set (so keep defaults at zqloader.z80asm) (old: 12)
 
 constexpr int zero_duration                = loader_tstates::bit_loop_duration + int(wanted_zero_cyclii * loader_tstates::wait_for_edge_loop_duration);  // bit_loop ; 91;  // @@ see zqloader.asm (old: 118)
 constexpr int one_duration                 = loader_tstates::bit_loop_duration + int(wanted_one_cyclii  * loader_tstates::wait_for_edge_loop_duration);// 241; //int(91 + 3.5 * 43); //250;  231 worked better with jsw3.z80!? (old: 293)

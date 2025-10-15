@@ -51,6 +51,7 @@ private:
     void SetState(State p_state);
     void RestoreDefaults();
     void CheckLoaderParameters() const;
+    void CalculateLoaderParameters();
 
 signals:
     void signalDone();

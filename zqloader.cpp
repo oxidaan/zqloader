@@ -363,7 +363,7 @@ A second filename argument and/or parameters are only usefull when using zqloade
         }
         if (!std::filesystem::exists(filename))
         {
-            throw std::runtime_error("ZQLoader file " + p_filename.string() + " not found. ("
+            throw std::runtime_error("ZQLoader file '" + p_filename.string() + "' not found. (checked: "
             + m_exe_path.string() + ", " + std::filesystem::current_path().string() +
             ") Please give path/to/zqloader.tap. (this is the tap file that contains the ZX Spectrum turboloader)");
         }

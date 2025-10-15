@@ -175,7 +175,10 @@ Dialog::Dialog(QWidget *parent)
     {
         RestoreDefaults();
     });
-    
+    connect(ui->pushButtonCalculate, &QPushButton::pressed, [this]
+    {
+        CalculateLoaderParameters();
+    });
     connect(ui->pushButtonGo,&QPushButton::pressed, [this]
     {
         if( m_state == State::Playing || m_state == State::Tuning)
@@ -392,9 +395,16 @@ inline void Dialog::RestoreDefaults()
     ui->lineEditVolumeRight->setText(QString::number(loader_defaults::volume_right));
     ui->dialVolumeRight->setValue(loader_defaults::volume_right);
 
-    ui->lineEditNormalFile->setText(QString::fromStdString(m_zqloader.GetZqLoaderFile().string()));
-
     ui->lineEditClock->setText(QString::number(spectrum::g_spectrum_clock));
+
+    try
+    {
+        ui->lineEditNormalFile->setText(QString::fromStdString(m_zqloader.GetZqLoaderFile().string()));
+    }
+    catch(...)
+    {
+        // not found. Ignore for now. This is only RestoreDefaults.
+    }
 }
 
 inline double TStateToCycle(int p_tstate)
@@ -407,23 +417,51 @@ inline int CycleToTstate(double p_cyclii)
     return int(loader_tstates::bit_loop_duration + p_cyclii * loader_tstates::wait_for_edge_loop_duration);
 }
 
+inline void Dialog::CalculateLoaderParameters()
+{
+    auto wanted_zero_cyclii = ui->lineEditWantedZeroCyclii->text().toDouble();
+    auto zero_max  = ui->lineEditZeroMax->text().toInt();
+    auto wanted_one_cyclii = ui->lineEditWantedOneCyclii->text().toDouble();
+    if(zero_max <=( wanted_zero_cyclii + 1))
+    {
+        throw std::runtime_error("'zero_max' must be bigger than 'Wanted zero cyclii' + 1 so bigger than: " + std::to_string(int(wanted_zero_cyclii) + 1));
+    }
+    if(wanted_one_cyclii <= zero_max)
+    {
+        throw std::runtime_error("'Wanted one Cycli' must be bigger than 'zero_max' (" + std::to_string(zero_max ) + ")");
+    }
+    int zero_tstates  = CycleToTstate(wanted_zero_cyclii);
+    int one_tstates   = CycleToTstate(wanted_one_cyclii);
+    ui->lineEditZeroTStates->setText(QString::number(zero_tstates));
+    ui->lineEditOneTStates->setText(QString::number(one_tstates));
+
+}
 
 inline void Dialog::CheckLoaderParameters() const
 {
-    int zero_tstates = ui->lineEditZeroTStates->text().toInt();    
-    int one_tstates = ui->lineEditOneTStates->text().toInt();    
-    int zero_max  = ui->lineEditZeroMax->text().toInt();
+    auto zero_tstates = ui->lineEditZeroTStates->text().toInt();
+    auto one_tstates = ui->lineEditOneTStates->text().toInt();
+    auto zero_max  = ui->lineEditZeroMax->text().toInt();
 
     auto zero_maxtstates = CycleToTstate(zero_max);
+    if(zero_max < 1)
+    {
+        throw std::runtime_error("'zero_max' must be bigger than - or equal to 1");
+    }
     if(one_tstates < zero_maxtstates )
     {
-        throw std::runtime_error("'one_tstates' to small minumum = " + std::to_string(zero_maxtstates));
+        throw std::runtime_error("'one_tstates' to small minimum is " + std::to_string(zero_maxtstates));
     }
     if(zero_tstates > zero_maxtstates )
     {
-        throw std::runtime_error("'one_tstates' to big maximum = " + std::to_string(zero_maxtstates));
+        throw std::runtime_error("'zero_tstates' to big maximum is " + std::to_string(zero_maxtstates));
     }
-    (void)zero_tstates;
+
+    if(one_tstates < (zero_tstates + loader_tstates::wait_for_edge_loop_duration))
+    {
+        throw std::runtime_error("'one_tstates' to small, minimum is " + std::to_string(zero_tstates + loader_tstates::wait_for_edge_loop_duration));
+    }
+
 
 }
 
