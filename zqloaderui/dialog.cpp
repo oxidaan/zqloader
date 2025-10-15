@@ -407,16 +407,22 @@ inline void Dialog::RestoreDefaults()
     }
 }
 
+// Convert Tstate value to # polling cycles at ZQloader z80 code.
+// (currently not (yet) used anymore)
 inline double TStateToCycle(int p_tstate)
 {
    double retval = double(p_tstate -  loader_tstates::bit_loop_duration) / loader_tstates::wait_for_edge_loop_duration;
    return retval >= 0 ? retval : 0;
 }
+// Convert # polling cycles to Tstate value that will take that ZQloader z80 code.
 inline int CycleToTstate(double p_cyclii)
 {
     return int(loader_tstates::bit_loop_duration + p_cyclii * loader_tstates::wait_for_edge_loop_duration);
 }
 
+// Based on 'Wanted Zero Cycli'and 'Wanted One Cyclii' calculate
+// 'Zero TStates' and 'One TStates' and put result in the dialog.
+// Check validity first, throws when error.
 inline void Dialog::CalculateLoaderParameters()
 {
     auto wanted_zero_cyclii = ui->lineEditWantedZeroCyclii->text().toDouble();
@@ -437,6 +443,9 @@ inline void Dialog::CalculateLoaderParameters()
 
 }
 
+
+// Check if zero_max/one_tstates/zero_tstates loader parameters, as given in dialog, are valid.
+// Throws when not valid.
 inline void Dialog::CheckLoaderParameters() const
 {
     auto zero_tstates = ui->lineEditZeroTStates->text().toInt();
@@ -470,7 +479,7 @@ inline void Dialog::CheckLoaderParameters() const
 // 'Go' pressed.
 inline void Dialog::Go()
 {
-CheckLoaderParameters();
+    CheckLoaderParameters();        // might throw
     std::cout << "\n" << std::endl;
     if(m_state == State::PreloadingFunAttribs)
     {
