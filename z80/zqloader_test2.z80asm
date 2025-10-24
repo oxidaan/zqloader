@@ -1,6 +1,7 @@
 // Test snapshot registers
 // Eg at a simulator create a z80 snapshot when "Press Space..." appears.
-// Then load z80 snapshot at real spectrum - check register values. (should be same as at simulator / and see values here below)
+// Then with ZQLoader load that snapshot at real spectrum - check register values. 
+// (should be same as at simulator / and see values here below)
 
  DEVICE ZXSPECTRUM48
  DEFINE tape_file_name    "zqloader_snapshot_test.tap"
@@ -327,5 +328,6 @@ BASIC_END:
  //SAVETAP    tape_file_name, CODE, basic_name,        ASM_START, ASM_END-ASM_START, ASM_START
 
  IF __ERRORS__ == 0
+    // to be loaded by simulator
     SAVESNA   "zqloader_snapshottest.sna", ASM_START
  ENDIF

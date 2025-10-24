@@ -153,7 +153,7 @@ public:
     // Length needed when loader code needs to be moved away from BASIC location
     uint16_t GetLoaderCodeLength(bool p_with_registers) const;
    
-   template <class TPath>
+    template <class TPath>
     TurboBlocks&SetSymbolFilename(const TPath &p_symbol_file_name);
 private:
 

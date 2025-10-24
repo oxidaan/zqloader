@@ -95,11 +95,11 @@ public:
 
     /// Stop SampleSender (that is: stop miniaudio thread)
     /// Call *after* WaitUntilDone else aborts.
-    SampleSender& Stop();
+    SampleSender& Stop() noexcept;
 
     /// Is mini audio (thread) running?
     /// (ma_device_is_started)
-    bool IsRunning() const;
+    bool IsRunning() const noexcept;
 
 
     /// Run SampleSender (miniadio thread) so Start, wait, Stop.
@@ -168,6 +168,7 @@ private:
 
     // Callback:
     // Get value what edge needs to become eg toggle/one/zero.
+    // (at ZX Spectrum usually toggle)
     // called in miniaudio device thread
     Edge GetEdge() const
     {

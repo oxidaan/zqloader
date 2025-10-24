@@ -282,9 +282,12 @@ private:
     void MoveToLoader(TLoader& p_loader, std::chrono::milliseconds p_pause_before, int p_zero_duration, int p_one_duration, int p_end_of_byte_delay)
     {
         Check();
-        if(!ProbablyIsFunAttribute() && p_pause_before > 0ms)   // avoid extensive logging
+        if(!ProbablyIsFunAttribute())   // avoid excessive logging
         {
-            std::cout << "Pause before = " << p_pause_before.count() << "ms" << std::endl;
+            if(p_pause_before > 0ms)
+            {
+                std::cout << "Pause before = " << p_pause_before.count() << "ms" << std::endl;
+            }
             DebugDump();
         }
 
@@ -298,7 +301,7 @@ private:
 //        PausePulser().SetLength(250).SetEdge(Edge::toggle).MoveToLoader(p_loader);      // sync (same)
 
         const auto &data = GetData();
-        DataBlock header(data.begin(), data.begin() + sizeof(Header));      // split
+        DataBlock header(data.begin(), data.begin() + sizeof(Header));      // split (eg for minisync)
         DataBlock payload(data.begin() + sizeof(Header), data.end());
 
         MoveToLoader(p_loader, std::move(header), p_zero_duration, p_one_duration, p_end_of_byte_delay);     // header
@@ -317,11 +320,11 @@ private:
         PausePulser(p_loader.GetTstateDuration()).SetLength(500).SetEdge(Edge::toggle).MoveToLoader(p_loader); // extra mini sync before
 
         DataPulser(p_loader.GetTstateDuration())                      // data
-        .SetZeroPattern(p_zero_duration)                              // works with ONE_MAX 12 ZERO_MAX 4
-        .SetOnePattern(p_one_duration)
-        .SetEndOfByteDelay(p_end_of_byte_delay)
-        .SetData(std::move(p_block))
-        .MoveToLoader(p_loader);
+            .SetZeroPattern(p_zero_duration)                              // works with ONE_MAX 12 ZERO_MAX 4
+            .SetOnePattern(p_one_duration)
+            .SetEndOfByteDelay(p_end_of_byte_delay)
+            .SetData(std::move(p_block))
+            .MoveToLoader(p_loader);
     }
 
 
@@ -719,13 +722,14 @@ void TurboBlocks::AddTurboBlock(TurboBlock&& p_block)
 }
 
 
-
+/// To be called after last block was added.
 /// Make sure:
 ///     to add upperblock (overwriting loader) as last in the chain.
-///     pach loader ciop code.
+///     patch loader code.
 ///     first block will copy loader to alternative location.
 /// To be called after adding last AddDataBlock, before MoveToLoader.
 /// p_usr_address: when done loading all blocks end start machine code here as in RANDOMIZE USR xxxxx
+///     (When 0 return to BASIC)
 /// p_clear_address: when done loading put stack pointer here, which is a bit like CLEAR xxxxx
 TurboBlocks &TurboBlocks::Finalize(uint16_t p_usr_address, uint16_t p_clear_address)
 {
@@ -747,25 +751,25 @@ TurboBlocks &TurboBlocks::Finalize(uint16_t p_usr_address, uint16_t p_clear_addr
         SetDataToZqLoaderTap("COPY_ME_SP", copy_me_target_location);        // before new copied block
         auto copy_me_source_location = m_symbols.GetSymbol("ASM_CONTROL_CODE_START");
         auto copy_me_length          = m_symbols.GetSymbol("ASM_CONTROL_CODE_LEN");
-        //   <- xxxxxxxx <-
-        //          xxxxxxxx lddr copy_lddr==true
-        //   -> xxxxxxxx ->
-        //  xxxxxxxx         ldir copy_lddr==false
-        // when false: use ldir, copies from low to high
-        // when dest address is before source when overlapping
-        // when true: use lddr, copies from high to low
-        // when dest address is after source when overlapping
-        bool copy_lddr = copy_me_target_location > copy_me_source_location;
         bool overlaps  = Overlaps(copy_me_source_location, copy_me_source_location + copy_me_length, copy_me_target_location, copy_me_target_location + copy_me_length);
-        if(!copy_lddr)     // so forwards, ldir
+        bool copy_lddr = copy_me_target_location > copy_me_source_location;
+        if(!copy_lddr)    
         {
+            // when false: use LDIR, copies from low to high
+            // when dest address is before source when overlapping
+            //   -> xxxxxxxx ->
+            //  xxxxxxxx         LDIR copy_lddr==false
             std::cout << "Copy loader backwards (but LDIR working forwards) from " << copy_me_source_location << " to " << copy_me_target_location << " length=" << copy_me_length << " last = " << copy_me_target_location + copy_me_length - 1 << (overlaps ? " (overlaps)" : "") << std::endl;
             SetDataToZqLoaderTap("COPY_ME_DEST", copy_me_target_location);
             SetDataToZqLoaderTap("COPY_ME_SOURCE_OFFSET", copy_me_source_location);
             SetDataToZqLoaderTap("COPY_ME_LDDR_OR_LDIR", 0xb0ed); // LDIR! Endianness swapped
         }
         else
-        {       // so backwards, lddr
+        {    
+            // when true: use LDDR, copies from high to low
+            // when dest address is after source when overlapping
+            //   <- xxxxxxxx <-
+            //          xxxxxxxx LDDR copy_lddr==true
             std::cout << "Copy loader forwards (but LDDR working backwards) from " << copy_me_source_location << " to " << copy_me_target_location << " length=" << copy_me_length << " last = " << copy_me_target_location + copy_me_length - 1 << (overlaps ? " (overlaps)" : "") << std::endl;
             SetDataToZqLoaderTap("COPY_ME_DEST", copy_me_target_location + copy_me_length - 1);
             SetDataToZqLoaderTap("COPY_ME_SOURCE_OFFSET", copy_me_source_location + copy_me_length - 1);
@@ -912,7 +916,7 @@ inline void TurboBlocks::SetDataToZqLoaderTap( const char* p_name, uint16_t p_va
     m_zqloader_code[adr]     = std::byte(p_value & 0xff);   // z80 is little endian
     m_zqloader_code[adr + 1] = std::byte((p_value >> 8) & 0xff);
     RecalculateChecksum(m_zqloader_code);
-    std::cout << "Patching '" << p_name << "' to: " << int(p_value) << " hex= " << std::hex << int(p_value) << std::dec << std::endl;
+    std::cout << "Patching word '" << p_name << "' to: " << int(p_value) << " hex= " << std::hex << int(p_value) << std::dec << std::endl;
 }
 
 
@@ -922,7 +926,7 @@ inline void TurboBlocks::SetDataToZqLoaderTap( const char* p_name, std::byte p_v
     uint16_t adr = GetZqLoaderSymbolAddress(p_name);
     m_zqloader_code[adr] = p_value;
     RecalculateChecksum(m_zqloader_code);
-    std::cout << "Patching '" << p_name << "' to: " << int(p_value) << " hex= " << std::hex << int(p_value) << std::dec << std::endl;
+    std::cout << "Patching byte '" << p_name << "' to: " << int(p_value) << " hex= " << std::hex << int(p_value) << std::dec << std::endl;
 }
 
 

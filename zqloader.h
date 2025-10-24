@@ -59,13 +59,15 @@ public:
     ~ZQLoader();
 
     /// Set path/to/file to normal speed load (tzx,tap)
-    /// When empty use (and find) zqloader.tap.
+    /// When p_filename empty try to find zqloader.tap and use that.
+    /// Eg top filename in dialog.
     ZQLoader &SetNormalFilename(std::filesystem::path p_filename);
 
-    ///  Set path/to/file to turboload (tzx,tap,z80,sna)
+    /// Set path/to/file to turboload (tzx,tap,z80,sna)
+    /// Eg 2nd filename in dialog.
     ZQLoader &SetTurboFilename(std::filesystem::path p_filename);
 
-    /// Set output file when action is write_wav or write_tzx.
+    /// Set output file; this makes action write_wav or write_tzx.
     ZQLoader &SetOutputFilename(std::filesystem::path p_filename, bool p_allow_overwrite);
 
     /// Set Volume (-100 -- 100).
@@ -91,10 +93,10 @@ public:
     /// Play sound/ or write wav file/ or write tzx file.
     ZQLoader& SetAction(Action p_what);
 
-    /// Address where to put loader when loading snapshot, 0 = auto.
+    /// Address where to put loader when loading snapshot.
     ZQLoader &SetSnapshotLoaderLocation(uint16_t p_address);
 
-    /// Address where to put loader when loading snapshot, 0 = auto.
+    /// Where to put loader when loading snapshot: automatic or screen.
     ZQLoader &SetSnapshotLoaderLocation(LoaderLocation p_where);
 
     /// Overwrite loader when at screen with attributes?
@@ -117,9 +119,10 @@ public:
     ///  Busy (playing sound)?
     bool IsBusy() const;
 
-    
+    // Add zqloader.tap to be preloaded
     ZQLoader &SetPreload();
 
+    // Was zqloader.tap added to be preloaded?
     bool IsPreLoaded() const;
     
     /// Play a infinite leader tone for tuning.
@@ -150,6 +153,7 @@ public:
     ///  Get path/to/zqloader.tap
     std::filesystem::path GetZqLoaderFile() const;
 
+    // Run Test
     void Test();
 
 

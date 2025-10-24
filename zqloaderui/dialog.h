@@ -31,12 +31,12 @@ class Dialog : public QDialog
 public:
     enum class State
     {
-        Idle,
-        Playing,
-        Tuning,
-        Preloading,
-        PreloadingFunAttribs,
-        Cancelled
+        Idle,                       // doing nothing
+        Playing,                    // busy (turbo) loading
+        Tuning,                     // playing endless header tone
+        Preloading,                 // preloading zqloader
+        PreloadingFunAttribs,       // after preloading zqloader loading fun-attributes
+        Cancelled                   // Playing was cancelled
     };
     Dialog(QWidget *parent = nullptr);
     ~Dialog();
@@ -51,8 +51,8 @@ private:
     void SetState(State p_state);
     void RestoreDefaults();
     void CheckLoaderParameters() const;
-    void CalculateLoaderParameters();
-
+    void CalculateLoaderParametersFromSlider(int p_index);
+    void CalculateLoaderParameters(double p_wanted_zero_cyclii, int p_zero_max, double p_wanted_one_cyclii );
 signals:
     void signalDone();
 private:

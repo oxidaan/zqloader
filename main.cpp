@@ -122,19 +122,17 @@ More options can be given with syntax: option=value, or just 'option value' or o
                             Extra delay in TSTates after each byte. Eg time needed to store
                             the byte, calculate checksum etc. Not giving this (or 0) uses a 
                             default that worked for me (64). 
-    bit_one_threshold = value
-                            A time value in 50xTStates used at Z80 turboloader indicating the
-                            time between edges when it is considered a 'one' - below this time
-                            it is considered a 'zero'. Related to 'one_tstates' above.
-                            Not giving this (or 0) uses a default that worked for me (4) - 
-                            (or automatically calculated out of bit_loop_max).
-    bit_loop_max = value    A time value in 50xTstates used at Z80 turboloader indicating the
-                            maximum time between edges treated as valid 'one' value. Above this 
-                            a timeout error will occur.
-                            Not giving this (or 0) uses a default that worked for me (12)
+    zero_max = value        Maximum number of IN's (before an edge is seen) to be considered
+                            a 'zero'.
+                            Minimum value is 1 (need at least one IN to see an edge)
+                            Not giving this (or 0) uses a default that worked for me (3).
+    bit_loop_max = value    Maximum number of IN's without an edge seen to be considered a 
+                            valid 'one'; above this a timeout error will occur.
+                            Not giving this (or 0) uses a default that worked for me (100)
+                            This value can safely been made larger, does not affect speeds.
                             These parameters are used at the ZX-spectrum side so must match
                             zero_tstates/one_tstates.
-                            Eg extra speed: bit_one_threshold=3 one_tstates=243
+                            Eg extra speed: zero_max=3 one_tstates=243
 
     outputfile="path/to/filename.wav"
                             When a wav file is given: write result to given WAV (audio) file instead of 
@@ -214,7 +212,7 @@ int main(int argc, char** argv)
         }
 
         zqloader.SetBitLoopMax(cmdline.GetParameter<int>("bit_loop_max", 0)).
-                    SetZeroMax(cmdline.GetParameter<int>("bit_one_threshold", 0)).
+                    SetZeroMax(cmdline.GetParameter<int>("zero_max", 0)).
                   SetDurations(cmdline.GetParameter("zero_tstates", 0),
                                cmdline.GetParameter("one_tstates", 0),
                                cmdline.GetParameter("end_of_byte_delay", 0));

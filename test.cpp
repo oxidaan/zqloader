@@ -106,16 +106,19 @@ void TestCompressor()
     std::cout << std::endl;
 }
 
-// returns USR (MC code start) address
-//  "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader_test.bin"
+/// returns USR (MC code start) address to go to after loading is done (0 = return to basic)
+///  "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader_test.bin"
 uint16_t Test(TurboBlocks& p_blocks, fs::path p_filename)
 {
+    std::cout << "Running test... (" << p_filename << ")" << std::endl;
+#if 0
     (void)p_blocks;
     (void)p_filename;
             DataBlock text_attr;
             text_attr.resize(2000);
             WriteTextToAttr(text_attr, ToUpper("AAHELLO WORLD"), 0_byte);    // 0_byte: random colors
             return 0;
+#endif
 #if 0
     // Copy loader to screen, then use that to load an attribute block
     {
@@ -294,7 +297,7 @@ uint16_t Test(TurboBlocks& p_blocks, fs::path p_filename)
 
     return uint16_t(start);
 #endif
-#if 0
+#if 1
     (void)p_filename;
     p_blocks.SetCompressionType(CompressionType::none);
     // screen pattern

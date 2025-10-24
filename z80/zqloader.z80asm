@@ -157,7 +157,7 @@ next_block:
 
     // Intialize edge plus border color -> C
     // So get intial value from port->C
-    
+    // https://worldofspectrum.org/faq/reference/48kreference.htm#PortFE
     // E=ear, M=mic, K-keyboard, B = bordercolor
     //            7  6  5  4  3  2  1  0
     // in(0xfe):  0  E  0  K  K  K  K  K    
@@ -166,8 +166,8 @@ next_block:
     in A, ($FE)                 // Get initial EAR value
     and   0b01000000            // mask, so keep only EAR
     or    0b00001010            // ear zero border red 010 <-> 101 cyan + also set mic (and/or ear)
-    ld C, A                     // initialize c with result: 0E0EEBBB see WAIT_FOR_EDGE #2
-    ld H, 0b01000111            // The C xor value, see WAIT_FOR_EDGE #3
+    ld C, A                     // initialize c with result: 0E001010 see WAIT_FOR_EDGE #2
+    ld H, 0b01000111            // The C xor value, see WAIT_FOR_EDGE #3 so toggles border bits + last edge
 
 
 
@@ -442,6 +442,7 @@ COPY_ME_END_JUMP+*:     jp SCREEN_23RD + STACK_SIZE             // Continue at n
 // HL' storage location-1, must be header location-1.
 // DE': # bytes to load must be size of header.
 // C: last IN at WAIT_FOR_EDGE; border color.
+// H: XOR value for C.
 // C': Checksum init value must also be sizeof header.
 // Out:
 // When OK: The header plus data is read.
@@ -509,7 +510,7 @@ wait_for_first_edge:
 
     ld    A, C
     xor   0b00000011            //  Toggle border 001 red <-> 110 yellow from now on
-    ld    C, A
+    ld    C, A                  //  C=0E001001    H is still 01000111
 
     
     //  ld HL', HEADER            // already done
@@ -541,11 +542,11 @@ wait_for_first_edge:
 // In:
 // HL' storage location, this is modified (walks to end) (was IX)
 // BC': # bytes to load  (walks down to zero) (was DE)
-// C: last IN at WAIT_FOR_EDGE; border color.
+// C: to check changes at last IN ; border color: 0E001001.
+// H: the C xor value, must be 0b01000111 (or 0b01011111) so toggles last edge + border. Does not change.
 // E': Checksum init value must be sizeof header. (was H)
 // Out:
 // E': checksum / must be zero at end when ok. (was H)
-// L: last byte loaded.
 //  z=1 error
 //  z=0 ok
 // Used:
@@ -553,10 +554,9 @@ wait_for_first_edge:
 // BC': (walks to zero) 
 // E': Checksum             
 // D': not used             
-// H: the C xor value, must be 0b01000111 (or 0b01011111)
 // L: Now/Last loaded byte
-// C: last IN value to check changes; border color at WAIT_FOR_EDGE
 // B: timer count down at WAIT_FOR_EDGE
+// C: to check changes at last IN ; border color. Will be xored with H. 0E001001 <-> 0e001110
 // D: ONE_MAX, used to to quickly put in B (init value for timer count down)
 // E: ONE_MAX-ZERO_MAX, used to to quickly compare to B
 // A: temporary storage
@@ -588,10 +588,10 @@ BIT_ONE_THESHLD+*:  ld E, ONE_MAX-ZERO_MAX      // eg 12-3 = 9, can also be set 
 .wait_for_edge_loop2:           // wait-loop: 43T
     dec B                       // Dec. cycle count (carry not touched) 43 since in
     ret z                       // 5/11T t/o, note carry still not set    (c=0 z=1)
-    // ld A,$7F 	            // Maybe not needed. Read from port 0x7FFE, read BREAK and EAR. 49 + 16 since prev. IN is 59 
-    in A,($FE)                  // bit 0 is !BREAK, bit 6 is ear
+    // ld A,$7F 	            // Maybe not needed (dont need keyboard). Read from port 0xddFE, read EAR. 49 + 16 since prev. IN is 59 
+    in A,($FE)                  // bit 6 is ear
     xor C                       // detect change at ear (also reset carry)
-    and 0b01000000              // mask ear 
+    and 0b01000000              // mask to keep ear 
     jr z, .wait_for_edge_loop2    
 
     // -- Once here: change seen --
@@ -635,7 +635,7 @@ load_done:
 // n cycle (n+1 IN's):         (n*43) + 62       T states B = B-n
 // timeout done B IN's       (B-1)*42 + 62       T States B = 0         
 // C is last edge plus border color, flips when changed: 0E001BBB #2
-// H the C xor value, must be 0b01000111 (or ob01011111)
+// H the C xor value, must be 0b01000111 (or 0b01011111)
 // B in is max counter out: counts left.
 // #IN's done =  1 + B-in - B-out
 // DE, HL not touched
@@ -658,7 +658,7 @@ WAIT_FOR_EDGE:
     ld A,C           
     xor H                       // H = 01000111 (or 01011111) xor both last edge as border #3
     ld C,A
-    out ($FE),A                 // toggle border color      // 000EMBBB hope 'd5�d7 are not used'
+    out ($FE),A                 // toggle border color      // 000EMBBB hope 'd5-d7 are not used'
     ret                         // += 51T (c=1 z=0)
 
 //============================================================================

@@ -24,7 +24,13 @@ SampleSender::~SampleSender()
     if (m_device)
     {
         Stop();
+        // Some weird COM error/bug causes QT's clipboard to stop working when this is done in
+        // QT's main thread. (ChatGpt hint). Whatever. (Was not needed for ma_device_init)
+        // Hence the std::thread here.
+        std::thread t([this]{
         ma_device_uninit(m_device.get());
+        });
+        t.join();
     }
 }
 
@@ -38,12 +44,12 @@ SampleSender& SampleSender::Init()
         ma_device_config config  = ma_device_config_init(ma_device_type_playback);
         config.playback.format   = ma_format_f32; // Set to ma_format_unknown to use the device's native format.
         config.playback.channels = 2;             // Set to 0 to use the device's native channel count.
+        // config.playback.pDeviceID   = some_id  // when more hardware present. See ma_context_get_devices
         config.sampleRate        = m_sample_rate; // Set to 0 to use the device's native sample rate.
         config.dataCallback      = data_callback; // This function will be called when miniaudio needs more data.
         config.pUserData         = this;          // Can be accessed from the device object (device.pUserData).
 
         auto device = std::make_unique<ma_device>();
-//        auto device = new ma_device;
         if (ma_device_init(nullptr, &config, device.get()) != MA_SUCCESS)
         {
             throw std::runtime_error("Failed to initialize the device.");
@@ -70,7 +76,7 @@ SampleSender& SampleSender::Start()
 
 /// Stop SampleSender (that is: stop miniaudio thread)
 /// Call *after* Wait else aborts sending data.
-SampleSender& SampleSender::Stop()
+SampleSender& SampleSender::Stop() noexcept
 {
     if (IsRunning())
     {
@@ -95,7 +101,7 @@ SampleSender& SampleSender::WaitUntilDone()
 
 
 
-bool SampleSender::IsRunning() const
+bool SampleSender::IsRunning() const noexcept
 {
     return m_device && ma_device_is_started(m_device.get());
 }
@@ -147,6 +153,9 @@ inline void SampleSender::Reset()
     m_event.Reset();
 }
 
+/// Check if done with m_OnCheckDone call back,
+/// Signal event when truly done for m_done_event_cnt times.
+/// See https://github.com/mackron/miniaudio/discussions/490
 inline bool SampleSender::CheckDone()
 {
     bool done = true;
@@ -208,7 +217,7 @@ inline float SampleSender::GetNextSample(uint32_t p_samplerate, bool &out_done)
     Doublesec time_to_wait = GetDurationWait();
     if (m_sample_time >= time_to_wait)
     {
-        // Get value what edge needs to become
+        // Get value what edge needs to become (normally that is toggle)
         Edge edge = GetEdge();
         if (edge == Edge::toggle)
         {

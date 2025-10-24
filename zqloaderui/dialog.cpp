@@ -177,13 +177,16 @@ Dialog::Dialog(QWidget *parent)
     });
     connect(ui->pushButtonCalculate, &QPushButton::pressed, [this]
     {
-        CalculateLoaderParameters();
+        auto wanted_zero_cyclii = ui->lineEditWantedZeroCyclii->text().toDouble();
+        auto zero_max  = ui->lineEditZeroMax->text().toInt();
+        auto wanted_one_cyclii = ui->lineEditWantedOneCyclii->text().toDouble();
+        CalculateLoaderParameters(wanted_zero_cyclii, zero_max, wanted_one_cyclii);
     });
     connect(ui->pushButtonGo,&QPushButton::pressed, [this]
     {
         if( m_state == State::Playing || m_state == State::Tuning)
         {
-            // stop pressed (canceled)
+            // Stop pressed (canceled) (pushButtonGo is now cancel)
             m_zqloader.Reset();
             SetState(m_state == State::Tuning ? State::Idle : State::Cancelled);
         }
@@ -213,7 +216,7 @@ Dialog::Dialog(QWidget *parent)
             // start preload
             m_zqloader.Reset();
             fs::path filename1 = ui->lineEditNormalFile->text().toStdString();
-            m_zqloader.SetNormalFilename(filename1).SetPreload();
+            m_zqloader.SetNormalFilename(filename1).SetPreload();       // should be zqloader or empty
 
             m_zqloader.SetSampleRate(ui->lineEditSampleRate->text().toInt());
             m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());
@@ -244,6 +247,11 @@ Dialog::Dialog(QWidget *parent)
         }
     });
 
+    connect(ui->horizontalSliderSpeed, &QSlider::valueChanged, [=](int value)
+    {
+        CalculateLoaderParametersFromSlider(value);
+    });
+
     connect(ui->pushButtonClean,&QPushButton::pressed, [this]
     {
         ui->textEditOutput->clear();
@@ -267,10 +275,11 @@ Dialog::Dialog(QWidget *parent)
         }
         else if( m_state == State::PreloadingFunAttribs)
         {
+            // next fun attributes (scroll text)
             WriteFunText(m_zqloader, false);
             std::cout << '*' << std::flush;
         }
-        else if(m_state != State::Idle)
+        else if(m_state != State::Idle)     // eg playing
         {
             emit signalDone();      // swap to ui thread ->
         }
@@ -335,7 +344,8 @@ inline void Dialog::UpdateUI()
     }
 }
 
-// Update (button) enabled tate
+// Update (button) enabled state and progressBar
+// ui only.
 inline void Dialog::SetState(State p_state)
 {
     m_state = p_state;
@@ -407,73 +417,6 @@ inline void Dialog::RestoreDefaults()
     }
 }
 
-// Convert Tstate value to # polling cycles at ZQloader z80 code.
-// (currently not (yet) used anymore)
-inline double TStateToCycle(int p_tstate)
-{
-   double retval = double(p_tstate -  loader_tstates::bit_loop_duration) / loader_tstates::wait_for_edge_loop_duration;
-   return retval >= 0 ? retval : 0;
-}
-// Convert # polling cycles to Tstate value that will take that ZQloader z80 code.
-inline int CycleToTstate(double p_cyclii)
-{
-    return int(loader_tstates::bit_loop_duration + p_cyclii * loader_tstates::wait_for_edge_loop_duration);
-}
-
-// Based on 'Wanted Zero Cycli'and 'Wanted One Cyclii' calculate
-// 'Zero TStates' and 'One TStates' and put result in the dialog.
-// Check validity first, throws when error.
-inline void Dialog::CalculateLoaderParameters()
-{
-    auto wanted_zero_cyclii = ui->lineEditWantedZeroCyclii->text().toDouble();
-    auto zero_max  = ui->lineEditZeroMax->text().toInt();
-    auto wanted_one_cyclii = ui->lineEditWantedOneCyclii->text().toDouble();
-    if(zero_max <=( wanted_zero_cyclii + 1))
-    {
-        throw std::runtime_error("'zero_max' must be bigger than 'Wanted zero cyclii' + 1 so bigger than: " + std::to_string(int(wanted_zero_cyclii) + 1));
-    }
-    if(wanted_one_cyclii <= zero_max)
-    {
-        throw std::runtime_error("'Wanted one Cycli' must be bigger than 'zero_max' (" + std::to_string(zero_max ) + ")");
-    }
-    int zero_tstates  = CycleToTstate(wanted_zero_cyclii);
-    int one_tstates   = CycleToTstate(wanted_one_cyclii);
-    ui->lineEditZeroTStates->setText(QString::number(zero_tstates));
-    ui->lineEditOneTStates->setText(QString::number(one_tstates));
-
-}
-
-
-// Check if zero_max/one_tstates/zero_tstates loader parameters, as given in dialog, are valid.
-// Throws when not valid.
-inline void Dialog::CheckLoaderParameters() const
-{
-    auto zero_tstates = ui->lineEditZeroTStates->text().toInt();
-    auto one_tstates = ui->lineEditOneTStates->text().toInt();
-    auto zero_max  = ui->lineEditZeroMax->text().toInt();
-
-    auto zero_maxtstates = CycleToTstate(zero_max);
-    if(zero_max < 1)
-    {
-        throw std::runtime_error("'zero_max' must be bigger than - or equal to 1");
-    }
-    if(one_tstates < zero_maxtstates )
-    {
-        throw std::runtime_error("'one_tstates' to small minimum is " + std::to_string(zero_maxtstates));
-    }
-    if(zero_tstates > zero_maxtstates )
-    {
-        throw std::runtime_error("'zero_tstates' to big maximum is " + std::to_string(zero_maxtstates));
-    }
-
-    if(one_tstates < (zero_tstates + loader_tstates::wait_for_edge_loop_duration))
-    {
-        throw std::runtime_error("'one_tstates' to small, minimum is " + std::to_string(zero_tstates + loader_tstates::wait_for_edge_loop_duration));
-    }
-
-
-}
-
 
 
 // 'Go' pressed.
@@ -483,13 +426,13 @@ inline void Dialog::Go()
     std::cout << "\n" << std::endl;
     if(m_state == State::PreloadingFunAttribs)
     {
-        // this will stop fun attribs
+        // update ui
         SetState(State::Idle);
-      //  m_zqloader.WaitUntilDone();
     }
 
     // might break ongoing pre-load: 
     // m_zqloader.Reset();
+
     fs::path filename1 = ui->lineEditNormalFile->text().toStdString();
     fs::path filename2 = ui->lineEditTurboFile->text().toStdString();
 
@@ -531,7 +474,7 @@ inline void Dialog::Go()
 
     std::cout << "Estimated duration: " << m_zqloader.GetEstimatedDuration().count() << "ms" << std::endl;
     m_zqloader.Start();
-    if(m_zqloader.IsBusy())     // else already done eg writing wav file
+    if(m_zqloader.IsBusy())     // else immidiately done eg writing wav file
     {
         SetState(State::Playing);
     }
@@ -575,6 +518,15 @@ inline void Dialog::Write(QSettings& settings, const QObject *p_for_what) const
             settings.setValue(for_what->objectName(), for_what->currentIndex());
         }
     }
+    {
+        // save slider
+        auto for_what = dynamic_cast<const QSlider*>(p_for_what);
+        if (for_what)
+        {
+            settings.setValue(for_what->objectName(), for_what->value());
+        }
+    }
+
     for(const QObject* child : p_for_what->children())
     {
         Write(settings, child);        // recusive
@@ -634,6 +586,14 @@ inline bool Dialog::Read(QSettings& settings, QObject *p_for_what)
             for_what->setCurrentIndex(settings.value(for_what->objectName()).toInt());
         }
     }
+    {
+        // load slider
+        auto for_what = dynamic_cast<QSlider*>(p_for_what);
+        if (for_what)
+        {
+            for_what->setValue(settings.value(for_what->objectName()).toInt());
+        }
+    }
     for(QObject* child: p_for_what->children())
     {
         Read(settings, child);        // recusive
@@ -641,4 +601,97 @@ inline bool Dialog::Read(QSettings& settings, QObject *p_for_what)
     return true;
 }
 
+
+// Convert Tstate value to # polling cycles at ZQloader z80 code.
+// (currently not (yet) used anymore)
+inline double TStateToCycle(int p_tstate)
+{
+   double retval = double(p_tstate -  loader_tstates::bit_loop_duration) / loader_tstates::wait_for_edge_loop_duration;
+   return retval >= 0 ? retval : 0;
+}
+// Convert # polling cycles to Tstate value that will take that ZQloader z80 code.
+inline int CycleToTstate(double p_cyclii)
+{
+    return int(loader_tstates::bit_loop_duration + p_cyclii * loader_tstates::wait_for_edge_loop_duration);
+}
+
+inline void Dialog::CalculateLoaderParametersFromSlider(int p_index )
+{
+    static const double interval[] = {1.5, 2.0, 3.0};
+    int mod = sizeof(interval) / sizeof(interval[0]);
+    double wanted_zero_cyclii= 0.0;
+    int zero_max= 0;
+    double wanted_one_cyclii = 0.0;
+    for(int n = 0 ; n < p_index + 4; n++)
+    {
+        double v2 = interval[n % mod ];
+        double v1 =( n / mod ) % (mod - 1) ? 2.0: 1.0;
+
+        wanted_zero_cyclii = 1.0 + n/6;
+        zero_max = wanted_zero_cyclii + v1;
+        wanted_one_cyclii = double(zero_max) + v2;
+    }
+    CalculateLoaderParameters(wanted_zero_cyclii, zero_max, wanted_one_cyclii);
+}
+
+// Based on 'Wanted Zero Cycli'and 'Wanted One Cyclii' calculate
+// 'Zero TStates' and 'One TStates' and put result in the dialog.
+// Check validity first, throws when error.
+inline void Dialog::CalculateLoaderParameters(double p_wanted_zero_cyclii, int p_zero_max, double p_wanted_one_cyclii )
+{
+    if(p_wanted_zero_cyclii < 1)
+    {
+        // Cannot be zero (one IN needed at least)
+        p_wanted_zero_cyclii = 1;
+    }
+    if(p_zero_max <= p_wanted_zero_cyclii)
+    {
+        p_zero_max = p_wanted_zero_cyclii + 1;
+        //throw std::runtime_error("'zero_max' must be bigger than 'Wanted zero cyclii' + 1 so bigger than: " + std::to_string(int(wanted_zero_cyclii) + 1));
+    }
+    if(p_wanted_one_cyclii <= p_zero_max)
+    {
+        p_wanted_one_cyclii = p_zero_max + 1;
+//        throw std::runtime_error("'Wanted one Cycli' must be bigger than 'zero_max' (" + std::to_string(zero_max ) + ")");
+    }
+    int zero_tstates  = CycleToTstate(p_wanted_zero_cyclii - 1);
+    int one_tstates   = CycleToTstate(p_wanted_one_cyclii - 1);
+    ui->lineEditWantedZeroCyclii->setText(QString::number(p_wanted_zero_cyclii));
+    ui->lineEditZeroMax->setText(QString::number(p_zero_max));
+    ui->lineEditWantedOneCyclii->setText(QString::number(p_wanted_one_cyclii));
+    ui->lineEditZeroTStates->setText(QString::number(zero_tstates));
+    ui->lineEditOneTStates->setText(QString::number(one_tstates));
+
+}
+
+
+// Check if zero_max/one_tstates/zero_tstates loader parameters, as given in dialog, are valid.
+// Throws when not valid.
+inline void Dialog::CheckLoaderParameters() const
+{
+    auto zero_tstates = ui->lineEditZeroTStates->text().toInt();
+    auto one_tstates = ui->lineEditOneTStates->text().toInt();
+    auto zero_max  = ui->lineEditZeroMax->text().toInt();
+
+    auto zero_maxtstates = CycleToTstate(zero_max);
+    if(zero_max < 1)
+    {
+        throw std::runtime_error("'zero_max' can not be 0; must be bigger than - or equal to 1 (this is the maximum number of IN's without an edge to treat data as zero. At least one IN is always done.)");
+    }
+    if(one_tstates < zero_maxtstates )
+    {
+        throw std::runtime_error("'one_tstates' to small minimum is " + std::to_string(zero_maxtstates));
+    }
+    if(zero_tstates > zero_maxtstates )
+    {
+        throw std::runtime_error("'zero_tstates' to big maximum is " + std::to_string(zero_maxtstates));
+    }
+
+    if(one_tstates < (zero_tstates + loader_tstates::wait_for_edge_loop_duration))
+    {
+        throw std::runtime_error("'one_tstates' to small, minimum is " + std::to_string(zero_tstates + loader_tstates::wait_for_edge_loop_duration));
+    }
+
+
+}
 

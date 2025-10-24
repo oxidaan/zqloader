@@ -1,7 +1,6 @@
-#include "zqloader.h"
 //==============================================================================
 // PROJECT:         zqloader
-// FILE:            zqloader.h
+// FILE:            zqloader.cpp
 // DESCRIPTION:     Implementation of class ZQLoader.
 //                  This is the main ZQLoader interface used for both commandline
 //                  as qt ui tool.
@@ -11,6 +10,7 @@
 //==============================================================================
 // uses pimpl
 
+#include "zqloader.h"
 #include "tools.h"
 #include "zqloader.h"
 #include "spectrum_loader.h"
@@ -40,7 +40,7 @@ public:
     Impl & operator = (Impl &&) = default;
     Impl & operator = (const Impl &) = delete;
 
-
+    // Set normal filename (eg the top filename in the dialog)
     void SetNormalFilename(fs::path p_filename)
     {
         m_normal_filename = std::move(p_filename);
@@ -50,7 +50,7 @@ public:
         }
         if(!m_is_zqloader)
         {
-            AddNormalSpeedFile(GetNormalFilename());
+            AddNormalSpeedFile(GetNormalFilename());    // when p_filename emtpy makes it zqloader.tap
         }
         else
         {
@@ -58,6 +58,7 @@ public:
         }
     }
 
+    // Set turbo filename eg the 2nd filename in the dialog.
     void SetTurboFilename(fs::path p_filename )
     {
         if(!p_filename.empty())
@@ -325,17 +326,11 @@ public:
 
 
 
-    /// Find the path/to/zqloader.tap 
-    /// Throws when not found.
+    /// Try to find the path/to/zqloader.tap 
+    /// (when p_filename has no path yet)
+    /// Throws when file not found.
     fs::path FindZqLoaderTapfile(fs::path p_filename)
     {
-        if(ToLower(p_filename.stem().string()) != "zqloader")
-        {
-            throw std::runtime_error(1 + &*R"(
-A second filename argument and/or parameters are only usefull when using zqloader.tap 
-(which is the turbo loader) as (1st) file.
-)");
-        }
         fs::path filename = p_filename;
         if(p_filename == p_filename.filename())     // given just zqloader.tap w/o path so try to find
         {
@@ -421,6 +416,13 @@ private:
     {
         if(!m_is_preloaded && !m_turboblocks.IsZqLoaderAdded())
         {
+            if(ToLower(p_filename.stem().string()) != "zqloader")
+            {
+                throw std::runtime_error(1 + &*R"(
+A second filename argument and/or parameters are only usefull when using zqloader.tap 
+(which is the turbo loader) as (1st) file.
+)");
+            }
             auto filename = FindZqLoaderTapfile(p_filename);
             m_turboblocks.AddZqLoader(filename);                 // zqloader.tap
         }
@@ -434,18 +436,26 @@ private:
         if (ToLower(p_filename.extension().string()) == ".tap")
         {
             std::cout << "Processing tap file: " << p_filename << " (turbo speed)" << std::endl;
-            AddFileToTurboBlocks<TapLoader>(p_filename, m_turboblocks);
+            AddFileToTurboBlocks<TapLoader>(p_filename);
         }
         else if (ToLower(p_filename.extension().string()) == ".tzx")
         {
             std::cout << "Processing tzx file: " << p_filename << " (turbo speed)" << std::endl;
-            AddFileToTurboBlocks<TzxLoader>(p_filename, m_turboblocks);
+            AddFileToTurboBlocks<TzxLoader>(p_filename);
         }
         else if (ToLower(p_filename.extension().string()) == ".z80" ||
                  ToLower(p_filename.extension().string()) == ".sna")
         {
             std::cout << "Processing snapshot file: " << p_filename << " (turbo speed)" << std::endl;
-            AddSnapshotToTurboBlocks(p_filename, m_turboblocks);
+            AddSnapshotToTurboBlocks(p_filename);
+        }
+        else if (ToLower(p_filename.extension().string()) == ".bin" ||
+                 p_filename == "testdata")
+        {
+            // reserved for Test
+            extern uint16_t Test(TurboBlocks & p_blocks, fs::path p_filename);
+            auto adr = Test(m_turboblocks, p_filename);
+            m_turboblocks.Finalize(adr);
         }
         else if(!p_filename.empty())
         {
@@ -457,29 +467,30 @@ private:
 
 
     
-    // Add given file (tap/tzx) to given TurboBlocks so uses turbo speed
-    // TLoader is TapLoader or TzxLoader
-    // Finalize already called
+    // Add given file (tap/tzx) to given TurboBlocks so uses turbo speed.
+    // (adds all blocks present in given file).
+    // TLoader is TapLoader or TzxLoader.
+    // Finalize will already be called.
     template<class Tloader>
-    void AddFileToTurboBlocks(const fs::path &p_filename, TurboBlocks &p_tblocks)
+    void AddFileToTurboBlocks(const fs::path &p_filename)
     {
-        TapToTurboBlocks tab_to_turbo_blocks{ p_tblocks };
+        TapToTurboBlocks tab_to_turbo_blocks{ m_turboblocks };
         Tloader tap_or_tzx_loader;
         tap_or_tzx_loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string p_zxfilename)
         {
             return tab_to_turbo_blocks.HandleTapBlock(std::move(p_block), p_zxfilename);
         });
         tap_or_tzx_loader.Load(p_filename, "");
-        p_tblocks.Finalize(tab_to_turbo_blocks.GetUsrAddress(), tab_to_turbo_blocks.GetClearAddress());
-        if(p_tblocks.size() == 0)
+        m_turboblocks.Finalize(tab_to_turbo_blocks.GetUsrAddress(), tab_to_turbo_blocks.GetClearAddress());
+        if(m_turboblocks.size() == 0)
         {
             throw std::runtime_error("No blocks present in file: '" + p_filename.string() + "' that could be turboloaded (note: can only handle code blocks, not BASIC)");
         }
     }
 
-    // Add given snapshot file (z80/sna) to given TurboBlocks so uses turbo speed
-    // Finalize already called
-    void AddSnapshotToTurboBlocks(fs::path p_filename, TurboBlocks &p_tblocks)
+    // Add given snapshot file (z80/sna) to given TurboBlocks so uses turbo speed.
+    // Finalize will already be called.
+    void AddSnapshotToTurboBlocks(fs::path p_filename)
     {
         SnapShotLoader snapshotloader;
         // Read file snapshotregs.bin (created by sjasmplus) -> regblock
@@ -488,14 +499,14 @@ private:
         snapshot_regs_filename.replace_extension("bin");
         DataBlock regblock;
         regblock.LoadFromFile(snapshot_regs_filename);
-        if(!p_tblocks.IsZqLoaderAdded())      // else already done at AddZqLoader 
+        if(!m_turboblocks.IsZqLoaderAdded())      // else already done at AddZqLoader 
         {
             fs::path filename_exp = FindZqLoaderTapfile(GetNormalFilename());
             filename_exp.replace_extension("exp");          // zqloader.exp (symbols)
-            p_tblocks.SetSymbolFilename(filename_exp);      
+            m_turboblocks.SetSymbolFilename(filename_exp);      
         }
-        snapshotloader.Load(p_filename).SetRegBlock(std::move(regblock)).MoveToTurboBlocks(p_tblocks, m_new_loader_location, m_use_fun_attribs);
-        p_tblocks.Finalize(snapshotloader.GetUsrAddress());
+        snapshotloader.Load(p_filename).SetRegBlock(std::move(regblock)).MoveToTurboBlocks(m_turboblocks, m_new_loader_location, m_use_fun_attribs);
+        m_turboblocks.Finalize(snapshotloader.GetUsrAddress());
     }
 
 
@@ -521,8 +532,10 @@ private:
     
     void Check()
     {
+        // also called when preload clicked, then 2nd file not needed to be present.
         if(m_is_zqloader && m_turbo_filename.empty() && !m_is_preloaded)
         {
+            m_is_zqloader = false;
             throw std::runtime_error(1 + &*R"(
 When using zqloader.tap a 2nd filename is needed as runtime argument,
 with the program to be turboloaded. A game for example. 

@@ -177,9 +177,8 @@ SnapShotLoader& SnapShotLoader::LoadSna(std::istream& p_stream)
 
 
 
-/// Write given text to attribute block
-/// For fun write a attribute block -> text_attr
-/// at the bottom 1/3rd of screen were our loader is.
+/// Write given text to given attribute block
+/// For fun write a attribute block -> out_attr
 bool WriteTextToAttr(DataBlock &out_attr, const std::string &p_text, std::byte p_color, bool p_center, int p_col)
 {
     static const std::string font = 1 + &*R"(
@@ -259,10 +258,11 @@ X  X XXX   XX  XXX  XXX X   XXXX X  X X  XX  X  X XXX X X X X  X  XX  X      XX 
             {
                 color = p_color;
             }
+            auto width = GetWidthForLetter(c);
             for (int row = 1; row <= 6; row++)
             {
                 auto start = GetStartForLetterRow(c, row);
-                for(int i = 0; i < GetWidthForLetter(c); i++)
+                for(int i = 0; i <width; i++)
                 {
                     if((col + i >= 0) && (col + i < 32))
                     {
@@ -275,11 +275,11 @@ X  X XXX   XX  XXX  XXX X   XXXX X  X X  XX  X  X XXX X X X X  X  XX  X      XX 
                     }
                 }
             }
-            col += GetWidthForLetter(c);
-            if (col >= 32)
-            {
-                break;
-            }
+            col += width;
+        }
+        if (col >= 32)
+        {
+            break;
         }
     }
     return is_empty;
