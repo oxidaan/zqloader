@@ -77,6 +77,8 @@ Dialog::Dialog(QWidget *parent)
     std::streambuf* oldCoutBuffer = std::cout.rdbuf(buffer);
     (void)oldCoutBuffer;
 
+    ZQLoader::Version();
+
 
 
 

@@ -533,7 +533,7 @@ private:
 
 private:
 
-    size_t      m_data_size;                 // size of (uncompressed/final) data. Note: Spectrum does not need this.
+    size_t      m_data_size{};               // size of (uncompressed/final) data. Note: Spectrum does not need this.
     bool        m_overwrites_loader = false; // will this block overwrite our loader itself?
     DataBlock   m_data;                      // the data as send to Spectrum, starts with header
 }; // class TurboBlock

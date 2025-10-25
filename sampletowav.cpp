@@ -12,7 +12,7 @@
 #include <iostream>
 
 // Get # bytes of data (that is not # samples) without header
-inline size_t SampleToWav::GetDataByteSize() const
+size_t SampleToWav::GetDataByteSize() const
 {
     return m_data.size() - sizeof(Header);
 }

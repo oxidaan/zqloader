@@ -158,6 +158,7 @@ public:
     // Run Test
     void Test();
 
+    static void Version();
 
     static bool WriteTextToAttr(DataBlock &out_attr, const std::string &p_text, std::byte p_color, bool p_center, int p_col);
 

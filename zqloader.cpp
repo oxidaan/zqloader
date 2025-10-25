@@ -799,14 +799,26 @@ void ZQLoader::Test()
 }
 
 
+ZQLoader& ZQLoader::AddDataBlock(DataBlock p_block, uint16_t p_start_address)
+{
+    m_pimpl->AddDataBlock(std::move(p_block), p_start_address);
+    return *this;
+}
+
 // static
 bool ZQLoader::WriteTextToAttr(DataBlock& out_attr, const std::string& p_text, std::byte p_color, bool p_center, int p_col)
 {
     return ::WriteTextToAttr(out_attr, p_text, p_color, p_center, p_col);
 }
 
-ZQLoader& ZQLoader::AddDataBlock(DataBlock p_block, uint16_t p_start_address)
+
+// static
+void ZQLoader::Version()
 {
-    m_pimpl->AddDataBlock(std::move(p_block), p_start_address);
-    return *this;
+    std::cout << 1 + &*R"(
+ZQLoader version 2.1
+Copyright (c) 2025 Daan Scherft [Oxidaan].
+https://github.com/oxidaan/zqloader
+This project uses the MIT license. See LICENSE.txt for details.
+    )" << std::endl;
 }

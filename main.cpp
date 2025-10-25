@@ -55,20 +55,12 @@ int Key()
 #endif
 
 
-void Version()
-{
-    std::cout << 1 + &*R"(
-ZQLoader version 2.0
-(C) 2024 Daan Scherft[Oxidaan].
-https://github.com/oxidaan/zqloader
-This project uses the miniaudio library by David Read. (https://miniaud.io/)
-    )" << std::endl;
-}
+
 
 
 void Help()
 {
-    Version();
+    ZQLoader::Version();
     std::cout << 1 + &*R"(
 This is a turbo loader to load machine code (like games) into a *real* ZX Spectrum at high speed.
 This loader is capable of loading a 48K game in about 30 seconds. This time includes the time of 
@@ -95,7 +87,11 @@ Arguments:
     path/to/turbofile       Second file, also a .tap or .tzx or a .z80 (snapshot) file.
                             A game for example.
                             When given will be send to the ZX spectrum at turbo speed.
-    4) auto finds zqloader.tap; given file is read at turbo speed.
+
+    1) Loads the single given file at normal speed. (cannot be zqloader.tap);
+    2) Loads zqloader.tap, then using that loads second given file at turbo speed;
+    3) Same as 2 but with parameter names and named options in any order.
+    4) auto finds zqloader.tap; given turbofile file is read at turbo speed.
 
 More options can be given with syntax: option=value, or just 'option value' or option="some value" or
 '--option=value' :
@@ -121,18 +117,19 @@ More options can be given with syntax: option=value, or just 'option value' or o
     end_of_byte_delay = value
                             Extra delay in TSTates after each byte. Eg time needed to store
                             the byte, calculate checksum etc. Not giving this (or 0) uses a 
-                            default that worked for me (64). 
+                            default that worked for me (which depends on z80 code) (64). 
     zero_max = value        Maximum number of IN's (before an edge is seen) to be considered
                             a 'zero'.
                             Minimum value is 1 (need at least one IN to see an edge)
                             Not giving this (or 0) uses a default that worked for me (3).
+                            This parameter ise used at the ZX-spectrum side so must match
+                            zero_tstates/one_tstates.
+                            Eg extra speed: zero_max=3 one_tstates=243
     bit_loop_max = value    Maximum number of IN's without an edge seen to be considered a 
                             valid 'one'; above this a timeout error will occur.
                             Not giving this (or 0) uses a default that worked for me (100)
                             This value can safely been made larger, does not affect speeds.
-                            These parameters are used at the ZX-spectrum side so must match
-                            zero_tstates/one_tstates.
-                            Eg extra speed: zero_max=3 one_tstates=243
+
 
     outputfile="path/to/filename.wav"
                             When a wav file is given: write result to given WAV (audio) file instead of 
@@ -170,7 +167,9 @@ int main(int argc, char** argv)
             Help();
             return 0;    
         }
-        Version();
+        ZQLoader::Version();
+        std::cout << "This project uses the miniaudio library by David Read. (https://miniaud.io/)" << std::endl;
+
         if (cmdline.HasParameter("version") || cmdline.HasParameter("v"))
         {
             return 0;
