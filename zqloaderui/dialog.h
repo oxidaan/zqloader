@@ -52,7 +52,7 @@ private:
     void RestoreDefaults();
     void CheckLoaderParameters() const;
     void CalculateLoaderParametersFromSlider(int p_index);
-    void CalculateLoaderParameters(double p_wanted_zero_cyclii, int p_zero_max, double p_wanted_one_cyclii );
+    void CalculateLoaderParameters(double p_wanted_zero_cyclii, int p_zero_max, double p_wanted_one_cyclii, bool p_special_case = false );
 signals:
     void signalDone();
 private:

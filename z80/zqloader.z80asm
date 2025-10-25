@@ -157,18 +157,18 @@ next_block:
 
     // Intialize edge plus border color -> C
     // So get intial value from port->C
+    // Initialize H to C XOR-value.
     // https://worldofspectrum.org/faq/reference/48kreference.htm#PortFE
     // E=ear, M=mic, K-keyboard, B = bordercolor
     //            7  6  5  4  3  2  1  0
     // in(0xfe):  0  E  0  K  K  K  K  K    
     // out(0xfe): d  d  d  E !M  B  B  B  
-    ld A, $7F 	                // Read from port 7FFE eg !BREAK is bit 0.
-    in A, ($FE)                 // Get initial EAR value
-    and   0b01000000            // mask, so keep only EAR
-    or    0b00001010            // ear zero border red 010 <-> 101 cyan + also set mic (and/or ear)
-    ld C, A                     // initialize c with result: 0E001010 see WAIT_FOR_EDGE #2
-    ld H, 0b01000111            // The C xor value, see WAIT_FOR_EDGE #3 so toggles border bits + last edge
-
+    // Note: removed initializing edge at IN. Not really needed.
+IO_INIT_VALUE+*: ld C, 0b00001010 // ear zero border red 010 <-> 101 cyan + also set mic (and/or ear)
+                                  // initialize c with result: 0E001010 see WAIT_FOR_EDGE #2
+IO_XOR_VALUE+*: ld H, 0b01000111 // The C xor value, see WAIT_FOR_EDGE #3 so toggles border bits + last edge
+                                // so border xors between 010 (red) and 101 (cyan)
+    ld E, 0b01000000            // EAR mask value after IN
 
 
 
@@ -509,7 +509,7 @@ wait_for_first_edge:
     // call PRINT_DEBUG
 
     ld    A, C
-    xor   0b00000011            //  Toggle border 001 red <-> 110 yellow from now on
+    xor   0b00000011            //  Toggle border 001 blue <-> 110 yellow from now on
     ld    C, A                  //  C=0E001001    H is still 01000111
 
     
@@ -558,7 +558,7 @@ wait_for_first_edge:
 // B: timer count down at WAIT_FOR_EDGE
 // C: to check changes at last IN ; border color. Will be xored with H. 0E001001 <-> 0e001110
 // D: ONE_MAX, used to to quickly put in B (init value for timer count down)
-// E: ONE_MAX-ZERO_MAX, used to to quickly compare to B
+// E: EAR mask value after IN (to keep EAR)
 // A: temporary storage
 //
 // eg ONE_MAX (12#) -> D = 12 , ZERO_MAX(3) -> E = 12-3 = 9
@@ -568,7 +568,6 @@ wait_for_first_edge:
 LOAD_BYTES:   
 
 BIT_LOOP_MAX+*:     ld D, ONE_MAX               // eg 12 can also be set from C++ code
-BIT_ONE_THESHLD+*:  ld E, ONE_MAX-ZERO_MAX      // eg 12-3 = 9, can also be set from C++ code
 
     ld B, 200                   // @Opt Mini sync
     call WAIT_FOR_EDGE          // @Opt Mini sync 62T states since last in
@@ -577,13 +576,13 @@ BIT_ONE_THESHLD+*:  ld E, ONE_MAX-ZERO_MAX      // eg 12-3 = 9, can also be set 
 
 // wait_for_edge_loop2: 43T
 // (Orginally bit loop was unrolled (8x) and used call to WAIT_FOR_EDGE.)
-// This version has copied inline code avoiding call to WAIT_FOR_EDGE - but not loop unroll.
+// This version has copied inline code avoiding call to WAIT_FOR_EDGE - but no loop unroll.
 // Does not detect keypress - can end with timeout if no edges are seen (eg sound stops).
 
 .next_byte  
     ld L, 1                     // end marker 7T
 .next_bit                       // bit-loop: 91 T
-    ld B, D                     // # counts until timeout eg 12  Note: B is decreased before IN unlike WAIT_FOR_EDGE
+    ld B, D                     // ONE_MAX # counts until timeout eg 12  Note: B is decreased before IN unlike WAIT_FOR_EDGE
 
 .wait_for_edge_loop2:           // wait-loop: 43T
     dec B                       // Dec. cycle count (carry not touched) 43 since in
@@ -591,7 +590,7 @@ BIT_ONE_THESHLD+*:  ld E, ONE_MAX-ZERO_MAX      // eg 12-3 = 9, can also be set 
     // ld A,$7F 	            // Maybe not needed (dont need keyboard). Read from port 0xddFE, read EAR. 49 + 16 since prev. IN is 59 
     in A,($FE)                  // bit 6 is ear
     xor C                       // detect change at ear (also reset carry)
-    and 0b01000000              // mask to keep ear 
+    and E                       // E=mask to keep ear 
     jr z, .wait_for_edge_loop2    
 
     // -- Once here: change seen --
@@ -603,7 +602,8 @@ BIT_ONE_THESHLD+*:  ld E, ONE_MAX-ZERO_MAX      // eg 12-3 = 9, can also be set 
     out ($FE),A                 // toggle border color      // 000EMBBB hope 'd5�d7 are not used'
     
     ld A, B
-    cp E                        // (eg 12-3=9) Becomes a '1' when E > B
+.bit_one_threshld+1: cp ONE_MAX-ZERO_MAX         // @E (eg 12-3=9) Becomes a '1' when E > B
+
     rl L    
     jp nc, .next_bit            // endmarker @ L reached?    
 
@@ -620,6 +620,9 @@ BIT_ONE_THESHLD+*:  ld E, ONE_MAX-ZERO_MAX      // eg 12-3 = 9, can also be set 
     exx
     jp pe, .next_byte           
     // done!
+// Need to export local label
+BIT_ONE_THESHLD =   .bit_one_threshld
+
 load_done:    
     or D                        // D != 0 (=ONE_MAX) so this unsets z
     ret
@@ -828,6 +831,8 @@ REGISTER_CODE_LEN EQU REGISTER_CODE_END-REGISTER_CODE_START
 
  EXPORT BIT_LOOP_MAX
  EXPORT BIT_ONE_THESHLD
+ EXPORT IO_INIT_VALUE
+ EXPORT IO_XOR_VALUE
 
  EXPORT STACK_SIZE  // needed to search free space in snapshot
 

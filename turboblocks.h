@@ -95,30 +95,41 @@ public:
 
 
     /// Set durations in T states for zero and one pulses.
+    /// When 0 keep defaults.
     TurboBlocks& SetDurations(int p_zero_duration, int p_one_duration, int p_end_of_byte_delay);
 
-    auto GetDurations() const
-    {
-        return std::tuple{m_zero_duration, m_one_duration, m_end_of_byte_delay};
-    }
 
 
     /// Set this ZQLoader parameter
+    /// When 0 keep defaults.
     TurboBlocks& SetBitLoopMax(int p_value)
     {
-        m_bit_loop_max = p_value;
+        if(p_value)
+        {
+            m_bit_loop_max = p_value;
+        }
         return *this;
     }
 
 
     /// Set this ZQLoader parameter
+    /// When 0 keep defaults.
     TurboBlocks& SetZeroMax(int p_value)
     {
-        m_zero_max = p_value;
+        if(p_value)
+        {
+            m_zero_max = p_value;
+        }
         return *this;
     }
 
-
+    /// Set this ZQLoader parameter
+    TurboBlocks& SetIoValues(int p_io_init_value, int p_io_xor_value)
+    {
+        m_io_init_value = p_io_init_value;
+        m_io_xor_value = (p_io_xor_value | 0b01000000);      // edge needs to be xored always (dialog does this too)
+        return *this;
+    }
 
     /// Set compression type.
     TurboBlocks& SetCompressionType(CompressionType p_compression_type)
@@ -194,6 +205,8 @@ private:
     int                           m_end_of_byte_delay       = loader_defaults::end_of_byte_delay;
     int                           m_bit_loop_max            = loader_defaults::bit_loop_max;        // aka ONE_MAX, the wait for edge loop counter until timeout  
     int                           m_zero_max                = loader_defaults::zero_max;            // aka ZERO_MAX sees a 'one' when waited more than this number of cycli at wait for edge
+    int                           m_io_init_value           = loader_defaults::io_init_value;        // aka ONE_MAX, the wait for edge loop counter until timeout  
+    int                           m_io_xor_value            = loader_defaults::io_xor_value;            // aka ZERO_MAX sees a 'one' when waited more than this number of cycli at wait for edge
 }; // class TurboBlocks
 
 

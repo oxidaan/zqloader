@@ -20,6 +20,7 @@
 #include "./ui_dialog.h"
 #include <datablock.h>
 #include <mutex>
+#include <bitset>
 
 #include "spectrum_consts.h"
 #include "loader_defaults.h"        // consts with default settings for ZQLoader
@@ -407,6 +408,14 @@ inline void Dialog::RestoreDefaults()
 
     ui->lineEditClock->setText(QString::number(spectrum::g_spectrum_clock));
 
+    ui->comboBoxBorderColor->setCurrentIndex(loader_defaults::io_init_value & 0b00000111);
+    ui->checkBoxOutMic->setChecked(bool(loader_defaults::io_init_value & 0b00001000));
+    ui->checkBoxOutEar->setChecked(bool(loader_defaults::io_init_value & 0b00010000));
+
+    ui->lineEditBorderToggle->setText(QString::number(loader_defaults::io_xor_value & 0b00000111));
+    ui->checkBoxToggleMic->setChecked(bool(loader_defaults::io_xor_value & 0b00001000));
+    ui->checkBoxToggleEar->setChecked(bool(loader_defaults::io_xor_value & 0b00010000));
+    ui->horizontalSliderSpeed->setValue(0);
     try
     {
         ui->lineEditNormalFile->setText(QString::fromStdString(m_zqloader.GetZqLoaderFile().string()));
@@ -448,6 +457,17 @@ inline void Dialog::Go()
                SetDurations      (ui->lineEditZeroTStates->text().toInt(),
                                   ui->lineEditOneTStates->text().toInt(),
                                   ui->lineEditEndOfByteDelay->text().toInt());
+    int io_init_value =  (ui->comboBoxBorderColor->currentIndex() & 0b00000111) |
+                         (ui->checkBoxOutMic->isChecked() ? 0b00001000 : 0) |
+                         (ui->checkBoxOutEar->isChecked() ? 0b00010000 : 0);
+
+    int io_xor_value =   (ui->lineEditBorderToggle->text().toInt() & 0b00000111) |
+                         (ui->checkBoxToggleMic->isChecked() ? 0b00001000 : 0) |
+                         (ui->checkBoxToggleEar->isChecked() ? 0b00010000 : 0) |
+                          0b01000000;       // egde is always xor-ed
+          
+          
+    m_zqloader.SetIoValues( io_init_value, io_xor_value);
     m_zqloader.SetSpectrumClock(ui->lineEditClock->text().toInt());
     m_zqloader.SetCompressionType(CompressionType(ui->comboBoxCompressionType->currentIndex()));                                    
 
@@ -526,7 +546,14 @@ inline void Dialog::Write(QSettings& settings, const QObject *p_for_what) const
             settings.setValue(for_what->objectName(), for_what->value());
         }
     }
-
+    {
+        // save checkboxes
+        auto for_what = dynamic_cast<const QCheckBox*>(p_for_what);
+        if (for_what)
+        {
+            settings.setValue(for_what->objectName(), for_what->isChecked());
+        }
+    }
     for(const QObject* child : p_for_what->children())
     {
         Write(settings, child);        // recusive
@@ -594,6 +621,14 @@ inline bool Dialog::Read(QSettings& settings, QObject *p_for_what)
             for_what->setValue(settings.value(for_what->objectName()).toInt());
         }
     }
+    {
+        // load checkboxes
+        auto for_what = dynamic_cast<QCheckBox*>(p_for_what);
+        if (for_what)
+        {
+            for_what->setChecked(settings.value(for_what->objectName()).toBool());
+        }
+    }
     for(QObject* child: p_for_what->children())
     {
         Read(settings, child);        // recusive
@@ -617,27 +652,35 @@ inline int CycleToTstate(double p_cyclii)
 
 inline void Dialog::CalculateLoaderParametersFromSlider(int p_index )
 {
-    static const double interval[] = {1.5, 2.0, 3.0};
-    int mod = sizeof(interval) / sizeof(interval[0]);
-    double wanted_zero_cyclii= 0.0;
-    int zero_max= 0;
-    double wanted_one_cyclii = 0.0;
-    for(int n = 0 ; n < p_index + 4; n++)
-    {
-        double v2 = interval[n % mod ];
-        double v1 =( n / mod ) % (mod - 1) ? 2.0: 1.0;
+    int index = p_index == 0 ? 1 : p_index;     // special case when 0
 
-        wanted_zero_cyclii = 1.0 + n/6;
-        zero_max = wanted_zero_cyclii + v1;
-        wanted_one_cyclii = double(zero_max) + v2;
+    double wanted_zero_cyclii= 1.0;
+    double wanted_one_cyclii = wanted_zero_cyclii + 3.0;
+    int addhalf = 0;
+    for(int n = 0;  n < index ; n++)
+    {
+        wanted_one_cyclii += addhalf < 2 ? 0.5 : 1.0;
+        addhalf++;
+        if(wanted_one_cyclii > ((2 * wanted_zero_cyclii) + 4))
+        {
+            wanted_zero_cyclii++;
+            addhalf = 0;
+            wanted_one_cyclii = wanted_zero_cyclii + 3.0;
+        }
     }
-    CalculateLoaderParameters(wanted_zero_cyclii, zero_max, wanted_one_cyclii);
+    int zero_max= (wanted_zero_cyclii + wanted_one_cyclii + 0.5)/2;
+//    return {wanted_zero_cyclii, zero_max, wanted_one_cyclii};
+    CalculateLoaderParameters(wanted_zero_cyclii, zero_max, wanted_one_cyclii, p_index == 0);
+
 }
 
 // Based on 'Wanted Zero Cycli'and 'Wanted One Cyclii' calculate
 // 'Zero TStates' and 'One TStates' and put result in the dialog.
 // Check validity first, throws when error.
-inline void Dialog::CalculateLoaderParameters(double p_wanted_zero_cyclii, int p_zero_max, double p_wanted_one_cyclii )
+// p_special case: make one_tstates 10 less. This value should theoretically not work(*) but
+//   worked for me eg at the youtube Jetset Willy snapshot.
+//  (*) because the zero edges are shorter than the loop length.
+inline void Dialog::CalculateLoaderParameters(double p_wanted_zero_cyclii, int p_zero_max, double p_wanted_one_cyclii, bool p_special_case )
 {
     if(p_wanted_zero_cyclii < 1)
     {
@@ -659,9 +702,15 @@ inline void Dialog::CalculateLoaderParameters(double p_wanted_zero_cyclii, int p
     ui->lineEditWantedZeroCyclii->setText(QString::number(p_wanted_zero_cyclii));
     ui->lineEditZeroMax->setText(QString::number(p_zero_max));
     ui->lineEditWantedOneCyclii->setText(QString::number(p_wanted_one_cyclii));
-    ui->lineEditZeroTStates->setText(QString::number(zero_tstates));
+    if(!p_special_case)
+    {
+        ui->lineEditZeroTStates->setText(QString::number(zero_tstates));
+    }
+    else
+    {
+        ui->lineEditZeroTStates->setText(QString::number(zero_tstates - 10));
+    }
     ui->lineEditOneTStates->setText(QString::number(one_tstates));
-
 }
 
 

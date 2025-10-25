@@ -93,58 +93,16 @@ public:
     }
 
 
-    void SetSampleRate(uint32_t p_sample_rate)
-    {
-        m_sample_rate = p_sample_rate;
-    }
 
 
-    void  SetBitLoopMax(int p_value)
-    {
-        m_turboblocks.SetBitLoopMax(p_value);
-    }
-
-
-    void SetZeroMax(int p_value)
-    {
-        m_turboblocks.SetZeroMax(p_value);
-    }
-
-
-    void SetDurations(int p_zero_duration, int p_one_duration, int p_end_of_byte_delay)
-    {
-        m_turboblocks.SetDurations(p_zero_duration, p_one_duration, p_end_of_byte_delay);
-    }
-
-
-    void SetCompressionType(CompressionType p_compression_type)
-    {
-        m_turboblocks.SetCompressionType(p_compression_type);
-    }
 
     void SetSpectrumClock(int p_spectrum_clock)
     {
         m_spectrumloader.SetTstateDuration(1s / double(p_spectrum_clock));
     }
 
-    void SetAction(Action p_what)
-    {
-        m_action = p_what;
-    }
 
 
-
-
-    void SetSnapshotLoaderLocation(uint16_t p_address)
-    {
-        m_new_loader_location = p_address;
-    }
-
-
-    void SetFunAttribs(bool p_value)
-    {
-        m_use_fun_attribs = p_value;
-    }
 
 
     // runs in miniaudio / samplesender thread
@@ -163,11 +121,6 @@ public:
         
     }
 
-    /// Set callback when done.
-    void SetOnDone(DoneFun p_fun)
-    {
-        m_OnDone = std::move(p_fun);
-    }
     
     // Estimated duration
     // Not 100% accurate because discrepancy between miniaudio sample rate and time we actually need.
@@ -243,14 +196,6 @@ public:
     }
 
 
-    /// Wait until all data have send.
-    /// Note: at preloading fun attibutes this will probably 
-    /// wait forever.
-    void WaitUntilDone()
-    {
-        m_sample_sender.WaitUntilDone();
-    }
-
     /// Stop/cancel playing immidiately
     /// Keeps preloaded state
     /// Can cause tape loading error when not calling WaitUntilDone first.
@@ -277,19 +222,6 @@ public:
     }
 
 
-    bool IsBusy() const
-    {
-        //return m_sample_sender.IsRunning();     // stays busy during preloading attribs
-        // else not busy during fun attribs so cannot stop this.
-        // else double check @ signalDone not working
-        return m_is_busy;
-    }
-
-    bool IsPreLoaded() const
-    {
-        return m_is_preloaded;
-    }
-
     void SetPreload()
     {
         m_is_zqloader = true;
@@ -300,11 +232,7 @@ public:
 
 
 
-    // Time last action took
-    std::chrono::milliseconds GetTimeNeeded() const
-    {
-        return m_time_needed;
-    }
+
 
 
     std::chrono::milliseconds GetCurrentTime() const
@@ -317,13 +245,7 @@ public:
 
 
 
-    /// path to current zqloader.exe (this program)
-    /// (only to help find zqloader.tap)
-    void SetExeFilename(fs::path p_filename)
-    {
-        m_exe_path = std::move(p_filename);
-    }
-
+    
 
 
     /// Try to find the path/to/zqloader.tap 
@@ -592,8 +514,7 @@ Please add a normal and or turbo speed file.
     }
 
 
-private:
-
+public:
     SpectrumLoader                          m_spectrumloader;
     TurboBlocks                             m_turboblocks;
     SampleSender                            m_sample_sender;
@@ -666,7 +587,7 @@ ZQLoader& ZQLoader::SetVolume(int p_volume_left, int p_volume_right)
 
 ZQLoader& ZQLoader::SetSampleRate(uint32_t p_sample_rate)
 {
-    m_pimpl->SetSampleRate(p_sample_rate);
+    m_pimpl->m_sample_rate = p_sample_rate;
     return *this;
 }
 
@@ -674,7 +595,7 @@ ZQLoader& ZQLoader::SetSampleRate(uint32_t p_sample_rate)
 
 ZQLoader& ZQLoader::SetBitLoopMax(int p_value)
 {
-    m_pimpl->SetBitLoopMax(p_value);
+    m_pimpl->m_turboblocks.SetBitLoopMax(p_value);
     return *this;
 }
 
@@ -682,7 +603,13 @@ ZQLoader& ZQLoader::SetBitLoopMax(int p_value)
 
 ZQLoader& ZQLoader::SetZeroMax(int p_value)
 {
-    m_pimpl->SetZeroMax(p_value);
+    m_pimpl->m_turboblocks.SetZeroMax(p_value);
+    return *this;
+}
+
+ZQLoader& ZQLoader::SetIoValues(int p_io_init_value, int p_io_xor_value)
+{
+    m_pimpl->m_turboblocks.SetIoValues(p_io_init_value, p_io_xor_value);
     return *this;
 }
 
@@ -690,7 +617,7 @@ ZQLoader& ZQLoader::SetZeroMax(int p_value)
 
 ZQLoader& ZQLoader::SetDurations(int p_zero_duration, int p_one_duration, int p_end_of_byte_delay)
 {
-    m_pimpl->SetDurations(p_zero_duration, p_one_duration, p_end_of_byte_delay);
+    m_pimpl->m_turboblocks.SetDurations(p_zero_duration, p_one_duration, p_end_of_byte_delay);
     return *this;
 }
 
@@ -698,7 +625,7 @@ ZQLoader& ZQLoader::SetDurations(int p_zero_duration, int p_one_duration, int p_
 
 ZQLoader& ZQLoader::SetCompressionType(CompressionType p_compression_type)
 {
-    m_pimpl->SetCompressionType(p_compression_type);
+    m_pimpl->m_turboblocks.SetCompressionType(p_compression_type);
     return *this;
 }
 
@@ -712,7 +639,7 @@ ZQLoader& ZQLoader::SetSpectrumClock(int p_spectrum_clock)
 
 ZQLoader& ZQLoader::SetAction(Action p_what)
 {
-    m_pimpl->SetAction(p_what);
+    m_pimpl->m_action = p_what;
     return *this;
 }
 
@@ -720,7 +647,7 @@ ZQLoader& ZQLoader::SetAction(Action p_what)
 
 ZQLoader& ZQLoader::SetSnapshotLoaderLocation(uint16_t p_address)
 {
-    m_pimpl->SetSnapshotLoaderLocation(p_address);
+    m_pimpl->m_new_loader_location = p_address;
     return *this;
 }
 
@@ -728,13 +655,12 @@ ZQLoader& ZQLoader::SetSnapshotLoaderLocation(LoaderLocation p_where)
 {
     if (p_where == LoaderLocation::automatic)
     {
-        m_pimpl->SetSnapshotLoaderLocation(0);
+        SetSnapshotLoaderLocation(0);
     }
     else if (p_where == LoaderLocation::screen)
     {
-        m_pimpl->SetSnapshotLoaderLocation(spectrum::SCREEN_23RD);
+        SetSnapshotLoaderLocation(spectrum::SCREEN_23RD);
     }
-    
     return *this;
 }
 
@@ -744,7 +670,7 @@ ZQLoader& ZQLoader::SetSnapshotLoaderLocation(LoaderLocation p_where)
 
 ZQLoader& ZQLoader::SetFunAttribs(bool p_value)
 {
-    m_pimpl->SetFunAttribs(p_value);
+    m_pimpl->m_use_fun_attribs = p_value;;
     return *this;
 }
 
@@ -780,9 +706,12 @@ ZQLoader& ZQLoader::Stop()
 }
 
 
+/// Wait until all data have send.
+/// Note: at preloading fun attibutes this will probably 
+/// wait forever.
 ZQLoader& ZQLoader::WaitUntilDone()
 {
-    m_pimpl->WaitUntilDone();
+    m_pimpl->m_sample_sender.WaitUntilDone();
     return *this;
 }
 
@@ -792,7 +721,10 @@ ZQLoader& ZQLoader::WaitUntilDone()
 
 bool ZQLoader::IsBusy() const
 {
-    return m_pimpl->IsBusy();
+    //return m_sample_sender.IsRunning();     // stays busy during preloading attribs
+    // else not busy during fun attribs so cannot stop this.
+    // else double check @ signalDone not working
+    return m_pimpl->m_is_busy;
 }
 
 ZQLoader & ZQLoader::SetPreload()
@@ -805,7 +737,7 @@ ZQLoader & ZQLoader::SetPreload()
 
 bool ZQLoader::IsPreLoaded() const
 {
-    return m_pimpl->IsPreLoaded();
+    return m_pimpl->m_is_preloaded;
 }
 
 
@@ -816,10 +748,10 @@ ZQLoader& ZQLoader::PlayleaderTone()
 }
 
 
-
+// Time last action took
 std::chrono::milliseconds ZQLoader::GetTimeNeeded() const
 {
-    return m_pimpl->GetTimeNeeded();
+    return m_pimpl->m_time_needed;
 }
 
 
@@ -835,17 +767,18 @@ std::chrono::milliseconds ZQLoader::GetEstimatedDuration() const
 }
 
 
+/// path to current zqloader.exe (this program)
+/// (only to help find zqloader.tap)
 ZQLoader &ZQLoader::SetExeFilename(fs::path p_filename)
 {
-    m_pimpl->SetExeFilename(std::move(p_filename));
+    m_pimpl->m_exe_path = std::move(p_filename);
     return *this;
 }
 
 /// Set callback when done.
-
 ZQLoader& ZQLoader::SetOnDone(DoneFun p_fun)
 {
-    m_pimpl->SetOnDone(std::move(p_fun));
+    m_pimpl->m_OnDone = std::move(p_fun);
     return *this;
 }
 

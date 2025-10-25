@@ -11,7 +11,7 @@
 namespace loader_tstates
 {
 // T-states. Values depend only on z80 code. See zqloader.z80asm
-constexpr int wait_for_edge_loop_duration  = 43;    // Polling loop duration
+constexpr int wait_for_edge_loop_duration  = 40;    // Polling loop duration
 constexpr int bit_loop_duration            = 91;    // Bit loop duration
 constexpr int byte_loop_loop_duration      = 155;   // Byte loop duration
 constexpr int end_of_byte_delay            = byte_loop_loop_duration - bit_loop_duration ;   // Byte loop duration
@@ -31,6 +31,8 @@ constexpr int one_duration                 = loader_tstates::bit_loop_duration  
 
 constexpr int end_of_byte_delay            = loader_tstates::end_of_byte_delay;  // 64, should not change
 
+constexpr int io_init_value                = 0b00001010;
+constexpr int io_xor_value                 = 0b01000111;
 
 constexpr int volume_left                  = 100;
 constexpr int volume_right                 = 100;

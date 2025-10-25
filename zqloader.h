@@ -82,6 +82,8 @@ public:
     ZQLoader& SetZeroMax(int p_value);
     ///  Set zqloader duration parameters.
     ZQLoader& SetDurations(int p_zero_duration, int p_one_duration, int p_end_of_byte_delay);
+    ///  Set zqloader IO values
+    ZQLoader& SetIoValues(int p_io_init_value, int p_io_xor_value);
 
     /// Set compression used: none/rle/automatic.
     ZQLoader& SetCompressionType(CompressionType p_compression_type);

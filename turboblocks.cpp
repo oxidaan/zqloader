@@ -15,6 +15,7 @@
 #include "compressor.h"
 #include <filesystem>
 #include "spectrum_loader.h"        // CalculateChecksum
+#include <bitset>
 namespace fs = std::filesystem;
 
 using namespace std::placeholders;
@@ -859,15 +860,10 @@ inline bool TurboBlocks::HandleZqLoaderTapBlock(DataBlock p_block)
     else if(type == TapeBlockType::data)
     {
         m_zqloader_code = std::move(p_block);
-        if (m_bit_loop_max)                 // when 0 dont set (SetBitLoopMax)
-        {
-            SetDataToZqLoaderTap("BIT_LOOP_MAX", std::byte(m_bit_loop_max));
-        }
-        if ( m_zero_max)           // when 0 dont set(SetZeroMax)
-        {
-            auto val = (m_bit_loop_max ? m_bit_loop_max : loader_defaults::bit_loop_max) - m_zero_max;
-            SetDataToZqLoaderTap("BIT_ONE_THESHLD", std::byte(val));
-        }
+        SetDataToZqLoaderTap("BIT_LOOP_MAX", std::byte(m_bit_loop_max));
+        SetDataToZqLoaderTap("BIT_ONE_THESHLD", std::byte(m_bit_loop_max  - m_zero_max));
+        SetDataToZqLoaderTap("IO_INIT_VALUE", std::byte(m_io_init_value));
+        SetDataToZqLoaderTap("IO_XOR_VALUE", std::byte(m_io_xor_value));
     }
 
     // m_spectrumloader.AddLeaderPlusData(std::move(p_block), g_tstate_quick_zero, 1750ms);
@@ -926,7 +922,7 @@ inline void TurboBlocks::SetDataToZqLoaderTap( const char* p_name, std::byte p_v
     uint16_t adr = GetZqLoaderSymbolAddress(p_name);
     m_zqloader_code[adr] = p_value;
     RecalculateChecksum(m_zqloader_code);
-    std::cout << "Patching byte '" << p_name << "' to: " << int(p_value) << " hex= " << std::hex << int(p_value) << std::dec << std::endl;
+    std::cout << "Patching byte '" << p_name << "' to: " << int(p_value) << " hex= " << std::hex << int(p_value) << std::dec << " bin= " << std::bitset<8>(int(p_value)) << std::endl;
 }
 
 
