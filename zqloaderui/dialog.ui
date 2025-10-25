@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>798</width>
-    <height>554</height>
+    <width>826</width>
+    <height>651</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -94,8 +94,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>772</width>
-            <height>415</height>
+            <width>800</width>
+            <height>512</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_3">
@@ -923,33 +923,23 @@ li.checked::marker { content: &quot;\2612&quot;; }
   <tabstop>pushButtonBrowseOutputFile</tabstop>
   <tabstop>pushButtonGo</tabstop>
   <tabstop>pushButtonClean</tabstop>
-  <tabstop>pushButtonTest</tabstop>
-  <tabstop>tabWidget</tabstop>
-  <tabstop>textEditOutput</tabstop>
   <tabstop>lineEditSampleRate</tabstop>
-  <tabstop>horizontalSliderSpeed</tabstop>
   <tabstop>lineEditWantedZeroCyclii</tabstop>
   <tabstop>lineEditZeroMax</tabstop>
   <tabstop>lineEditWantedOneCyclii</tabstop>
-  <tabstop>lineEditZeroTStates</tabstop>
   <tabstop>lineEditOneTStates</tabstop>
   <tabstop>lineEditBitLoopMax</tabstop>
   <tabstop>lineEditEndOfByteDelay</tabstop>
-  <tabstop>lineEditClock</tabstop>
-  <tabstop>pushButtonCalculate</tabstop>
-  <tabstop>comboBoxBorderColor</tabstop>
-  <tabstop>lineEditBorderToggle</tabstop>
-  <tabstop>checkBoxOutMic</tabstop>
-  <tabstop>checkBoxToggleMic</tabstop>
-  <tabstop>checkBoxOutEar</tabstop>
-  <tabstop>checkBoxToggleEar</tabstop>
   <tabstop>comboBoxCompressionType</tabstop>
   <tabstop>comboBoxLoaderLocation</tabstop>
   <tabstop>lineEditLoaderAddress</tabstop>
   <tabstop>checkBoxFunAttribs</tabstop>
+  <tabstop>pushButtonCalculate</tabstop>
   <tabstop>scrollArea</tabstop>
+  <tabstop>pushButtonTest</tabstop>
+  <tabstop>tabWidget</tabstop>
+  <tabstop>textEditOutput</tabstop>
   <tabstop>scrollArea_3</tabstop>
-  <tabstop>scrollArea_2</tabstop>
  </tabstops>
  <resources/>
  <connections/>
