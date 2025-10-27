@@ -562,7 +562,8 @@ inline void Dialog::Write(QSettings& settings, const QObject *p_for_what) const
     }
 }
 
-// Load all line edits + dialog position
+/// Load all line edits + dialog position
+/// When fails restore defaults (eg first time)
 inline void Dialog::Load()
 {
     QSettings settings("Oxidaan", "ZQLoader");
@@ -579,7 +580,8 @@ inline void Dialog::Load()
     ui->dialVolumeRight->setValue(ui->lineEditVolumeRight->text().toInt());
 }
 
-// Read all line edits + dialog position from given settings
+/// Read all line edits + dialog position from given settings
+/// returns false when any of them fails.
 inline bool Dialog::Read(QSettings& settings, QObject *p_for_what)
 {
     {
@@ -604,7 +606,15 @@ inline bool Dialog::Read(QSettings& settings, QObject *p_for_what)
         auto for_what = dynamic_cast<QLineEdit*>(p_for_what);
         if (for_what)
         {
-            for_what->setText(settings.value(for_what->objectName()).toString());
+            QVariant value = settings.value(for_what->objectName());
+            if(!value.isNull())
+            {
+                for_what->setText(value.toString());
+            }
+            else
+            {
+                return false;
+            }
         }
     }
     {
@@ -612,7 +622,15 @@ inline bool Dialog::Read(QSettings& settings, QObject *p_for_what)
         auto for_what = dynamic_cast<QComboBox*>(p_for_what);
         if (for_what)
         {
-            for_what->setCurrentIndex(settings.value(for_what->objectName()).toInt());
+            QVariant value = settings.value(for_what->objectName());
+            if(!value.isNull())
+            {
+                for_what->setCurrentIndex(value.toInt());
+            }
+            else
+            {
+                return false;
+            }
         }
     }
     {
@@ -620,7 +638,15 @@ inline bool Dialog::Read(QSettings& settings, QObject *p_for_what)
         auto for_what = dynamic_cast<QSlider*>(p_for_what);
         if (for_what)
         {
-            for_what->setValue(settings.value(for_what->objectName()).toInt());
+            QVariant value = settings.value(for_what->objectName());
+            if(!value.isNull())
+            {
+                for_what->setValue(value.toInt());
+            }
+            else
+            {
+                return false;
+            }
         }
     }
     {
@@ -628,12 +654,23 @@ inline bool Dialog::Read(QSettings& settings, QObject *p_for_what)
         auto for_what = dynamic_cast<QCheckBox*>(p_for_what);
         if (for_what)
         {
-            for_what->setChecked(settings.value(for_what->objectName()).toBool());
+            QVariant value = settings.value(for_what->objectName());
+            if(!value.isNull())
+            {
+                for_what->setChecked(value.toBool());
+            }
+            else
+            {
+                return false;
+            }
         }
     }
     for(QObject* child: p_for_what->children())
     {
-        Read(settings, child);        // recusive
+        if(!Read(settings, child))        // recusive
+        {
+            return false;
+        }
     }
     return true;
 }
