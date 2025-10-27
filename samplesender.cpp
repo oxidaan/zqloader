@@ -55,6 +55,7 @@ SampleSender& SampleSender::Init()
             throw std::runtime_error("Failed to initialize the device.");
         }
         std::cout << "Sample rate = " << device->sampleRate << std::endl;
+        m_sample_period = 1s / double(device->sampleRate);
         m_device = std::move(device);
     }
     return *this;
@@ -146,7 +147,7 @@ int SampleSender::GetDeviceSampleRate()
 
 inline void SampleSender::Reset()
 {
-    m_done = 0;
+    m_done_cnt = 0;
     m_edge = false;
     //        m_edge = true;      // Does NOT work
     m_sample_time = 0ms;
@@ -165,16 +166,16 @@ inline bool SampleSender::CheckDone()
     }
     if(!done)
     {
-        if(m_done)
+        if(m_done_cnt > 0)
         {
             m_event.Reset();
-            m_done = 0;
+            m_done_cnt = 0;
         }
     }
     else
     {
-        m_done++;
-        if(m_done > m_done_event_cnt)  // see https://github.com/mackron/miniaudio/discussions/490 
+        m_done_cnt++;
+        if(m_done_cnt > m_done_cnt_max)  // see https://github.com/mackron/miniaudio/discussions/490 
         {
             m_event.Signal();
         }
@@ -184,16 +185,15 @@ inline bool SampleSender::CheckDone()
 
 /// Get next sound samples,
 /// called in miniaudio device thread
-inline void SampleSender::DataCallback(ma_device* pDevice, void* pOutput, uint32_t frameCount)
+inline void SampleSender::DataCallback(ma_device* p_device, void* out_data, uint32_t p_frame_count)
 {
-    auto sampleRate = pDevice->sampleRate;
-    auto channels   = pDevice->playback.channels;   // # channels eg 2 is stereo
-    float* foutput  = reinterpret_cast<float*>(pOutput);
+    auto channels   = p_device->playback.channels;   // # channels eg 2 is stereo
+    float* foutput  = reinterpret_cast<float*>(out_data);
     int index       = 0;
     bool done = CheckDone();
-    for (auto n = 0u; n < frameCount; n++)
+    for (auto n = 0u; n < p_frame_count; n++)
     {
-        float value = done ? 0.0f : GetNextSample(sampleRate, done);    // GetNextSample can also set m_done
+        float value = done ? 0.0f : GetNextSample(done);    // GetNextSample can also set done
         for (auto chan = 0u; chan < channels; chan++)
         {
             foutput[index] = (chan == 0) ? m_volume_left * value :
@@ -209,10 +209,9 @@ inline void SampleSender::DataCallback(ma_device* pDevice, void* pOutput, uint32
 /// Get next sample (audio value), depending on attached Pulsers.
 /// This is typically 1.0 or -1.0 depending on edge; s/a GetEdge.
 /// (any volume setting not used here)
-inline float SampleSender::GetNextSample(uint32_t p_samplerate, bool &out_done)
+inline float SampleSender::GetNextSample(bool &out_done)
 {
-    Doublesec sample_period = 1s / double(p_samplerate);
-    m_sample_time += sample_period;
+    m_sample_time += m_sample_period;
     // Get duration to wait for next edge change based on what we need to do
     Doublesec time_to_wait = GetDurationWait();
     if (m_sample_time >= time_to_wait)
@@ -234,7 +233,7 @@ inline float SampleSender::GetNextSample(uint32_t p_samplerate, bool &out_done)
         // catch up. Causes sound to be irregular.
         // Even leader tone is noticable (hearable) irregular.
         // But this makes loading take a little longer than expected (s/a SpectrumLoader::GetDuration)
-        // m_sample_time = m_sample_time - time_to_wait ;
+        // m_sample_time -= time_to_wait ;
         m_sample_time = 0s;
         out_done = NextSample(); // true when at end.
     }

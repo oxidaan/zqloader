@@ -33,6 +33,7 @@ using namespace std::placeholders;
 class TurboBlock
 {
     friend class TurboBlocks;
+    // needs c++20 using enum TurboBlocks::AfterBlock;
 
 public:
 
@@ -45,7 +46,11 @@ public:
                                                                        // (stays at load address)
         CompressionType   m_compression_type;                          // 6 Type of compression-see enum
         uint8_t           m_checksum;                                  // 7 checksum
-        uint16_t          m_usr_start_address = TurboBlocks::LoadNext; // 8-9
+        union
+        {
+            uint16_t                m_usr_start_address;
+            TurboBlocks::AfterBlock m_after_block    = TurboBlocks::AfterBlock::LoadNext; // 8-9
+        };
         // When LoadNext: more blocks follow. This is the default.
         // When CopyLoader is 'copy loader' command, more blocks follow.
         // When ReturnToBasic end & return to basic, do not start MC.
@@ -76,10 +81,10 @@ public:
 #endif
                 << "\nchecksum = " << int(p_header.m_checksum) << "\n"
                 << "After block do: "
-                << ((p_header.m_usr_start_address == TurboBlocks::LoadNext) ? "LoadNext" :
-                (p_header.m_usr_start_address == TurboBlocks::CopyLoader) ? "CopyLoader" :
-                (p_header.m_usr_start_address == TurboBlocks::ReturnToBasic) ? "ReturnToBasic" :
-                "Start MC at : " + std::to_string(p_header.m_usr_start_address)) << "\n"
+                << ((p_header.m_after_block == TurboBlocks::AfterBlock::LoadNext)      ? "LoadNext" :
+                    (p_header.m_after_block == TurboBlocks::AfterBlock::CopyLoader)    ? "CopyLoader" :
+                    (p_header.m_after_block == TurboBlocks::AfterBlock::ReturnToBasic) ? "ReturnToBasic" :
+                    "Start MC at : " + std::to_string(p_header.m_usr_start_address)) << "\n"
                 << "CLEAR address/SP = " << p_header.m_clear_address << "\n"
                 << std::hex << "m_code_for_most = " << int(p_header.m_code_for_most) << ' '
                 << "m_decompress_counter = " << p_header.m_decompress_counter << ' '
@@ -120,7 +125,7 @@ public:
         GetHeader().m_load_address      = 0;                     // where it initially loads payload, when 0 use load at basic buffer
         GetHeader().m_dest_address      = 0;                     // no copy so keep at m_load_address
         GetHeader().m_compression_type  = CompressionType::none;
-        GetHeader().m_usr_start_address = TurboBlocks::LoadNext; // assume more follow
+        GetHeader().m_after_block       = TurboBlocks::AfterBlock::LoadNext; // assume more follow
         GetHeader().m_clear_address     = 0;
         GetHeader().m_checksum          = 1;                     // checksum init val
     }
@@ -138,7 +143,7 @@ private:
 
     /// Set address where data will be copied / decompressed to after loading.
     /// (so final location).
-    /// When 0 do not copy/decompress, stays at load address.
+    /// When 0 do not copy/decompress; block stays at load address.
     TurboBlock& SetDestAddress(uint16_t p_address)
     {
         GetHeader().m_dest_address = p_address;
@@ -146,12 +151,11 @@ private:
     }
 
 
-    /// Set machine code start address OR value from enum AfterBlock.
-    /// When LoadNext or CopyLoader more blocks follow.
-    /// When ReturnToBasic (and thus <> 0) this is the last block
-    ///     but no RANDOMIZE USR xxxxx is done (default), instead return to BASIC
-    /// When CopyLoader copy loader to screen and continue with next block.
-    /// all other values do RANDOMIZE USR xxxxx thus starting machine code.
+    /// Set machine code start address to be executed after loading this block.
+    /// (This makes the current block the last block)
+    /// As if RANDOMIZE USR xxxxx thus starting machine code.
+    /// Can also be AfterBlock::ReturnToBasic
+    /// s/a conflicts with SetAfterBlockDo
     TurboBlock& SetUsrStartAddress(uint16_t p_address)
     {
         GetHeader().m_usr_start_address = p_address;
@@ -159,12 +163,14 @@ private:
     }
 
 
-    // Indicate a copy to screen is needed (after loading this block)
-    // Eg loader code at Spectrum will be moved to indicated location - not necessairely the screen.
-    // p_dest_address copy dest location typically at screen eg SCREEN23_RD + stack
-    TurboBlock& SetCopyLoader()
+    /// Indicate what to do after block was loaded:
+    /// AfterBlock::LoadNext: load next block (this is the default)
+    /// AfterBlock::CopyLoader: the loader code need to be copied (to make space) after loading this block, then load next.
+    /// AfterBlock::ReturnToBasic: Return to basic (so this is last block)
+    /// s/a conflicts with SetUsrStartAddress
+    TurboBlock& SetAfterBlockDo(TurboBlocks::AfterBlock p_what)
     {
-        GetHeader().m_usr_start_address = TurboBlocks::CopyLoader;
+        GetHeader().m_after_block = p_what;
         return *this;
     }
 
@@ -432,7 +438,7 @@ private:
     //  Do some checks, throws when not ok.
     void Check() const
     {
-        if( GetHeader().m_length == 0 && GetHeader().m_dest_address == 0 && GetHeader().m_load_address == 0 && GetHeader().m_usr_start_address != TurboBlocks::AfterBlock::CopyLoader)
+        if( GetHeader().m_length == 0 && GetHeader().m_dest_address == 0 && GetHeader().m_load_address == 0 && GetHeader().m_after_block != TurboBlocks::AfterBlock::CopyLoader)
         {
             throw std::runtime_error("Useless empty block ");
         }
@@ -444,7 +450,7 @@ private:
         {
             throw std::runtime_error("Destination address to copy to after load is 0 while a RLE compression is set, will not decompress");
         }
-        if (m_overwrites_loader && GetHeader().m_usr_start_address == TurboBlocks::LoadNext)
+        if (m_overwrites_loader && GetHeader().m_after_block == TurboBlocks::AfterBlock::LoadNext)
         {
             throw std::runtime_error("Block will overwrite our loader, but is not last");
         }
@@ -521,7 +527,7 @@ private:
     // including header and the length fields.
     static uint8_t CalculateChecksum(const DataBlock &p_data)
     {
-        int8_t retval = 1;  // checksum init val
+        int8_t retval = 1;  // checksum init val @checksum
         // retval++;  // @DEBUG must give CHECKSUM ERROR
         for (const std::byte& b : p_data)
         {
@@ -546,7 +552,6 @@ TurboBlocks & TurboBlocks::operator = (TurboBlocks &&) = default;
 
 
 /// Take an export file name that will be used to load symbols.
-template<>
 TurboBlocks& TurboBlocks::SetSymbolFilename(const fs::path& p_symbol_file_name)
 {
     m_symbols.ReadSymbols(p_symbol_file_name);
@@ -566,7 +571,6 @@ TurboBlocks::~TurboBlocks() = default;
 /// Add given tap file at normal speed, must be zqloader.tap.
 /// Patches zqloader.tap eg BIT_LOOP_MAX etc.
 /// Also loads symbol file (has same base name).
-template<>
 TurboBlocks& TurboBlocks::AddZqLoader(const fs::path& p_filename)
 {
     std::cout << "Processing zqloader file: " << p_filename << " (normal speed)" << std::endl;
@@ -796,13 +800,20 @@ TurboBlocks &TurboBlocks::Finalize(uint16_t p_usr_address, uint16_t p_clear_addr
 
     if (m_turbo_blocks.size() > 0)
     {
-        // When indicated, after loading first block, loader will be copied.
+        // When indicated, after loading *first* block, loader will be copied.
         if (m_loader_copy_start)
         {
-            m_turbo_blocks.front().SetCopyLoader();
+            m_turbo_blocks.front().SetAfterBlockDo(TurboBlocks::AfterBlock::CopyLoader);
         }
         // What should be done after last block
-        m_turbo_blocks.back().SetUsrStartAddress(p_usr_address ? p_usr_address : TurboBlocks::ReturnToBasic);    // now is last block
+        if(p_usr_address)
+        {
+            m_turbo_blocks.back().SetUsrStartAddress(p_usr_address);
+        }
+        else
+        {
+            m_turbo_blocks.back().SetAfterBlockDo(AfterBlock::ReturnToBasic);
+        }
         m_turbo_blocks.back().SetClearAddress(p_clear_address);
     }
 

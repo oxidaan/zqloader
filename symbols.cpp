@@ -34,7 +34,6 @@ uint16_t Symbols::GetSymbol(const std::string& p_name) const
 /// Read/append symbols from given export file.
 /// Existing symbols with same name will be overwritten.
 /// Throws when error loading.
-template<>
 void Symbols::ReadSymbols(const fs::path &p_filename)
 {
     std::ifstream fileread(p_filename);

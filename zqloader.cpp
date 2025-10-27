@@ -766,6 +766,10 @@ std::chrono::milliseconds ZQLoader::GetEstimatedDuration() const
     return m_pimpl->GetEstimatedDuration();
 }
 
+int ZQLoader::GetDurationInTStates() const
+{
+    return m_pimpl->m_spectrumloader.GetDurationInTStates();
+}
 
 /// path to current zqloader.exe (this program)
 /// (only to help find zqloader.tap)

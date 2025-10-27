@@ -23,7 +23,6 @@
 namespace fs = std::filesystem;
 
 ///  Load z80 or sna snapshot from given file.
-template<>
 SnapShotLoader& SnapShotLoader::Load(const fs::path &p_filename)
 {
     std::ifstream fileread(p_filename, std::ios::binary);

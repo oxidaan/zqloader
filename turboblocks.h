@@ -14,6 +14,7 @@
 #include "symbols.h"         // Symbols member
 #include <memory>            // std::unique_ptr
 #include <iostream>
+#include <filesystem>
 #include "types.h"           // CompressionType
 #include "loader_defaults.h"
 
@@ -38,11 +39,12 @@ class TurboBlocks
 public:
 
     // What to do after a block was loaded, stored at m_usr_start_address
-    enum AfterBlock : uint16_t
+    enum class AfterBlock : uint16_t
     {
         LoadNext      = 256,        // go on to next block (H=1 at z80)
         CopyLoader    = 512,        // copy z80 loader code, then go on to next block (H=2 at z80)
         ReturnToBasic = 768,        // return to basic (H=3 at z80)
+        BankSwitch    = 1024,       // TODO zx spectrum 128 back switch command (H=4)
         // all other values are like RANDOMIZE USR xxxxx so start MC there (and this was last block)
     };
 
@@ -61,8 +63,7 @@ public:
 
 
     /// Load given file at normal speed, typically loads zqloader.tap.
-    template <class TPath>
-    TurboBlocks& AddZqLoader(const TPath& p_filename);
+    TurboBlocks& AddZqLoader(const std::filesystem::path &p_filename);
 
     ///  Is ZqLoader added (with AddZqLoader above)?
     bool IsZqLoaderAdded() const
@@ -164,8 +165,7 @@ public:
     // Length needed when loader code needs to be moved away from BASIC location
     uint16_t GetLoaderCodeLength(bool p_with_registers) const;
    
-    template <class TPath>
-    TurboBlocks&SetSymbolFilename(const TPath &p_symbol_file_name);
+    TurboBlocks&SetSymbolFilename(const std::filesystem::path &p_symbol_file_name);
 private:
 
 

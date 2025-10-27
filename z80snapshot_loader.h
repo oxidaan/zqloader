@@ -12,8 +12,7 @@
 #include <string>
 #include "datablock.h"
 #include <cstdint>
-#include <iosfwd>
-
+#include <filesystem>
 
 class TurboBlocks;
 class Symbols;
@@ -119,8 +118,7 @@ public:
     {}
 
     ///  Load Z80 or sna snapshot file from given filename.
-    template <typename TPath>
-    SnapShotLoader& Load(const TPath &p_filename);
+    SnapShotLoader& Load(const std::filesystem::path &p_filename);
 
     ///  Load Z80 snapshot file from given stream.
     SnapShotLoader& LoadZ80(std::istream& p_stream);
@@ -165,7 +163,7 @@ private:
     // see https://worldofspectrum.org/faq/reference/z80format.htm
     DataBlock DeCompress(const DataBlock& p_block);
 private:
-    Z80SnapShotHeader m_z80_snapshot_header;
+    Z80SnapShotHeader m_z80_snapshot_header {};
     DataBlock m_mem48k;         // snapshot data (as read from z80 file)
     DataBlock m_reg_block;      // Typically would be snapshotregs.bin as created by sjasmplus.
     uint16_t m_usr = 0;

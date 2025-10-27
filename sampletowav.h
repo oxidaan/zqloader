@@ -14,7 +14,7 @@
 #include "datablock.h"
 #include <iostream>
 
-/// Largely same interface as SampleSender but writes to wav file instead of outputting sound.
+/// Largely the same interface as SampleSender but writes to wav file instead of outputting sound.
 /// Used call-backs are set with:
 /// SetOnGetDurationWait
 /// SetOnNextSample

@@ -12,11 +12,11 @@
 
 #include "datablock.h"
 #include <fstream>
-#include <filesystem>
+
 
 namespace fs = std::filesystem;
 
-template <>
+
 DataBlock& DataBlock::LoadFromFile(const fs::path &p_filename)
 {
     std::ifstream fileread(p_filename, std::ios::binary | std::ios::ate);
@@ -31,7 +31,7 @@ DataBlock& DataBlock::LoadFromFile(const fs::path &p_filename)
     return *this;
 }
 
-template <>
+
 const DataBlock& DataBlock::SaveToFile(const fs::path &p_filename) const
 {
     std::ofstream filewrite(p_filename, std::ios::binary);

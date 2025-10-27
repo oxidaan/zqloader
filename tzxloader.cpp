@@ -126,7 +126,6 @@ struct GeneralizedDataBlock
 #pragma pack(pop)
 
 
-template<>
 TzxLoader& TzxLoader::Load(const fs::path &p_filename, const std::string &p_zxfilename)
 {
     std::ifstream fileread(p_filename, std::ios::binary);
@@ -294,7 +293,7 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
             break;
         case TzxBlockType::Messageblock:
             p_stream.ignore(1);
-        // no break
+           // no break
         case TzxBlockType::Textdescription:
         {
             auto len = LoadBinary<BYTE>(p_stream);

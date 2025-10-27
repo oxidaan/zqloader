@@ -234,7 +234,7 @@ copy_done:
     jp z, COPY_ME               // when H = 2 (TurboBlocks::CopyLoader) copy me, then to next block (at new location)
     dec A
     jr z, END_TO_BASIC          // when H = 3 (TurboBlocks::ReturnToBasic) so last block but do not start MC, return to BASIC.
-
+    // TODO can add ZXSpectrem 128 bankswitching here.
     // -- When here: --
     // -- HL is start address as in RANDOMIZE USR xxxxx --
     // -- DE is address as in CLEAR xxxxx. --
@@ -527,7 +527,7 @@ wait_for_first_edge:
     // when m_load_address zero: load into basic at REM ie load_address_at_basic
     // when m_length zero: nothing more to load.
     exx
-        ld E, 1                 // init. checksum
+        ld E, 1                 // checksum init val @checksum
         ld BC, (m_length)       // now has length of data to be received 
         ld HL, (m_load_address) // m_load_address
         ld A, B

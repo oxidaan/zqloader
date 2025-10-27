@@ -339,7 +339,7 @@ inline void Dialog::UpdateUI()
 {
     if(m_zqloader.IsBusy() && m_zqloader.GetEstimatedDuration() != 0ms)
     {
-        auto perc = (100 * m_zqloader.GetCurrentTime())/m_zqloader.GetEstimatedDuration() ;
+        auto perc = (100 * m_zqloader.GetCurrentTime()) / m_zqloader.GetEstimatedDuration() ;
         ui->progressBar->setValue(perc);
         std::stringstream ss;
         ss << std::fixed << std::setprecision(1) << std::chrono::duration<double>(m_zqloader.GetCurrentTime()).count();
@@ -494,7 +494,7 @@ inline void Dialog::Go()
     m_zqloader.SetSampleRate(ui->lineEditSampleRate->text().toInt());
     m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());
 
-    std::cout << "Estimated duration: " << m_zqloader.GetEstimatedDuration().count() << "ms" << std::endl;
+    std::cout << "Estimated duration: " << m_zqloader.GetEstimatedDuration().count() << "ms  (" <<  m_zqloader.GetDurationInTStates() << " TStates)" << std::endl;
     m_zqloader.Start();
     if(m_zqloader.IsBusy())     // else immidiately done eg writing wav file
     {

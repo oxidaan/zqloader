@@ -17,8 +17,6 @@
 #include "datablock.h"      // Datablock used
 #include "spectrum_consts.h"
 #include <mutex>
-#include <cstddef>          // std::byte
-#include "spectrum_consts.h"
 
 class Pulser;
 class SampleSender;
@@ -29,9 +27,9 @@ struct MovableMutex
     MovableMutex()                     = default;
     MovableMutex(const MovableMutex &) = delete;
     // When moved, it is just not locked. And asume p_other neither.
-    MovableMutex(MovableMutex &&)
+    MovableMutex(MovableMutex &&) noexcept
     {}
-    MovableMutex &operator = (MovableMutex &&)
+    MovableMutex &operator = (MovableMutex &&) noexcept
     {
         return *this;
     }
@@ -80,7 +78,7 @@ public:
         PulserPtr ptr = std::make_unique< TPulser >(std::move(p_pulser));
         std::unique_lock lock(m_mutex_standby_pulsers.mutex);
         m_standby_pulsers.push_back(std::move(ptr));
-        m_time_estimated = 0ms;     // force recalc
+        m_duration_in_tstates = 0;     // force recalc
         return *this;
     }
 
@@ -148,6 +146,7 @@ public:
     /// Get expected duration (from all standby pulsers)
     /// Not 100% accurate because discrepancy between miniaudio sample rate and time we actually need.
     Doublesec GetEstimatedDuration() const;
+    int GetDurationInTStates() const;
 
     SpectrumLoader &SetTstateDuration(Doublesec p_to_what) 
     {
@@ -202,6 +201,7 @@ private:
     MovableMutex        m_mutex_standby_pulsers;
     size_t              m_current_pulser = 0;
     DoneFun             m_OnDone;
-    mutable Doublesec   m_time_estimated{};
+    //mutable Doublesec   m_time_estimated{};
+    mutable int         m_duration_in_tstates{};
     Doublesec           m_tstate_dur = spectrum::g_tstate_dur;
 }; // class SpectrumLoader

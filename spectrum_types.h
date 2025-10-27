@@ -74,8 +74,8 @@ struct TapeHeader
 static_assert(sizeof(TapeHeader) == 17, "Sizeof ZxHeader must be 17");
 
 
-// Calculate a ZX Spectrum standard tap block checksum
-// Is always at end of block.
+/// Calculate a ZX Spectrum standard tap block checksum
+/// Is always at end of block.
 template <class TData>
 std::byte CalculateChecksum(std::byte p_init_val, const TData& p_data)
 {

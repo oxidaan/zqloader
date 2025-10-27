@@ -11,6 +11,7 @@
 
 
 #include <vector>
+#include <filesystem>
 
 
 /// Used for all data block storages.
@@ -52,13 +53,9 @@ public:
     }
 
     ///  Load (binary) from given file
-    /// TPath must be std::filesystem::path
-    template <class TPath>
-    DataBlock& LoadFromFile(const TPath &p_filename);
+    DataBlock& LoadFromFile(const std::filesystem::path &p_filename);
 
     /// Save (binary) to given file
-    /// TPath must be std::filesystem::path
-    template <class TPath>
-    const DataBlock& SaveToFile(const TPath &p_filename) const;
+    const DataBlock& SaveToFile(const std::filesystem::path &p_filename) const;
 };
 

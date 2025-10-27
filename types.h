@@ -16,7 +16,7 @@ using namespace std::chrono_literals;       // never do using namespace in inclu
 
 /// A (std::chrono) duration in sec that can also store fractional seconds
 using Doublesec = std::chrono::duration<double>;
-
+//using DurationTState = std::chrono::duration<std::int64_t, std::ratio<1, 3500000>>;
 
 /// Edge type, used a lot by SampleSender (miniaudio) and Pulsers.
 /// Also used at tzx/SymDef hence needs size 8 bits.

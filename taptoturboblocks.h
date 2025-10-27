@@ -40,7 +40,7 @@ public:
     /// (As earlier found with TryFindUsr)
     uint16_t GetUsrAddress() const
     {
-        return m_usr == 0 ? int(TurboBlocks::ReturnToBasic) : m_usr;
+        return m_usr == 0 ? uint16_t(TurboBlocks::AfterBlock::ReturnToBasic) : m_usr;
     }
 
 
@@ -82,7 +82,7 @@ private:
 
 private:
 
-    spectrum::TapeHeader      m_last_header;
+    spectrum::TapeHeader      m_last_header{};
     spectrum::TapeBlockType   m_last_block = spectrum::TapeBlockType::unknown;      // not header or data
     int                       m_headercnt  = 0;
     int                       m_codecount  = 0;

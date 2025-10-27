@@ -29,9 +29,9 @@ PausePulser& PausePulser::SetLength(std::chrono::milliseconds p_duration)
     return *this;
 }
 
-Doublesec PausePulser::GetDuration() const
+int PausePulser::GetDurationInTStates() const
 {
-    return m_duration_in_tstates * m_tstate_dur;
+    return m_duration_in_tstates;
 }
 
 /// Set length in # of pulses that is # complete patterns.
@@ -68,13 +68,14 @@ TonePulser& TonePulser::SetLength(std::chrono::milliseconds p_duration)
     return *this;
 }
 
-Doublesec TonePulser::GetDuration() const
+int TonePulser::GetDurationInTStates() const
 {
-    return m_max_pulses * GetPatternDuration() * m_tstate_dur;
+    return m_max_pulses * GetPatternDuration();
 }
 
 
-Doublesec DataPulser::GetDuration() const
+
+int DataPulser::GetDurationInTStates() const
 {
     auto bitnumb4 = m_bitnum;
     auto pulsnumb4 = m_pulsnum;
@@ -89,5 +90,5 @@ Doublesec DataPulser::GetDuration() const
     while(!me -> Next());
     me->m_bitnum = bitnumb4;
     me->m_pulsnum = pulsnumb4;
-    return tstates * m_tstate_dur;
+    return tstates;
 }

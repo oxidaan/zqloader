@@ -111,16 +111,20 @@ SpectrumLoader& SpectrumLoader::WriteTzxFile(std::ostream& p_filewrite)
 /// Not 100% accurate because discrepancy between miniaudio sample rate and time we actually need.
 Doublesec SpectrumLoader::GetEstimatedDuration() const
 {
-    if(m_time_estimated == 0ms)
+    return GetDurationInTStates() * m_tstate_dur * 1.2;  // 1.2: see remark at  SampleSender::GetNextSample
+}
+
+/// Get duration in TStates.
+int SpectrumLoader::GetDurationInTStates() const
+{
+    if(m_duration_in_tstates == 0)
     {
         for(const auto &p : m_standby_pulsers)
         {
-            m_time_estimated += p->GetDuration();
-           // std::cout << p->GetDuration().count() << std::endl; 
+            m_duration_in_tstates += p->GetDurationInTStates();
         }
-        m_time_estimated = m_time_estimated * 1.2;   // see remark at  SampleSender::GetNextSample
     }
-    return m_time_estimated;
+    return m_duration_in_tstates;
 }
 
 

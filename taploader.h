@@ -9,9 +9,10 @@
 
 #pragma once
 
-#include <iostream>
+
 #include <string>
 #include <functional>
+#include <filesystem>
 struct DataBlock;
 
 
@@ -28,8 +29,7 @@ public:
     /// Load a tap file from given filename.
     /// p_zxfilename: the ZX Spectrum file name, eg used to filter / only load certain
     /// program names.
-    template <typename TPath>
-    TapLoader& Load(const TPath &p_filename, const std::string &p_zxfilename);
+    TapLoader& Load(const std::filesystem::path &p_filename, const std::string &p_zxfilename);
 
 
     /// Load a data block as in TAP format from given stream.

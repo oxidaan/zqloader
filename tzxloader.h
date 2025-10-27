@@ -9,7 +9,6 @@
 
 #pragma once
 
-#include <cstdint>
 #include <functional>
 #include <string>
 #include "datablock.h"
@@ -31,8 +30,7 @@ public:
 
 
     /// Loads given tzx file from given file. Ignores until given zxfilename is found.
-    template <typename TPath>
-    TzxLoader& Load(const TPath &p_filename, const std::string &p_zxfilename);
+    TzxLoader& Load(const std::filesystem::path &p_filename, const std::string &p_zxfilename);
 
 
 

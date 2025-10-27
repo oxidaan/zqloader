@@ -142,6 +142,9 @@ public:
     /// Note: this is not 100% accurate.
     std::chrono::milliseconds GetEstimatedDuration() const;
 
+    /// Get time in TStates.
+    int GetDurationInTStates() const;
+
     /// path to current zqloader.exe (this program)
     /// (only to help find zqloader.tap)
     ZQLoader& SetExeFilename(std::filesystem::path p_filename);

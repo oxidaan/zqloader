@@ -69,7 +69,6 @@ inline TapLoader& TapLoader::Read(std::istream& p_stream, const std::string &p_z
 /// Load a tap file from given filename.
 /// p_zxfilename: the ZX Spectrum file name, eg used to filter / only load certain 
 /// program names.
-template<>
 TapLoader& TapLoader::Load(const fs::path &p_filename, const std::string &p_zxfilename)
 {
     std::ifstream fileread(p_filename, std::ios::binary);

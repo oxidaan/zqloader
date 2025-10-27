@@ -39,7 +39,11 @@ public:
     virtual Edge GetEdge() const = 0;       // What to do after wait
     virtual bool Next() = 0;                // move to next pulse/edge, return true when done.
     virtual void WriteAsTzxBlock(std::ostream& p_stream) const = 0;
-    virtual Doublesec GetDuration() const = 0;  // get expected duration
+    virtual int GetDurationInTStates() const = 0;  // get expected duration
+    virtual Doublesec GetDuration() const final  // get expected duration
+    {
+        return GetDurationInTStates() * m_tstate_dur;
+    }
 protected:
     unsigned m_pulsnum = 0;                         // increased after each edge
     const Doublesec m_tstate_dur;
@@ -108,7 +112,7 @@ protected:
         }
         return edge;
     }
-    Doublesec GetDuration() const override;
+    int GetDurationInTStates() const override;
 private:
     int m_duration_in_tstates = 0;
     Edge m_edge = Edge::no_change;
@@ -162,7 +166,7 @@ public:
         p_loader.AddPulser(std::move(*this));
     }
     void WriteAsTzxBlock(std::ostream& p_stream) const override;
-    Doublesec GetDuration() const override;
+    int GetDurationInTStates() const override;
 private:
     void SetPattern()
     {
@@ -291,7 +295,7 @@ public:
 
 
     void WriteAsTzxBlock(std::ostream& p_stream) const override;
-    Doublesec GetDuration() const override;
+    int GetDurationInTStates() const override;
 protected:
     /// Get # TStates to wait
     virtual int GetTstate() const override
@@ -494,10 +498,11 @@ public:
     }
     void WriteAsTzxBlock(std::ostream&) const override
     {}
-    Doublesec GetDuration() const override
+    int GetDurationInTStates() const override
     {
-        return 0ms;
+        return 0;
     }
+
 protected:
 
     virtual bool Next() override

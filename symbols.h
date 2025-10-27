@@ -12,6 +12,7 @@
 #include <map>
 #include <string>
 #include <cstdint>
+#include <filesystem>
 
 
 /// Loads and maintains named z80 symbols as saved by sjasmplus to an export file.
@@ -29,8 +30,7 @@ public:
 
     /// CTOR, loads symbols from given export file. Typical 'zqloader.exp'
     /// Throws when error loading.
-    template <class TPath>
-    Symbols(const TPath &p_filename)
+    Symbols(const std::filesystem::path &p_filename)
     {
         ReadSymbols(p_filename);
     }
@@ -39,8 +39,7 @@ public:
     /// Read/append symbols from given export file.
     /// Existing symbols with same name will be overwritten.
     /// Throws when error loading.
-    template <class TPath>
-    void ReadSymbols(const TPath& p_filename);
+    void ReadSymbols(const std::filesystem::path &p_filename);
 
     /// Get 16bit symbol value by name.
     /// Throws when not found.

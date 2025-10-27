@@ -151,7 +151,7 @@ private:
     // Get next single sound sample,
     // called in miniaudio device thread (from DataCallback)
     // GetDurationWait -> GetEdge -> OnNextSample
-    float GetNextSample(uint32_t p_samplerate, bool &out_done);
+    float GetNextSample(bool &out_done);
 
     // Callback:
     // Get duration to wait for next edge change based on what we need to do.
@@ -203,8 +203,8 @@ private:
 
 
     Event                        m_event;                   // for WaitUntilDone
-    int                          m_done         = 0;        
-    static constexpr int         m_done_event_cnt  = 10;    // see https://github.com/mackron/miniaudio/discussions/490
+    int                          m_done_cnt     = 0;        
+    static constexpr int         m_done_cnt_max = 10;       // see https://github.com/mackron/miniaudio/discussions/490
     bool                         m_edge         = false;    // output value toggles between 1/0
     Doublesec                    m_sample_time  = 0ms;      // time since last edge change
 
@@ -216,5 +216,6 @@ private:
     float                        m_volume_left  = 1.0f;     // -1.0 .. 1.0
     float                        m_volume_right = 1.0f;     // -1.0 .. 1.0
     uint32_t                     m_sample_rate  = 0;        // Set to 0 to use the device's native sample rate.
+    Doublesec                    m_sample_period;
 
 }; // class SampleSender
