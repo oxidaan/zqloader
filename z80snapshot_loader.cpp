@@ -341,7 +341,8 @@ void SnapShotLoader::MoveToTurboBlocks(TurboBlocks& p_turbo_blocks, uint16_t p_n
     Z80SnapShotHeaderToSnapShotRegs(symbols);       // fill register values into ->m_reg_block
     // copy m_reg_block directly into 48k data block
     // without the int cast below crashes (msvc)? Dunno why?
-    std::copy(m_reg_block.begin(), m_reg_block.end(), snapshot_data.begin() + int(register_code_start - z80_snapshot_offset));
+    // or put brackets around it. Else iterator is temporary out of range which asserts.
+    std::copy(m_reg_block.begin(), m_reg_block.end(), snapshot_data.begin() + (register_code_start - z80_snapshot_offset));
 
     DataBlock screenblock(snapshot_data.begin(), snapshot_data.begin() + spectrum::SCREEN_SIZE);      // split
     DataBlock payload(snapshot_data.begin() + spectrum::SCREEN_SIZE, snapshot_data.end());
@@ -354,7 +355,7 @@ void SnapShotLoader::MoveToTurboBlocks(TurboBlocks& p_turbo_blocks, uint16_t p_n
         DataBlock text_attr;
         text_attr.resize(256);
         WriteTextToAttr(text_attr, ToUpper(m_name), 0_byte, true, 0);    // 0_byte: random colors
-        std::copy(text_attr.begin(), text_attr.end(), screenblock.begin() + spectrum::ATTR_23RD - z80_snapshot_offset);
+        std::copy(text_attr.begin(), text_attr.end(), screenblock.begin() + (spectrum::ATTR_23RD - z80_snapshot_offset));
 
     }
     p_turbo_blocks.AddDataBlock(std::move(screenblock), spectrum::SCREEN_START);                     // screen
