@@ -29,21 +29,30 @@ class Pulser
     Pulser(const Pulser &)= delete;
 
 public:
-    Pulser(Doublesec p_tstate_dur) 
+    Pulser(Doublesec p_tstate_dur)
         : m_tstate_dur(p_tstate_dur)  // T-state duration in seconds
     {
     }
     Pulser(Pulser&&) = default;
     virtual ~Pulser() {}
-    virtual int GetTstate() const = 0;      // Get # TStates to wait    
     virtual Edge GetEdge() const = 0;       // What to do after wait
     virtual bool Next() = 0;                // move to next pulse/edge, return true when done.
     virtual void WriteAsTzxBlock(std::ostream& p_stream) const = 0;
-    virtual int GetDurationInTStates() const = 0;  // get expected duration
-    virtual Doublesec GetDuration() const final  // get expected duration
+    
+    virtual int GetDurationInTStates() const = 0;    // get expected total duration
+
+    // get expected total duration
+    virtual Doublesec GetDuration() const final     
     {
         return GetDurationInTStates() * m_tstate_dur;
     }
+    // Get duration to wait now
+    virtual Doublesec GetDurationWait() const final
+    {
+        return GetTstate() * m_tstate_dur;
+    }
+protected:
+    virtual int GetTstate() const = 0;      // Get # TStates to wait now   
 protected:
     unsigned m_pulsnum = 0;                         // increased after each edge
     const Doublesec m_tstate_dur;
@@ -112,7 +121,10 @@ protected:
         }
         return edge;
     }
-    int GetDurationInTStates() const override;
+    int GetDurationInTStates() const override
+    {
+        return m_duration_in_tstates;
+    }
 private:
     int m_duration_in_tstates = 0;
     Edge m_edge = Edge::no_change;
@@ -166,7 +178,11 @@ public:
         p_loader.AddPulser(std::move(*this));
     }
     void WriteAsTzxBlock(std::ostream& p_stream) const override;
-    int GetDurationInTStates() const override;
+
+    int GetDurationInTStates() const
+    {
+        return m_max_pulses * GetPatternDuration();
+    }
 private:
     void SetPattern()
     {
@@ -297,7 +313,7 @@ public:
     void WriteAsTzxBlock(std::ostream& p_stream) const override;
     int GetDurationInTStates() const override;
 protected:
-    /// Get # TStates to wait
+    /// Get # TStates to wait now
     virtual int GetTstate() const override
     {
         if (!IsPulseMode())       // not in 'pulse mode' (so normal)

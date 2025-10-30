@@ -29,11 +29,6 @@ PausePulser& PausePulser::SetLength(std::chrono::milliseconds p_duration)
     return *this;
 }
 
-int PausePulser::GetDurationInTStates() const
-{
-    return m_duration_in_tstates;
-}
-
 /// Set length in # of pulses that is # complete patterns.
 TonePulser& TonePulser::SetLength(unsigned p_max_pulses)
 {
@@ -68,10 +63,6 @@ TonePulser& TonePulser::SetLength(std::chrono::milliseconds p_duration)
     return *this;
 }
 
-int TonePulser::GetDurationInTStates() const
-{
-    return m_max_pulses * GetPatternDuration();
-}
 
 
 

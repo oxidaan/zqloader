@@ -417,6 +417,7 @@ inline void Dialog::RestoreDefaults()
     ui->lineEditBorderToggle->setText(QString::number(loader_defaults::io_xor_value & 0b00000111));
     ui->checkBoxToggleMic->setChecked(bool(loader_defaults::io_xor_value & 0b00001000));
     ui->checkBoxToggleEar->setChecked(bool(loader_defaults::io_xor_value & 0b00010000));
+    ui->checkBoxUseStandardClockForRom->setChecked(false);
     ui->horizontalSliderSpeed->setValue(0);
     try
     {
@@ -467,7 +468,7 @@ inline void Dialog::Go()
                          (ui->checkBoxToggleMic->isChecked() ? 0b00001000 : 0) |
                          (ui->checkBoxToggleEar->isChecked() ? 0b00010000 : 0) |
                           0b01000000;       // egde is always xor-ed
-          
+    m_zqloader.SetUseStandaardSpeedForRom(ui->checkBoxUseStandardClockForRom->isChecked());
           
     m_zqloader.SetIoValues( io_init_value, io_xor_value);
     m_zqloader.SetSpectrumClock(ui->lineEditClock->text().toInt());

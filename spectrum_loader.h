@@ -157,6 +157,14 @@ public:
     {
         return m_tstate_dur;
     }
+
+    // Ignore speed as set by SetTstateDuration for normal speed (=rom) loading routines
+    // Then take 3.5Mhz.
+    SpectrumLoader &SetUseStandaardSpeedForRom(bool p_to_what) 
+    {
+        m_use_standard_clock_for_rom = p_to_what;
+        return *this;
+    }
 private:
 
     // CallBack; runs in miniaudio thread
@@ -204,4 +212,5 @@ private:
     //mutable Doublesec   m_time_estimated{};
     mutable int         m_duration_in_tstates{};
     Doublesec           m_tstate_dur = spectrum::g_tstate_dur;
+    bool                m_use_standard_clock_for_rom = false;
 }; // class SpectrumLoader

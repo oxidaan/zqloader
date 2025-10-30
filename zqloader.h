@@ -91,6 +91,10 @@ public:
     /// Set clock frequency in hz
     ZQLoader& SetSpectrumClock(int p_hz);
 
+    // Ignore speed as set by SetTstateDuration for normal speed (=rom) loading routines
+    // Then take 3.5Mhz.
+    ZQLoader &SetUseStandaardSpeedForRom(bool p_to_what);
+
     /// What to do (on Run/Start):
     /// Play sound/ or write wav file/ or write tzx file.
     ZQLoader& SetAction(Action p_what);

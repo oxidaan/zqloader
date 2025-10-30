@@ -635,7 +635,11 @@ ZQLoader& ZQLoader::SetSpectrumClock(int p_spectrum_clock)
     return *this;
 }
 
-
+ZQLoader& ZQLoader::SetUseStandaardSpeedForRom(bool p_to_what)
+{
+    m_pimpl->m_spectrumloader.SetUseStandaardSpeedForRom(p_to_what);
+    return *this;
+}
 
 ZQLoader& ZQLoader::SetAction(Action p_what)
 {
