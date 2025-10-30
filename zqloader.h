@@ -157,7 +157,7 @@ public:
     ZQLoader& SetOnDone(DoneFun p_fun);
 
     ///  Get miniadio native device sample rate
-    int GetDeviceSampleRate() const;
+    uint32_t GetDeviceSampleRate() const;
 
     ///  Get path/to/zqloader.tap
     std::filesystem::path GetZqLoaderFile() const;

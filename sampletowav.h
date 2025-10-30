@@ -116,7 +116,7 @@ public:
 
 
     /// Set sample rate (hz), when not set use 48000 which is s/a miniaudio default.
-    SampleToWav& SetSampleRate(int p_sample_rate)
+    SampleToWav& SetSampleRate(unsigned p_sample_rate)
     {
         if(p_sample_rate)       // else use default
         {
@@ -225,9 +225,9 @@ private:
     CheckDoneFun     m_OnCheckDone;
     bool             m_edge        = false;                 // output value toggles between 1/0
     Doublesec        m_sample_time = 0ms;                   // time since last edge change
-//    int m_sample_rate = 44100;                            // CD standard
-//    int m_sample_rate = 70000;                            // spectrum clock 3500000/50
-    int              m_sample_rate  = 48000;                // s/a miniaudio
+//    uint32_t m_sample_rate = 44100;                       // CD standard
+//    uint32_t m_sample_rate = 70000;                       // spectrum clock 3500000/50
+    uint32_t         m_sample_rate  = 48000;                // s/a miniaudio
 
     float            m_volume_left  = 1.0f;                 // -1.0 .. 1.0
     float            m_volume_right = 1.0f;                 // -1.0 .. 1.0

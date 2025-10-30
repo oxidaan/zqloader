@@ -41,7 +41,7 @@ public:
     }
 
 protected:
-    virtual int overflow(int c) override
+    int overflow(int c) override
     {
         if (c != EOF)
         {

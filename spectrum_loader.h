@@ -64,8 +64,8 @@ public:
 
     // Ctor
     SpectrumLoader();
-    SpectrumLoader(SpectrumLoader &&);
-    SpectrumLoader & operator = (SpectrumLoader &&);
+    SpectrumLoader(SpectrumLoader &&) noexcept;
+    SpectrumLoader & operator = (SpectrumLoader &&) noexcept;
     // Dtor
     ~SpectrumLoader();   // = default;
 

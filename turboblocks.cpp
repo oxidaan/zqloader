@@ -242,7 +242,7 @@ private:
 
 
         GetHeader().m_length   = uint16_t(data->size());
-        GetHeader().m_checksum = uint8_t(CalculateChecksum(*data));
+        GetHeader().m_checksum = CalculateChecksum(*data);
         // GetHeader().m_length = uint16_t(compressed_data.size() + 2);       // @DEBUG should give ERROR
         m_data.insert(m_data.end(), data->begin(), data->end());          // append given data at m_data (after header)
 

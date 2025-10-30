@@ -19,10 +19,10 @@ if(NOT HAVE_SJSASMPLUS)
 (Will install the files that were committed in repository instead)")
     # Cant build so install the files that were committed in repository
     install(FILES
-            z80/zqloader.exp
-            z80/zqloader.tap
-            z80/snapshotregs.bin
-            DESTINATION bin
+            zqloader.exp
+            zqloader.tap
+            snapshotregs.bin
+            DESTINATION z80
             )
     return()
 else()
@@ -46,10 +46,10 @@ Eg: cmake -DPATH_TO_SJASMPLUS=path/to/sjasmplus
 (Will install the files that were committed in repository instead)")
     # Cant build so install the files that were committed in repository
     install(FILES
-            z80/zqloader.exp
-            z80/zqloader.tap
-            z80/snapshotregs.bin
-            DESTINATION bin
+            zqloader.exp
+            zqloader.tap
+            snapshotregs.bin
+            DESTINATION z80
             )
     return()
 else()
@@ -80,5 +80,5 @@ install(FILES
         ${CMAKE_CURRENT_BINARY_DIR}/zqloader.exp  
         ${CMAKE_CURRENT_BINARY_DIR}/zqloader.tap  
         ${CMAKE_CURRENT_BINARY_DIR}/snapshotregs.bin
-        DESTINATION bin
+        DESTINATION z80
         )

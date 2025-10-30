@@ -138,7 +138,7 @@ void SampleSender::data_callback(ma_device * pDevice, void* pOutput, const void*
 
 
 // static
-int SampleSender::GetDeviceSampleRate()
+uint32_t SampleSender::GetDeviceSampleRate()
 {
     SampleSender temp;
     temp.Init();

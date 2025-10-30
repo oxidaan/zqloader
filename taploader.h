@@ -33,11 +33,11 @@ public:
 
 
     /// Load a data block as in TAP format from given stream.
-    DataBlock LoadTapBlock(std::istream& p_stream);
+    static DataBlock LoadTapBlock(std::istream& p_stream);
 
     /// Load a data block as in TAP format from given stream,
     /// but not the length: length already given (when parsing TZX files)
-    DataBlock LoadTapBlock(std::istream& p_stream, int p_length);
+    static DataBlock LoadTapBlock(std::istream& p_stream, int p_length);
 
 
     /// Set callback when tapblock found.

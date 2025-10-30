@@ -14,10 +14,10 @@
 
 
 
-SpectrumLoader::SpectrumLoader()                                = default;
-SpectrumLoader::SpectrumLoader(SpectrumLoader &&)               = default;
-SpectrumLoader & SpectrumLoader::operator = (SpectrumLoader &&) = default;
-SpectrumLoader::~SpectrumLoader()                               = default;
+SpectrumLoader::SpectrumLoader()                                         = default;
+SpectrumLoader::SpectrumLoader(SpectrumLoader &&) noexcept               = default;
+SpectrumLoader & SpectrumLoader::operator = (SpectrumLoader &&) noexcept = default;
+SpectrumLoader::~SpectrumLoader()                                        = default;
 
 // Runs in miniaudio thread, typically
 inline void SpectrumLoader::StandbyToActive()

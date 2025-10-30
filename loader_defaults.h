@@ -36,7 +36,7 @@ constexpr int io_xor_value                 = 0b01000111;
 
 constexpr int volume_left                  = 100;
 constexpr int volume_right                 = 100;
-constexpr int sample_rate                  = 0;                 // 0 is device default (eg 48000hz)
+constexpr uint32_t sample_rate             = 0;                 // 0 is device default (eg 48000hz)
 
 constexpr CompressionType compression_type = CompressionType::automatic;
 

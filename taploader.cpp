@@ -19,6 +19,7 @@ namespace fs = std::filesystem;
 ///  [2 byte len] - [spectrum data incl. checksum]
 /// Includes type (first) and checksum bytes (last) in the block read.
 /// See https://sinclair.wiki.zxnet.co.uk/wiki/TAP_format
+/// static
 DataBlock TapLoader::LoadTapBlock(std::istream& p_stream)
 {
     auto len = LoadBinary< uint16_t>(p_stream);
@@ -28,6 +29,7 @@ DataBlock TapLoader::LoadTapBlock(std::istream& p_stream)
 
 /// Load a data block as in TAP format from given stream, 
 /// but not the length: length already given.
+/// static
 DataBlock TapLoader::LoadTapBlock(std::istream& p_stream, int p_len)
 {
     if (p_stream)

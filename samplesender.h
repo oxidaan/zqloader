@@ -133,7 +133,7 @@ public:
         return m_edge;
     }
 
-    static int GetDeviceSampleRate();
+    static uint32_t GetDeviceSampleRate();
 
 private:
 

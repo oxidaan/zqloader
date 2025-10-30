@@ -36,7 +36,7 @@ public:
 
     Impl()  = default;
     Impl(const Impl &) = delete;
-    Impl(Impl &&) = default;
+    Impl(Impl &&) noexcept = default;
     Impl & operator = (Impl &&) = default;
     Impl & operator = (const Impl &) = delete;
 
@@ -251,7 +251,7 @@ public:
     /// Try to find the path/to/zqloader.tap 
     /// (when p_filename has no path yet)
     /// Throws when file not found.
-    fs::path FindZqLoaderTapfile(fs::path p_filename)
+    fs::path FindZqLoaderTapfile(const fs::path &p_filename)
     {
         fs::path filename = p_filename;
         if(p_filename == p_filename.filename())     // given just zqloader.tap w/o path so try to find
@@ -313,7 +313,7 @@ private:
 
 
     // Add given normal speed file (tap/tzx) to m_spectrumloader
-    void AddNormalSpeedFile(fs::path p_filename)
+    void AddNormalSpeedFile(const fs::path &p_filename)
     {
         if(!p_filename.empty())
         {
@@ -334,7 +334,7 @@ private:
         }
     }
 
-    void AddZqLoaderFile(fs::path p_filename)
+    void AddZqLoaderFile(const fs::path &p_filename)
     {
         if(!m_is_preloaded && !m_turboblocks.IsZqLoaderAdded())
         {
@@ -350,7 +350,7 @@ A second filename argument and/or parameters are only usefull when using zqloade
         }
     }
 
-    void AddTurboSpeedFile(fs::path p_filename)
+    void AddTurboSpeedFile(const fs::path &p_filename)
     {
         AddZqLoaderFile(GetNormalFilename());
 
@@ -412,7 +412,7 @@ A second filename argument and/or parameters are only usefull when using zqloade
 
     // Add given snapshot file (z80/sna) to given TurboBlocks so uses turbo speed.
     // Finalize will already be called.
-    void AddSnapshotToTurboBlocks(fs::path p_filename)
+    void AddSnapshotToTurboBlocks(const fs::path &p_filename)
     {
         SnapShotLoader snapshotloader;
         // Read file snapshotregs.bin (created by sjasmplus) -> regblock
@@ -436,7 +436,7 @@ A second filename argument and/or parameters are only usefull when using zqloade
     // Add given file (tap/tzx) to given SpectrumLoader so uses normal speed
     // TLoader is TapLoader or TzxLoader
     template<class Tloader>
-    void AddNormalSpeedFile(fs::path p_filename, SpectrumLoader &p_spectrum_loader)
+    void AddNormalSpeedFile(const fs::path &p_filename, SpectrumLoader &p_spectrum_loader)
     {
         Tloader tap_or_tzx_loader;
         tap_or_tzx_loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string)
@@ -523,7 +523,7 @@ public:
     bool                                    m_use_fun_attribs     = false;
     int                                     m_volume_left         = loader_defaults::volume_left;
     int                                     m_volume_right        = loader_defaults::volume_right;
-    int                                     m_sample_rate         = loader_defaults::sample_rate;
+    uint32_t                                m_sample_rate         = loader_defaults::sample_rate;
     bool                                    m_allow_overwrite     = false; // see OpenFileToWrite
     fs::path                                m_normal_filename;             // usually zqloader.tap
     fs::path                                m_turbo_filename;
@@ -790,7 +790,7 @@ ZQLoader& ZQLoader::SetOnDone(DoneFun p_fun)
     return *this;
 }
 
-int ZQLoader::GetDeviceSampleRate() const
+uint32_t ZQLoader::GetDeviceSampleRate() const
 {
     return SampleSender::GetDeviceSampleRate();
 }

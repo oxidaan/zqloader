@@ -329,6 +329,8 @@ Dialog::Dialog(QWidget *parent)
 
 Dialog::~Dialog()
 {
+    // disable cout to textEditOutput
+    std::cout.rdbuf(nullptr);
     delete ui;
 }
 
