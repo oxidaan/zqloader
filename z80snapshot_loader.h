@@ -51,7 +51,7 @@ class SnapShotLoader
     // z80 v2 snapshot header
     struct Z80SnapShotHeader2
     {
-        uint16_t  length_and_version;
+        // uint16_t  length_and_version;       // extra header length exluding this value itself
         uint16_t PC_reg;
         uint8_t  hardware_mode;
         uint8_t  out_mode;
@@ -76,7 +76,10 @@ class SnapShotLoader
         uint8_t  mgt_type;
         uint8_t  inhibit_button_status;
         uint8_t  inhibit_flag_rom;
-        //uint8_t  last_out_0x1ffd;
+    };
+    struct Z80SnapShotHeader31
+    {
+        uint8_t  last_out_0x1ffd;
     };
     struct Z80SnapShotDataHeader
     {
@@ -85,9 +88,11 @@ class SnapShotLoader
     };
 #pragma pack(pop)
 
-    static_assert(sizeof(Z80SnapShotHeader) == 30, "Sizeof Z80SnapShotHeader must be 30");
-    static_assert(sizeof(Z80SnapShotHeader2) == 25, "Sizeof Z80SnapShotHeader2 must be 23");
-    static_assert(sizeof(Z80SnapShotHeader) + sizeof(Z80SnapShotHeader2) + sizeof(Z80SnapShotHeader3) == 86, "Sizeof Z80SnapShotHeaders must be 86");
+    static_assert(sizeof(Z80SnapShotHeader)  == 30,   "Sizeof Z80SnapShotHeader must be 30");
+    static_assert(sizeof(Z80SnapShotHeader2) == 23, "Sizeof Z80SnapShotHeader2 must be 23");
+    static_assert(sizeof(Z80SnapShotHeader2) + sizeof(Z80SnapShotHeader3) == 54, "Sizeof Z80SnapShotHeader2 must be 54");
+    static_assert(sizeof(Z80SnapShotHeader31) == 1, "Sizeof Z80SnapShotHeader3.1 must be 1");
+    static_assert(sizeof(Z80SnapShotHeader) + sizeof(Z80SnapShotHeader2) + sizeof(Z80SnapShotHeader3) == 84, "Sizeof Z80SnapShotHeaders must be 86");
 
 #pragma pack(push, 1)
     // https://worldofspectrum.org/faq/reference/formats.htm

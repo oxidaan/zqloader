@@ -124,7 +124,7 @@ if(MSVC)
 endif()
 
 # The console application
-add_executable(${TARGET_EXE}  ${SOURCE_EXE} ${INCLUDE} )
+add_executable(${TARGET_EXE}  ${SOURCE_EXE}  )
 target_link_libraries(${TARGET_EXE} ${TARGET_LIB})
 
 

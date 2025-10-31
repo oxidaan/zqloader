@@ -70,22 +70,34 @@ SnapShotLoader& SnapShotLoader::LoadZ80(std::istream& p_stream)
     m_mem48k.resize(48 * 1024);
     if (header.PC_reg == 0)      // v2 or v3
     {
+        auto length_and_version = LoadBinary<uint16_t>(p_stream);
         auto header2 = LoadBinary<Z80SnapShotHeader2>(p_stream);
-        if (header2.length_and_version == 23)
+        Z80SnapShotHeader3 header3{};
+        uint8_t last_out_0x1ffd{};
+        // "The value of the word at position 30 is 23 for version 2 files, and 54 or 55 for version 3"
+        if (length_and_version == 23)
         {
             std::cout << "Z80 version2 file" << std::endl;
         }
-        if (header2.length_and_version == 54 ||
-            header2.length_and_version == 55)
+        if (length_and_version == 54)
         {
             std::cout << "Z80 version3 file" << std::endl;
+            header3 = LoadBinary<Z80SnapShotHeader3>(p_stream);
         }
-        p_stream.ignore(header2.length_and_version - (sizeof(Z80SnapShotHeader2) - 2));
+        if (length_and_version == 55)
+        {
+            std::cout << "Z80 version3 file (+'last OUT to port 0x1ffd')" << std::endl;
+            header3 = LoadBinary<Z80SnapShotHeader3>(p_stream);
+            last_out_0x1ffd = LoadBinary<uint8_t>(p_stream);
+        }
+        (void)last_out_0x1ffd;
         header.PC_reg = header2.PC_reg;
+        // Read data blocks
         while (p_stream.peek() && p_stream.good())
         {
             auto data_header = LoadBinary<Z80SnapShotDataHeader>(p_stream);
             DataBlock block;
+            // "If length=0xffff, data is 16384 bytes long and not compressed"
             if (data_header.length != 0xffff)
             {
                 DataBlock cblock;

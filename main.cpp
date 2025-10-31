@@ -216,7 +216,8 @@ int main(int argc, char** argv)
                                cmdline.GetParameter("one_tstates", 0),
                                cmdline.GetParameter("end_of_byte_delay", 0));
 
-        zqloader.SetVolume(cmdline.GetParameter("volume_left", loader_defaults::volume_left),cmdline.GetParameter("volume_right", loader_defaults::volume_right));
+        zqloader.SetVolume(cmdline.GetParameter("volume_left",  loader_defaults::volume_left),
+                           cmdline.GetParameter("volume_right", loader_defaults::volume_right));
         // zqloader.SetCompressionType(CompressionType::none); // @DEBUG
 
         if(cmdline.HasParameter("usescreen") || cmdline.HasParameter("s"))
