@@ -1,11 +1,11 @@
-// ==============================================================================
+//==============================================================================
 // PROJECT:         zqloader
 // FILE:            pulsers.h
 // DESCRIPTION:     Definition and implementation for classes Pulser and friends.
 //
 // Copyright (c) 2023 Daan Scherft [Oxidaan]
 // This project uses the MIT license. See LICENSE.txt for details.
-// ==============================================================================
+//==============================================================================
 
 #pragma once
 
@@ -37,8 +37,9 @@ public:
 
 
     Pulser(Pulser&&) = default;
-    virtual ~Pulser()
+    virtual ~Pulser() 
     {}
+
     virtual Edge GetEdge() const = 0;       // What to do after wait
     virtual bool Next()          = 0;       // move to next pulse/edge, return true when done.
 

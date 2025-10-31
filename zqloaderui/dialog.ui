@@ -94,8 +94,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>802</width>
-            <height>503</height>
+            <width>800</width>
+            <height>512</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_3">
@@ -165,8 +165,8 @@ p, li { white-space: pre-wrap; }
 hr { height: 1px; border-width: 0; }
 li.unchecked::marker { content: &quot;\2610&quot;; }
 li.checked::marker { content: &quot;\2612&quot;; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Cantarell'; font-size:11pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-family:'Segoe UI'; font-size:9pt;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
             </widget>
            </item>
@@ -376,8 +376,8 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>788</width>
-            <height>605</height>
+            <width>622</width>
+            <height>528</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_421">
@@ -645,25 +645,6 @@ li.checked::marker { content: &quot;\2612&quot;; }
              </property>
             </widget>
            </item>
-           <item row="3" column="2" colspan="5">
-            <widget class="QSlider" name="horizontalSliderSpeed">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Adjust speed presets here.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="minimum">
-              <number>0</number>
-             </property>
-             <property name="maximum">
-              <number>20</number>
-             </property>
-             <property name="pageStep">
-              <number>1</number>
-             </property>
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-            </widget>
-           </item>
            <item row="8" column="1">
             <widget class="QLabel" name="label_20">
              <property name="text">
@@ -822,6 +803,25 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <item row="0" column="4" colspan="3">
             <widget class="QLineEdit" name="lineEditSampleRate"/>
            </item>
+           <item row="3" column="3" colspan="4">
+            <widget class="QSlider" name="horizontalSliderSpeed">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Adjust speed presets here.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="minimum">
+              <number>0</number>
+             </property>
+             <property name="maximum">
+              <number>20</number>
+             </property>
+             <property name="pageStep">
+              <number>1</number>
+             </property>
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
           </layout>
          </widget>
         </widget>
@@ -858,8 +858,8 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>802</width>
-            <height>503</height>
+            <width>800</width>
+            <height>512</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_4">
@@ -881,7 +881,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <item row="1" column="1">
             <widget class="QLabel" name="labelAbout">
              <property name="text">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;ZQLoader version 2.1&lt;/p&gt;&lt;p&gt;Copyright (c) 2025 Daan Scherft [Oxidaan]&lt;/p&gt;&lt;p&gt;This project uses the MIT license. See LICENSE.txt for details.&lt;/p&gt;&lt;p&gt;See: &lt;a href=&quot;https://github.com/oxidaan/zqloader&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;oxidaan/zqloader: A quick loader for the ZX Spectrum&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;p&gt;&lt;br/&gt;This project uses the miniaudio library by David Read. (See: &lt;a href=&quot;https://miniaud.io/&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;miniaudio - A single file audio playback and capture library.&lt;/span&gt;&lt;/a&gt;)&lt;/p&gt;&lt;p&gt;&lt;br/&gt;This project uses QT. (v6.4)&lt;/p&gt;&lt;p&gt;See: &lt;a href=&quot;https://www.qt.io/&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;Qt | Tools for Each Stage of Software Development Lifecycle&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:700;&quot;&gt;ZQLoader version 2.2&lt;/span&gt;&lt;/p&gt;&lt;p&gt;Copyright (c) 2025 Daan Scherft [Oxidaan]&lt;/p&gt;&lt;p&gt;This project uses the MIT license. See LICENSE.txt for details.&lt;/p&gt;&lt;p&gt;See: &lt;a href=&quot;https://github.com/oxidaan/zqloader&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;oxidaan/zqloader: A quick loader for the ZX Spectrum&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;p&gt;&lt;br/&gt;This project uses the miniaudio library by David Read.&lt;br/&gt;(See: &lt;a href=&quot;https://miniaud.io/&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;miniaudio - A single file audio playback and capture library.&lt;/span&gt;&lt;/a&gt;)&lt;/p&gt;&lt;p&gt;&lt;br/&gt;This project uses QT. (v6.4)&lt;br/&gt;(See: &lt;a href=&quot;https://www.qt.io/&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;Qt | Tools for Each Stage of Software Development Lifecycle)&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="wordWrap">
               <bool>true</bool>

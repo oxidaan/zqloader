@@ -13,10 +13,11 @@
 #include <filesystem>       // std::filesystem
 #include <iostream>
 #include "turboblocks.h"
-#include "byte_tools.h"
-#include "tools.h"
 #include "compressor.h"
-#include "z80snapshot_loader.h"     // only for WriteTextToAttr
+#include <algorithm>
+#include <cstddef>
+#include <ios>
+#include <vector>
 
 template <class TIterator>
 uint16_t Crc16(TIterator p_begin, TIterator p_end)
@@ -110,6 +111,7 @@ void TestCompressor()
 ///  "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader_test.bin"
 uint16_t Test(TurboBlocks& p_blocks, fs::path p_filename)
 {
+    (void)p_blocks;
     std::cout << "Running test... (" << p_filename << ")" << std::endl;
 #if 0
     (void)p_blocks;
@@ -357,4 +359,19 @@ uint16_t Test(TurboBlocks& p_blocks, fs::path p_filename)
         std::cout << "Edge = " << m_spectrumloader.GetLastEdge() << std::endl;
     }
 #endif
+}
+
+void Fun()
+{
+    using DataBlock = std::vector<std::byte>;
+    DataBlock snapshot_data;
+    snapshot_data.resize(48 * 1024);
+
+
+    DataBlock screenblock(snapshot_data.begin(), snapshot_data.begin() + 6 * 1024 + 768);      // split
+
+    DataBlock text_attr;
+    text_attr.resize(256);
+    std::copy(text_attr.begin(), text_attr.end(), screenblock.begin() + 16384 + 6 * 1024 + 512 - 16384);     // at debug asserts on iterator problem
+    std::copy(text_attr.begin(), text_attr.end(), screenblock.begin() + (16384 + 6 * 1024 + 512 - 16384));   // okay!
 }
