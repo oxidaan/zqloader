@@ -7,7 +7,10 @@
 // This project uses the MIT license. See LICENSE.txt for details.
 // ==============================================================================
 
+
 #pragma once
+#include "spectrum_consts.h"
+
 namespace loader_tstates
 {
 // T-states. Values depend only on z80 code. See zqloader.z80asm
@@ -15,6 +18,11 @@ constexpr int wait_for_edge_loop_duration  = 40;    // Polling loop duration
 constexpr int bit_loop_duration            = 91;    // Bit loop duration
 constexpr int byte_loop_loop_duration      = 155;   // Byte loop duration
 constexpr int end_of_byte_delay            = byte_loop_loop_duration - bit_loop_duration ;   // Byte loop duration
+#ifndef DO_COMRESS_PAIRS
+constexpr int decompression_loop           = 72;    // min 65; realistic 72; decompresion loop speed tstates/byte
+#else
+constexpr int decompression_loop           = 72+15; // decompresion loop speed tstates/byte
+#endif
 }
 
 namespace loader_defaults
@@ -40,5 +48,8 @@ constexpr uint32_t sample_rate             = 0;                 // 0 is device d
 
 constexpr CompressionType compression_type = CompressionType::automatic;
 
+constexpr int decompression_speed          = spectrum::spectrum_clock / (loader_tstates::decompression_loop * 1024);   // kb / second
+
+constexpr int ldir_speed                   = spectrum::spectrum_clock / (21 * 1024);         // 21=ldir tstates. kb / second
 
 }

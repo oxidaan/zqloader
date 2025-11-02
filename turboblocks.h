@@ -92,7 +92,7 @@ public:
 
     /// Move all added turboblocks to SpectrumLoader as given at CTOR.
     /// Call after Finalize.
-    void MoveToLoader(SpectrumLoader& p_spectrumloader);
+    void MoveToLoader(SpectrumLoader& p_spectrumloader, bool p_is_fun_attribute = false);
 
 
     /// Set durations in T states for zero and one pulses.
@@ -139,6 +139,12 @@ public:
         return *this;
     }
 
+    /// Set DeCompression speed (kb/sec).
+    TurboBlocks& SetDeCompressionSpeed(int p_kb_per_sec)
+    {
+        m_decompression_speed = p_kb_per_sec;
+        return *this;
+    }
 
 
 
@@ -191,6 +197,8 @@ private:
     // Just add given turboblock at end.
     void AddTurboBlock(TurboBlock&& p_block);
 
+    std::chrono::milliseconds EstimateHowLongSpectrumWillTakeToDecompress(const TurboBlock &p_block) const;
+
 private:
 
     DataBlock                     m_zqloader_header;               // standard zx header for zqloader
@@ -207,6 +215,7 @@ private:
     int                           m_zero_max                = loader_defaults::zero_max;            // aka ZERO_MAX sees a 'one' when waited more than this number of cycli at wait for edge
     int                           m_io_init_value           = loader_defaults::io_init_value;        // aka ONE_MAX, the wait for edge loop counter until timeout  
     int                           m_io_xor_value            = loader_defaults::io_xor_value;            // aka ZERO_MAX sees a 'one' when waited more than this number of cycli at wait for edge
+    int                           m_decompression_speed     = loader_defaults::decompression_speed;     // kb/second time spectrum needsto decompress before sending next block
 }; // class TurboBlocks
 
 

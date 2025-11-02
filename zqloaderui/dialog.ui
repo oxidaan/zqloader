@@ -376,8 +376,8 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>622</width>
-            <height>528</height>
+            <width>783</width>
+            <height>553</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_421">
@@ -396,31 +396,16 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <property name="spacing">
             <number>4</number>
            </property>
-           <item row="20" column="1">
-            <widget class="QLabel" name="label_6">
-             <property name="text">
-              <string>ZX Spectrum Clock Frequency (Hz):</string>
+           <item row="27" column="1">
+            <widget class="QCheckBox" name="checkBoxOutMic">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Should be one, see &lt;a href=&quot;https://worldofspectrum.org/faq/reference/48kreference.htm#PortFE&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;https://worldofspectrum.org/faq/reference/48kreference.htm#PortFE&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
-            </widget>
-           </item>
-           <item row="23" column="1">
-            <widget class="QLabel" name="label_23">
              <property name="text">
-              <string>Border initial color</string>
+              <string>Out MIC (bit value)</string>
              </property>
-            </widget>
-           </item>
-           <item row="12" column="1">
-            <widget class="QLabel" name="label_15">
-             <property name="text">
-              <string>Number if Cyclii before timeout:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="24" column="1">
-            <widget class="QLabel" name="label_24">
-             <property name="text">
-              <string>Border toggle value:</string>
+             <property name="checked">
+              <bool>true</bool>
              </property>
             </widget>
            </item>
@@ -431,27 +416,87 @@ li.checked::marker { content: &quot;\2612&quot;; }
              </property>
             </widget>
            </item>
-           <item row="26" column="4">
-            <widget class="QCheckBox" name="checkBoxToggleEar">
+           <item row="2" column="1" colspan="6">
+            <widget class="Line" name="line_5">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="35" column="4" colspan="3">
+            <widget class="QComboBox" name="comboBoxCompressionType">
+             <property name="currentIndex">
+              <number>0</number>
+             </property>
+             <item>
+              <property name="text">
+               <string>None</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>RLE</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Automatic</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="6" column="1">
+            <widget class="QLabel" name="label_18">
+             <property name="text">
+              <string>Wanted number of Cyclli to see a 'Zero'</string>
+             </property>
+            </widget>
+           </item>
+           <item row="34" column="1" colspan="6">
+            <widget class="Line" name="line_6">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="21" column="3" colspan="4">
+            <widget class="QCheckBox" name="checkBoxUseStandardClockForRom">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item row="25" column="1">
+            <widget class="QLabel" name="label_23">
+             <property name="text">
+              <string>Border initial color</string>
+             </property>
+            </widget>
+           </item>
+           <item row="27" column="4">
+            <widget class="QCheckBox" name="checkBoxToggleMic">
              <property name="toolTip">
               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Should be zero, see &lt;a href=&quot;https://worldofspectrum.org/faq/reference/48kreference.htm#PortFE&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;https://worldofspectrum.org/faq/reference/48kreference.htm#PortFE&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="text">
-              <string>Toggle Out EAR</string>
+              <string>Toggle Out MIC</string>
              </property>
             </widget>
            </item>
-           <item row="6" column="3" colspan="4">
-            <widget class="QLineEdit" name="lineEditWantedZeroCyclii">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Value is only used to calculate 'Zero TStates'. See below. Can be 0.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           <item row="37" column="1" colspan="2">
+            <widget class="QLabel" name="label_17">
+             <property name="text">
+              <string>When using screen hide loader with attributes:</string>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
              </property>
             </widget>
            </item>
-           <item row="8" column="3" colspan="4">
-            <widget class="QLineEdit" name="lineEditWantedOneCyclii">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Value is only used to calculate 'One TStates', see below. Must be greater than 'Zero max'.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           <item row="7" column="1">
+            <widget class="QLabel" name="label_14">
+             <property name="text">
+              <string>Maximum number of Cyclii to see a 'Zero'</string>
              </property>
             </widget>
            </item>
@@ -462,21 +507,43 @@ li.checked::marker { content: &quot;\2612&quot;; }
              </property>
             </widget>
            </item>
-           <item row="15" column="1">
-            <widget class="QLabel" name="label_8">
+           <item row="28" column="1">
+            <widget class="QCheckBox" name="checkBoxOutEar">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Should be zero, see &lt;a href=&quot;https://worldofspectrum.org/faq/reference/48kreference.htm#PortFE&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;https://worldofspectrum.org/faq/reference/48kreference.htm#PortFE&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
              <property name="text">
-              <string>End of Byte Delay (TStates):</string>
+              <string>Out EAR (bit value)</string>
              </property>
             </widget>
            </item>
-           <item row="22" column="1" colspan="6">
-            <widget class="Line" name="line_3">
+           <item row="3" column="3" colspan="4">
+            <widget class="QSlider" name="horizontalSliderSpeed">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Adjust speed presets here.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="minimum">
+              <number>0</number>
+             </property>
+             <property name="maximum">
+              <number>20</number>
+             </property>
+             <property name="pageStep">
+              <number>1</number>
+             </property>
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
              </property>
             </widget>
            </item>
-           <item row="34" column="4" colspan="2">
+           <item row="11" column="1">
+            <widget class="QLabel" name="label_13">
+             <property name="text">
+              <string>Duration of 'One', (TStates):</string>
+             </property>
+            </widget>
+           </item>
+           <item row="36" column="4" colspan="2">
             <widget class="QComboBox" name="comboBoxLoaderLocation">
              <item>
               <property name="text">
@@ -495,7 +562,123 @@ li.checked::marker { content: &quot;\2612&quot;; }
              </item>
             </widget>
            </item>
-           <item row="23" column="3" colspan="4">
+           <item row="12" column="3" colspan="4">
+            <widget class="QLineEdit" name="lineEditBitLoopMax">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The polling cyclus maximum loop counter until timeout, used at z80 code (so at Spectrum). Note: making this value larger does not affect speeds. Must be (much) greater than 'Wanted one cyclii'.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+            </widget>
+           </item>
+           <item row="8" column="3" colspan="4">
+            <widget class="QLineEdit" name="lineEditWantedOneCyclii">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Value is only used to calculate 'One TStates', see below. Must be greater than 'Zero max'.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+            </widget>
+           </item>
+           <item row="26" column="1">
+            <widget class="QLabel" name="label_24">
+             <property name="text">
+              <string>Border toggle value:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="6">
+            <widget class="QLabel" name="label_22">
+             <property name="text">
+              <string>Slow</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignRight|Qt::AlignTop|Qt::AlignTrailing</set>
+             </property>
+            </widget>
+           </item>
+           <item row="28" column="4">
+            <widget class="QCheckBox" name="checkBoxToggleEar">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Should be zero, see &lt;a href=&quot;https://worldofspectrum.org/faq/reference/48kreference.htm#PortFE&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;https://worldofspectrum.org/faq/reference/48kreference.htm#PortFE&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="text">
+              <string>Toggle Out EAR</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLabel" name="label_12">
+             <property name="text">
+              <string>Audio Sample Rate (0=device default):</string>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="10" column="3" colspan="4">
+            <widget class="QLineEdit" name="lineEditZeroTStates">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The time between edges (in TState durations) to indicate a 'zero' bit. Used by ZQLoader to generate a 'zero' bit when playing sound.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+            </widget>
+           </item>
+           <item row="8" column="1">
+            <widget class="QLabel" name="label_20">
+             <property name="text">
+              <string>Wanted number of Cycli to see a 'One'</string>
+             </property>
+            </widget>
+           </item>
+           <item row="15" column="3" colspan="4">
+            <widget class="QLineEdit" name="lineEditEndOfByteDelay">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The extra time at the end of a byte (in TState durations) (as generated by ZQLoader). &lt;/p&gt;&lt;p&gt;Should normally not be changed.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QLabel" name="label_19">
+             <property name="text">
+              <string>Speed:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="2">
+            <widget class="QLabel" name="label_21">
+             <property name="text">
+              <string>Fast</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+             </property>
+             <property name="margin">
+              <number>0</number>
+             </property>
+             <property name="indent">
+              <number>0</number>
+             </property>
+            </widget>
+           </item>
+           <item row="35" column="1" colspan="2">
+            <widget class="QLabel" name="label_9">
+             <property name="text">
+              <string>Compression Type:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="24" column="1" colspan="6">
+            <widget class="Line" name="line_3">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="37" column="4" colspan="3">
+            <widget class="QCheckBox" name="checkBoxFunAttribs">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item row="25" column="3" colspan="4">
             <widget class="QComboBox" name="comboBoxBorderColor">
              <property name="toolTip">
               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Here you can play with the border color during loading. Default uses ZX Spectrum ROM colors.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -542,6 +725,49 @@ li.checked::marker { content: &quot;\2612&quot;; }
              </item>
             </widget>
            </item>
+           <item row="38" column="1">
+            <spacer name="verticalSpacer_2">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item row="36" column="6">
+            <widget class="QLineEdit" name="lineEditLoaderAddress"/>
+           </item>
+           <item row="36" column="1" colspan="2">
+            <widget class="QLabel" name="label_16">
+             <property name="text">
+              <string>When loading snapshot put loader code at:</string>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="3" colspan="4">
+            <widget class="QLineEdit" name="lineEditWantedZeroCyclii">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Value is only used to calculate 'Zero TStates'. See below. Can be 0.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+            </widget>
+           </item>
+           <item row="20" column="3" colspan="4">
+            <widget class="QLineEdit" name="lineEditClock"/>
+           </item>
+           <item row="21" column="1" colspan="2">
+            <widget class="QLabel" name="label_25">
+             <property name="text">
+              <string>  Adjust durations for ROM loader when not 3.5MHz:</string>
+             </property>
+            </widget>
+           </item>
            <item row="7" column="2" rowspan="5">
             <widget class="QPushButton" name="pushButtonCalculate">
              <property name="sizePolicy">
@@ -558,219 +784,15 @@ li.checked::marker { content: &quot;\2612&quot;; }
              </property>
             </widget>
            </item>
-           <item row="15" column="3" colspan="4">
-            <widget class="QLineEdit" name="lineEditEndOfByteDelay">
+           <item row="26" column="3" colspan="4">
+            <widget class="QLineEdit" name="lineEditBorderToggle">
              <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The extra time at the end of a byte (in TState durations) (as generated by ZQLoader). &lt;/p&gt;&lt;p&gt;Should normally not be changed.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;You can play with the border color during loading. Default uses ZX Spectrum ROM colors. Put zero here to not change border at all.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
             </widget>
            </item>
-           <item row="26" column="1">
-            <widget class="QCheckBox" name="checkBoxOutEar">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Should be zero, see &lt;a href=&quot;https://worldofspectrum.org/faq/reference/48kreference.htm#PortFE&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;https://worldofspectrum.org/faq/reference/48kreference.htm#PortFE&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="text">
-              <string>Out EAR (bit value)</string>
-             </property>
-            </widget>
-           </item>
-           <item row="33" column="4" colspan="3">
-            <widget class="QComboBox" name="comboBoxCompressionType">
-             <property name="currentIndex">
-              <number>0</number>
-             </property>
-             <item>
-              <property name="text">
-               <string>None</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>RLE</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Automatic</string>
-              </property>
-             </item>
-            </widget>
-           </item>
-           <item row="2" column="1" colspan="6">
-            <widget class="Line" name="line_5">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-            </widget>
-           </item>
-           <item row="6" column="1">
-            <widget class="QLabel" name="label_18">
-             <property name="text">
-              <string>Wanted number of Cyclli to see a 'Zero'</string>
-             </property>
-            </widget>
-           </item>
-           <item row="34" column="6">
-            <widget class="QLineEdit" name="lineEditLoaderAddress"/>
-           </item>
-           <item row="32" column="1" colspan="6">
-            <widget class="Line" name="line_6">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-            </widget>
-           </item>
-           <item row="7" column="1">
-            <widget class="QLabel" name="label_14">
-             <property name="text">
-              <string>Maximum number of Cyclii to see a 'Zero'</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="1">
-            <widget class="QLabel" name="label_19">
-             <property name="text">
-              <string>Speed:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QLabel" name="label_12">
-             <property name="text">
-              <string>Audio Sample Rate (0=device default):</string>
-             </property>
-             <property name="wordWrap">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="8" column="1">
-            <widget class="QLabel" name="label_20">
-             <property name="text">
-              <string>Wanted number of Cycli to see a 'One'</string>
-             </property>
-            </widget>
-           </item>
-           <item row="36" column="1">
-            <spacer name="verticalSpacer_2">
-             <property name="orientation">
-              <enum>Qt::Vertical</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>20</width>
-               <height>40</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item row="10" column="3" colspan="4">
-            <widget class="QLineEdit" name="lineEditZeroTStates">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The time between edges (in TState durations) to indicate a 'zero' bit. Used by ZQLoader to generate a 'zero' bit when playing sound.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-            </widget>
-           </item>
-           <item row="25" column="1">
-            <widget class="QCheckBox" name="checkBoxOutMic">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Should be one, see &lt;a href=&quot;https://worldofspectrum.org/faq/reference/48kreference.htm#PortFE&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;https://worldofspectrum.org/faq/reference/48kreference.htm#PortFE&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="text">
-              <string>Out MIC (bit value)</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="11" column="1">
-            <widget class="QLabel" name="label_13">
-             <property name="text">
-              <string>Duration of 'One', (TStates):</string>
-             </property>
-            </widget>
-           </item>
-           <item row="25" column="4">
-            <widget class="QCheckBox" name="checkBoxToggleMic">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Should be zero, see &lt;a href=&quot;https://worldofspectrum.org/faq/reference/48kreference.htm#PortFE&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;https://worldofspectrum.org/faq/reference/48kreference.htm#PortFE&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="text">
-              <string>Toggle Out MIC</string>
-             </property>
-            </widget>
-           </item>
-           <item row="34" column="1" colspan="2">
-            <widget class="QLabel" name="label_16">
-             <property name="text">
-              <string>When loading snapshot put loader code at:</string>
-             </property>
-             <property name="wordWrap">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="35" column="1" colspan="2">
-            <widget class="QLabel" name="label_17">
-             <property name="text">
-              <string>When using screen hide loader with attributes:</string>
-             </property>
-             <property name="wordWrap">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="20" column="3" colspan="4">
-            <widget class="QLineEdit" name="lineEditClock"/>
-           </item>
-           <item row="12" column="3" colspan="4">
-            <widget class="QLineEdit" name="lineEditBitLoopMax">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The polling cyclus maximum loop counter until timeout, used at z80 code (so at Spectrum). Note: making this value larger does not affect speeds. Must be (much) greater than 'Wanted one cyclii'.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-            </widget>
-           </item>
-           <item row="33" column="1" colspan="2">
-            <widget class="QLabel" name="label_9">
-             <property name="text">
-              <string>Compression Type:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="35" column="4" colspan="3">
-            <widget class="QCheckBox" name="checkBoxFunAttribs">
-             <property name="text">
-              <string/>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="6">
-            <widget class="QLabel" name="label_22">
-             <property name="text">
-              <string>Slow</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignRight|Qt::AlignTop|Qt::AlignTrailing</set>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="2">
-            <widget class="QLabel" name="label_21">
-             <property name="text">
-              <string>Fast</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-             </property>
-             <property name="margin">
-              <number>0</number>
-             </property>
-             <property name="indent">
-              <number>0</number>
-             </property>
-            </widget>
+           <item row="0" column="4" colspan="3">
+            <widget class="QLineEdit" name="lineEditSampleRate"/>
            </item>
            <item row="11" column="3" colspan="4">
             <widget class="QLineEdit" name="lineEditOneTStates">
@@ -779,46 +801,38 @@ li.checked::marker { content: &quot;\2612&quot;; }
              </property>
             </widget>
            </item>
-           <item row="24" column="3" colspan="4">
-            <widget class="QLineEdit" name="lineEditBorderToggle">
+           <item row="22" column="4" colspan="3">
+            <widget class="QLineEdit" name="lineEditDeCompressionSpeed">
              <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;You can play with the border color during loading. Default uses ZX Spectrum ROM colors. Put zero here to not change border at all.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;After loading a block, the ZX-Spectrum needs some time to decompress (before it can accept a new block). The value here determines the decompression speed in kb/sec. And thus how long ZQLoader will wait after a block. Default is an estimed value found by just trying.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
             </widget>
            </item>
-           <item row="21" column="3" colspan="4">
-            <widget class="QCheckBox" name="checkBoxUseStandardClockForRom">
+           <item row="22" column="1" colspan="2">
+            <widget class="QLabel" name="label_26">
              <property name="text">
-              <string/>
+              <string>De-compression algorithm speed (kb/sec):</string>
              </property>
             </widget>
            </item>
-           <item row="21" column="1" colspan="2">
-            <widget class="QLabel" name="label_25">
+           <item row="20" column="1" colspan="2">
+            <widget class="QLabel" name="label_6">
              <property name="text">
-              <string>  Adjust durations for ROM loader when not 3.5MHz:</string>
+              <string>ZX Spectrum Clock Frequency (Hz):</string>
              </property>
             </widget>
            </item>
-           <item row="0" column="4" colspan="3">
-            <widget class="QLineEdit" name="lineEditSampleRate"/>
+           <item row="15" column="1" colspan="2">
+            <widget class="QLabel" name="label_8">
+             <property name="text">
+              <string>End of Byte Delay (TStates):</string>
+             </property>
+            </widget>
            </item>
-           <item row="3" column="3" colspan="4">
-            <widget class="QSlider" name="horizontalSliderSpeed">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Adjust speed presets here.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="minimum">
-              <number>0</number>
-             </property>
-             <property name="maximum">
-              <number>20</number>
-             </property>
-             <property name="pageStep">
-              <number>1</number>
-             </property>
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+           <item row="12" column="1" colspan="2">
+            <widget class="QLabel" name="label_15">
+             <property name="text">
+              <string>Number if Cyclii before timeout:</string>
              </property>
             </widget>
            </item>
@@ -858,8 +872,8 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>800</width>
-            <height>512</height>
+            <width>98</width>
+            <height>792</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_4">
@@ -951,7 +965,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
   <tabstop>lineEditEndOfByteDelay</tabstop>
   <tabstop>lineEditClock</tabstop>
   <tabstop>checkBoxUseStandardClockForRom</tabstop>
-  <tabstop>pushButtonCalculate</tabstop>
+  <tabstop>lineEditDeCompressionSpeed</tabstop>
   <tabstop>comboBoxBorderColor</tabstop>
   <tabstop>lineEditBorderToggle</tabstop>
   <tabstop>checkBoxOutMic</tabstop>
@@ -968,6 +982,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
   <tabstop>scrollArea_2</tabstop>
   <tabstop>tabWidget</tabstop>
   <tabstop>textEditOutput</tabstop>
+  <tabstop>pushButtonCalculate</tabstop>
  </tabstops>
  <resources/>
  <connections/>

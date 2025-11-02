@@ -17,6 +17,7 @@
 
 // Must match value at compressor.h:
 //    DEFINE DO_COMRESS_PAIRS
+//    DEFINE BANKSWITCH128       
 
 
     DEVICE ZXSPECTRUM48
@@ -40,6 +41,11 @@ SCREEN_END              EQU 16384+6*1024
 //----------------------------------------------------------------------------
 CLEAR                   EQU TOTAL_END + 256   // CLEAR used at basic below. Eg horace (H.spiders: 24575)   min:24290
 STACK_SIZE              EQU 10          // estimated size of stack this code needs
+ IFDEF BANKSWITCH128
+UPPER_TOP               EQU 0xC000-1    // last used location after loader code copied to upper region.
+ ELSE
+UPPER_TOP               EQU 0xFFFF      // last used location after loader code copied to upper region.
+ ENDIF
 //----------------------------------------------------------------------------
 LEADER_MIN_EDGES        EQU 200         // Minimum edges a leader need to have to be accepted
 
@@ -51,7 +57,6 @@ SYNC_MIN                EQU 4
 
 ONE_MAX                 EQU 12          // max cycles a 1 should take, else timeout error (can be overwritten at c++ at BIT_LOOP_MAX)
 ZERO_MAX                EQU 3           // max #INS to see a 'zero' (else 'one') (can be overwritten at c++ at BIT_ONE_THESHLD; (BIT_ONE_THESHLD=ONE_MAX-ZERO_MAX)
-
 
 //----------------------------------------------------------------------------
 
@@ -166,6 +171,7 @@ next_block:
     // Note: removed initializing edge at IN. Not really needed.
 IO_INIT_VALUE+*: ld C, 0b00001010 // ear zero border red 010 <-> 101 cyan + also set mic (and/or ear)
                                   // initialize c with result: 0E001010 see WAIT_FOR_EDGE #2
+                                  // TODO set bit 7? ***7)
 IO_XOR_VALUE+*: ld H, 0b01000111 // The C xor value, see WAIT_FOR_EDGE #3 so toggles border bits + last edge
                                 // so border xors between 010 (red) and 101 (cyan)
     ld E, 0b01000000            // EAR mask value after IN
@@ -187,9 +193,9 @@ IO_XOR_VALUE+*: ld H, 0b01000111 // The C xor value, see WAIT_FOR_EDGE #3 so tog
 
 load_ok:
     ld DE, (m_clear_address)    // clear address(SP) 
-    push DE                     // #PP3 check later. might get lost when header overwritten (can only be last block)
+    push DE                     // #PP3 check later. might get lost when header overwritten (can only be at last block)
     ld DE, (m_usr_start_address)// just loaded last block last/start address
-    push DE                     // #PP4 check later. might get lost when header overwritten (can only be last block)
+    push DE                     // #PP4 check later. might get lost when header overwritten (can only be at last block)
     ld DE, (m_dest_address)     // destination address to copy/uncomress to
     ld A,D                      // check dest address is zero skip copy or decompressing
     or E
@@ -234,6 +240,10 @@ copy_done:
     jp z, COPY_ME               // when H = 2 (TurboBlocks::CopyLoader) copy me, then to next block (at new location)
     dec A
     jr z, END_TO_BASIC          // when H = 3 (TurboBlocks::ReturnToBasic) so last block but do not start MC, return to BASIC.
+ IFDEF BANKSWITCH128
+    dec A
+    jr z, BANKSWITCH
+ ENDIF
     // TODO can add ZXSpectrem 128 bankswitching here.
     // -- When here: --
     // -- HL is start address as in RANDOMIZE USR xxxxx --
@@ -274,7 +284,13 @@ END_TO_BASIC:
     ei                          // #di1
     ret    
 
-
+ IFDEF BANKSWITCH128
+BANKSWITCH:
+     ld      A, (m_bank_to_switch)
+     ld      BC,0x7ffd
+     out     (C),A
+     jr      next_block
+ ENDIF    
 
 
 //============================================================================
@@ -311,10 +327,10 @@ DECOMPRESS
     ld (DE), A                  // normal write
     inc DE
 .nextloop    
-    djnz  .beginloop            // decs B
+    djnz  .beginloop            // decs B !DO_COMRESS_PAIRS: 65 TSTates/byte else 80 TSTates/byte
     ex AF, AF'                  // when here B = LSB counter is 0
     dec A                       // dec MSB counter
-    jr z, decompress_done      // counter also 0? then done was: ret 
+    jr z, decompress_done       // counter also 0? then done was: ret 
     ex AF, AF'
     jr .beginloop               // can not use jp. Code can be moved!
  IFDEF DO_COMRESS_PAIRS
@@ -346,7 +362,7 @@ DECOMPRESS
 .loop    
     ld (DE), A
     inc DE
-    djnz .loop
+    djnz .loop                  // 26T states/byte
     pop BC
     
     inc HL
@@ -372,7 +388,7 @@ ASM_CONTROL_CODE_LEN EQU ASM_CONTROL_CODE_END - ASM_CONTROL_CODE_START
 
 ASM_UPPER_START_OFFSET:
 
-    DISP  0xffff - (ASM_UPPER_LEN - 1)
+    DISP  UPPER_TOP - (ASM_UPPER_LEN - 1)
 
 
 ASM_UPPER_START
@@ -381,7 +397,7 @@ ASM_UPPER_START
 
 // Print bit7-terminated string
 // Note: needs to be at upper to have a fixed address that can be used by call. 
-// (after moving loader!)
+// (for after moving loader!)
 // DE: address of string
 PRINT:
 .loop    
@@ -558,7 +574,7 @@ wait_for_first_edge:
 // B: timer count down at WAIT_FOR_EDGE
 // C: to check changes at last IN ; border color. Will be xored with H. 0E001001 <-> 0e001110
 // D: ONE_MAX, used to to quickly put in B (init value for timer count down)
-// E: EAR mask value after IN (to keep EAR)
+// E: EAR mask value after IN (to keep EAR) (0b01000000)
 // A: temporary storage
 //
 // eg ONE_MAX (12#) -> D = 12 , ZERO_MAX(3) -> E = 12-3 = 9
@@ -587,7 +603,8 @@ BIT_LOOP_MAX+*:     ld D, ONE_MAX               // eg 12 can also be set from C+
 .wait_for_edge_loop2:           // wait-loop: 43T
     dec B                       // Dec. cycle count (carry not touched) 43 since in
     ret z                       // 5/11T t/o, note carry still not set    (c=0 z=1)
-    // ld A,$7F 	            // Maybe not needed (dont need keyboard). Read from port 0xddFE, read EAR. 49 + 16 since prev. IN is 59 
+    // ld A,$7F 	            // Maybe not needed (dont need keyboard). Read from port 0x7FFE, read EAR. 49 + 16 since prev. IN is 59 
+    // ld A, C                  // TODO to avoid Contended Input must have C ***7)
     in A,($FE)                  // bit 6 is ear
     xor C                       // detect change at ear (also reset carry)
     and E                       // E=mask to keep ear 
@@ -649,7 +666,7 @@ wait_for_edge_loop1:
     dec B                       // Dec. cycle count (carry not touched) 43 since in
     ret z                       // 5/11T t/o, note carry still not set    (c=0 z=1)
 WAIT_FOR_EDGE:        
-    //ld A,$7F 	                // Maybe not needed. Read from port 0x7FFE, read BREAK and EAR. 49 + 16 since prev. IN is 59 
+    //ld A,$7F 	                // Maybe not needed. Read from port 0x7FFE, read EAR. 49 + 16 since prev. IN is 59 
     in A,($FE)                  // bit 0 is !BREAK, bit 6 is ear
     xor C                       // detect change at ear (also reset carry)
     and 0b01000000              // mask ear 
@@ -677,8 +694,10 @@ m_load_address       DW 0
 m_dest_address       DW 0
 m_compression_type   DB 0
 m_checksum           DB 0
-m_usr_start_address  DW 0
-m_clear_address      DW 0
+m_usr_start_address
+m_after_block        DW 0
+m_clear_address
+m_bank_to_switch     DW 0
 m_code_for_most      DB 0
 m_decompress_counter DW 0
 m_code_for_multiples DB 0
@@ -699,7 +718,7 @@ HEADER_LEN equ HEADER_END - HEADER
 // ===========================================================================
     
 
-ASM_UPPER_END       // must be 0xffff+1
+ASM_UPPER_END       // must be UPPER_TOP+1
 ASM_UPPER_LEN EQU ASM_UPPER_END - ASM_UPPER_START
     
     ENT         // DISP

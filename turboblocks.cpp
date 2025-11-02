@@ -56,7 +56,11 @@ public:
         // When ReturnToBasic end & return to basic, do not start MC.
         // Else start MC code here as USR. Then this must be last block.
 
-        uint16_t   m_clear_address = 0;     // 10-11 CLEAR (SP address)
+        union
+        {  
+            uint16_t   m_clear_address = 0;     // 10-11 CLEAR (SP address)
+            uint16_t   m_bank_to_switch;        // 10-11 bank to switch to (Zx Spectrum 128)
+        };
 
         uint8_t    m_code_for_most;         // the value that occurs least, will be used to trigger RLE for 'most'
         uint16_t   m_decompress_counter;
@@ -155,7 +159,7 @@ private:
     /// (This makes the current block the last block)
     /// As if RANDOMIZE USR xxxxx thus starting machine code.
     /// Can also be AfterBlock::ReturnToBasic
-    /// s/a conflicts with SetAfterBlockDo
+    /// shares union with SetAfterBlockDo
     TurboBlock& SetUsrStartAddress(uint16_t p_address)
     {
         GetHeader().m_usr_start_address = p_address;
@@ -167,7 +171,7 @@ private:
     /// AfterBlock::LoadNext: load next block (this is the default)
     /// AfterBlock::CopyLoader: the loader code need to be copied (to make space) after loading this block, then load next.
     /// AfterBlock::ReturnToBasic: Return to basic (so this is last block)
-    /// s/a conflicts with SetUsrStartAddress
+    /// shares union with SetUsrStartAddress
     TurboBlock& SetAfterBlockDo(TurboBlocks::AfterBlock p_what)
     {
         GetHeader().m_after_block = p_what;
@@ -289,14 +293,6 @@ private:
     void MoveToLoader(TLoader& p_loader, std::chrono::milliseconds p_pause_before, int p_zero_duration, int p_one_duration, int p_end_of_byte_delay)
     {
         Check();
-        if(!ProbablyIsFunAttribute())   // avoid excessive logging
-        {
-            if(p_pause_before > 0ms)
-            {
-                std::cout << "Pause before = " << p_pause_before.count() << "ms" << std::endl;
-            }
-            DebugDump();
-        }
 
         if(p_pause_before > 0ms)
         {
@@ -347,25 +343,7 @@ private:
     }
 
 
-    // After loading a compressed block ZX spectrum needs some time to
-    // decompress before it can accept next block. Will wait this long after sending block.
-    std::chrono::milliseconds EstimateHowLongSpectrumWillTakeToDecompress() const
-    {
-        if (GetHeader().m_dest_address == 0)
-        {
-            return 10ms;        // nothing done. Yeah checksum check, end check etc. 10ms should be enough.
-        }
-        if (GetHeader().m_compression_type == CompressionType::rle)
-        {
-#ifdef DO_COMRESS_PAIRS
-            return m_data_size * 100ms / 4000;      // eg 0.33 sec/10kb? Just tried.
-#else
-            return m_data_size * 100ms / 5000;      // eg 0.33 sec/10kb? Just tried.
-#endif
 
-        }
-        return m_data_size * 100ms / 20000;      // LDIR eg 0.05 sec/10kb? whatever.
-    }
 
 
     // Set a flag indicating this block overwrites our zqloader code at upper memory.
@@ -386,19 +364,15 @@ private:
         return m_data;
     }
 
-    // To avoid extensive logging 
-    bool ProbablyIsFunAttribute() const
-    {
-        return (m_data_size == 256 && GetDestAddress() == spectrum::ATTR_23RD) ||
-               (m_data_size == 768 && GetDestAddress() == spectrum::ATTR_BEGIN);
-
-    }
-
 
     TurboBlock& DebugDump(int p_max = 0) const
     {
-        std::cout << GetHeader() << std::endl;
         auto dest = GetDestAddress();
+        if(m_data_size == spectrum::SCREEN_SIZE && dest == spectrum::SCREEN_START)
+        {
+            std::cout << "Screen: ";
+        }
+        std::cout << GetHeader() << std::endl;
         if (dest)
         {
             std::cout << "Orig. data length = " << m_data_size << "\n";
@@ -407,6 +381,7 @@ private:
             std::cout << "Last byte written address = " << (dest + m_data_size - 1) << "\n";
         }
         std::cout << std::endl;
+        // optionally dump some data
         for (int n = 0; (n < m_data.size()) && (n < p_max); n++)
         {
             if (n % 32 == 0 || (n == sizeof(Header)))
@@ -629,6 +604,7 @@ TurboBlocks& TurboBlocks::AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr
         // puts it at BASIC buffer
         m_upper_block->SetOverwritesLoader(m_symbols.GetSymbol("ASM_UPPER_START_OFFSET"), loader_upper_len);
         m_upper_block->SetData(block_upper, m_compression_type);
+        // TODO add 3rd block here for 128K mode
     }
     else
     {
@@ -825,19 +801,29 @@ TurboBlocks &TurboBlocks::Finalize(uint16_t p_usr_address, uint16_t p_clear_addr
 /// Move all earlier added turboblocks inluding zqloader (as normal block)
 /// to given SpectrumLoader.
 /// no-op when there are no blocks.
-void TurboBlocks::MoveToLoader(SpectrumLoader& p_spectrumloader)
+void TurboBlocks::MoveToLoader(SpectrumLoader& p_spectrumloader, bool p_is_fun_attribute)
 {
     std::chrono::milliseconds pause_before = 0ms;
     if(IsZqLoaderAdded())        // else probably already preloaded
     {
-        p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_header), spectrum::g_tstate_quick_zero, 1750ms);
-        p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_code),   spectrum::g_tstate_quick_zero, 1500ms);
+        p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_header), spectrum::tstate_quick_zero, 1750ms);
+        p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_code),   spectrum::tstate_quick_zero, 1500ms);
         p_spectrumloader.AddPause(100ms); // time needed to start our loader after loading itself (basic!)
     }
 
+    int cnt = 1;
     for (auto& tblock : m_turbo_blocks)
     {
-        auto next_pause = tblock.EstimateHowLongSpectrumWillTakeToDecompress(); // b4 because moved
+        auto next_pause = EstimateHowLongSpectrumWillTakeToDecompress(tblock); // b4 because moved
+        if(!p_is_fun_attribute)
+        {
+            std::cout << "Block #" << cnt++ << std::endl;
+            if(pause_before > 0ms)
+            {
+                std::cout << "Pause before = " << pause_before.count() << "ms" << std::endl;
+            }
+            tblock.DebugDump();
+        }
         std::move(tblock).MoveToLoader(p_spectrumloader, pause_before, m_zero_duration, m_one_duration, m_end_of_byte_delay);
         pause_before = next_pause;
     }
@@ -954,7 +940,25 @@ TurboBlocks &TurboBlocks::SetDurations(int p_zero_duration, int p_one_duration, 
     {
         m_end_of_byte_delay = p_end_of_byte_delay;
     }
-    std::cout << "Around " << (1000ms / spectrum::g_tstate_dur) / ((m_zero_duration + m_one_duration) / 2) << " bps" << std::endl;
+    std::cout << "Around " << (1000ms / spectrum::tstate_dur) / ((m_zero_duration + m_one_duration) / 2) << " bps" << std::endl;
     return *this;
 }
 
+
+// After loading a compressed block ZX spectrum needs some time to
+// decompress before it can accept next block. Will wait this long after sending block.
+std::chrono::milliseconds TurboBlocks::EstimateHowLongSpectrumWillTakeToDecompress(const TurboBlock &p_block) const
+{
+    if (p_block.GetHeader().m_dest_address == 0)
+    {
+        return 10ms;        // nothing done. Yeah checksum check, end check etc. 10ms should be enough.
+    }
+    if (p_block.GetHeader().m_compression_type == CompressionType::rle)
+    {
+        std::cout << "*Old value: " << (p_block.m_data_size * 100ms / 5000).count() << std::endl; 
+        std::cout << "*New value: " << (10ms + 1ms * ((p_block.m_data_size * 1000) / (1024 * m_decompression_speed))).count() << std::endl;
+        return 10ms + 1ms * ((p_block.m_data_size * 1000) / (1024 * m_decompression_speed));
+    }
+    // Uses ldir
+    return 10ms + 1ms * ((p_block.m_data_size * 1000)/ (1024 * loader_defaults::ldir_speed));
+}

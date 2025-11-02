@@ -16,7 +16,9 @@
 // That size improvement is largely, if not entirely, undone because the decompression is now slower,
 // also zqloader.tap (which is loaded at normal speed!) becomes larger.
 // When changing also change same at file zqloader.z80asm!
-// #define DO_COMRESS_PAIRS
+#ifdef DO_COMRESS_PAIRS
+#pragma message("Compiling with compressing algorithm: compress pairs")    
+#endif
 
 #include <optional>         // std::optional
 #include <iostream>         // cout

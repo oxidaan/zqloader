@@ -88,6 +88,9 @@ public:
     /// Set compression used: none/rle/automatic.
     ZQLoader& SetCompressionType(CompressionType p_compression_type);
 
+    /// Set DeCompression speed (kb/sec)
+    ZQLoader& SetDeCompressionSpeed(int p_kb_per_sec);
+
     /// Set clock frequency in hz
     ZQLoader& SetSpectrumClock(int p_hz);
 
@@ -134,6 +137,7 @@ public:
     /// Play a infinite leader tone for tuning.
     ZQLoader &PlayleaderTone();
 
+    /// Only used for fun attributes
     ZQLoader &AddDataBlock(DataBlock p_block, uint16_t p_start_address);
 
     /// Time at end so actual time needed once done.

@@ -132,11 +132,13 @@ Dialog::Dialog(QWidget *parent)
             // preload->cancel preload, open this dialog -> cancel ->  preload->cancel preload -> open this dialog:
             // https://stackoverflow.com/questions/31983412/code-freezes-on-trying-to-open-qdialog
             // 9 years old issue still not solved???
-            dialog.setOption(QFileDialog::DontUseNativeDialog, true);
+            // No same issue as see comment at DTOR ~SampleSender
+            // dialog.setOption(QFileDialog::DontUseNativeDialog, true);
             dialog.setAcceptMode(p_mode == QFileDialog::ExistingFiles ? QFileDialog::AcceptOpen :  QFileDialog::AcceptSave);
             if(dialog.exec() == QDialog::Accepted)
             {
-                p_edit->setText(dialog.selectedFiles().first());
+                auto filename = QDir::toNativeSeparators(dialog.selectedFiles().first());   // else wrong slashes in Windows
+                p_edit->setText(filename);
                 QFileInfo fileInfo(dialog.selectedFiles().first()); 
                 settings.setValue("dialog_directory", fileInfo.absolutePath());
             }
@@ -401,6 +403,7 @@ inline void Dialog::RestoreDefaults()
         
 
     ui->comboBoxCompressionType->setCurrentIndex(int(loader_defaults::compression_type));
+    ui->lineEditDeCompressionSpeed->setText(QString::number(loader_defaults::decompression_speed));
     ui->comboBoxLoaderLocation->setCurrentIndex(1);     // automatic.
     ui->lineEditLoaderAddress->setText(QString::number(spectrum::SCREEN_23RD));
 
@@ -410,7 +413,7 @@ inline void Dialog::RestoreDefaults()
     ui->lineEditVolumeRight->setText(QString::number(loader_defaults::volume_right));
     ui->dialVolumeRight->setValue(loader_defaults::volume_right);
 
-    ui->lineEditClock->setText(QString::number(spectrum::g_spectrum_clock));
+    ui->lineEditClock->setText(QString::number(spectrum::spectrum_clock));
 
     ui->comboBoxBorderColor->setCurrentIndex(loader_defaults::io_init_value & 0b00000111);
     ui->checkBoxOutMic->setChecked(bool(loader_defaults::io_init_value & 0b00001000));
@@ -475,6 +478,7 @@ inline void Dialog::Go()
     m_zqloader.SetIoValues( io_init_value, io_xor_value);
     m_zqloader.SetSpectrumClock(ui->lineEditClock->text().toInt());
     m_zqloader.SetCompressionType(CompressionType(ui->comboBoxCompressionType->currentIndex()));                                    
+    m_zqloader.SetDeCompressionSpeed(ui->lineEditDeCompressionSpeed->text().toInt());
 
     if(ui->comboBoxLoaderLocation->currentIndex() == 0)
     {

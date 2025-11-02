@@ -33,8 +33,8 @@ inline void SpectrumLoader::StandbyToActive()
 /// Convenience: add ZX Spectrum standard leader.
 SpectrumLoader& SpectrumLoader::AddLeader(std::chrono::milliseconds p_duration)
 {
-    TonePulser(m_use_standard_clock_for_rom ? spectrum::g_tstate_dur : GetTstateDuration()).
-        SetPattern(spectrum::g_tstate_leader).
+    TonePulser(m_use_standard_clock_for_rom ? spectrum::tstate_dur : GetTstateDuration()).
+        SetPattern(spectrum::tstate_leader).
         SetLength(p_duration).
         MoveToLoader(*this);
     return *this;
@@ -45,8 +45,8 @@ SpectrumLoader& SpectrumLoader::AddLeader(std::chrono::milliseconds p_duration)
 /// Convenience: add ZX Spectrum standard leader that goes on forever: for tuning.
 SpectrumLoader& SpectrumLoader::AddEndlessLeader()
 {
-    TonePulser(m_use_standard_clock_for_rom ? spectrum::g_tstate_dur : GetTstateDuration()).
-        SetPattern(spectrum::g_tstate_leader).
+    TonePulser(m_use_standard_clock_for_rom ? spectrum::tstate_dur : GetTstateDuration()).
+        SetPattern(spectrum::tstate_leader).
         SetInfiniteLength().
         MoveToLoader(*this);
     return *this;
@@ -58,8 +58,8 @@ SpectrumLoader& SpectrumLoader::AddEndlessLeader()
 /// https://worldofspectrum.org/faq/reference/48kreference.htm
 SpectrumLoader& SpectrumLoader::AddSync()
 {
-    TonePulser(m_use_standard_clock_for_rom ? spectrum::g_tstate_dur : GetTstateDuration()).
-        SetPattern(spectrum::g_tstate_sync1, spectrum::g_tstate_sync2).
+    TonePulser(m_use_standard_clock_for_rom ? spectrum::tstate_dur : GetTstateDuration()).
+        SetPattern(spectrum::tstate_sync1, spectrum::tstate_sync2).
         MoveToLoader(*this);
     return *this;
 }
@@ -70,7 +70,7 @@ SpectrumLoader& SpectrumLoader::AddSync()
 /// This is raw data so should already include startbyte + checksum
 SpectrumLoader& SpectrumLoader::AddData(DataBlock p_data, int p_pulslen)
 {
-    DataPulser(m_use_standard_clock_for_rom ? spectrum::g_tstate_dur : GetTstateDuration()).
+    DataPulser(m_use_standard_clock_for_rom ? spectrum::tstate_dur : GetTstateDuration()).
         SetZeroPattern(p_pulslen, p_pulslen).                   //  eg 855, 855
         SetOnePattern(2 * p_pulslen, 2 * p_pulslen).            //  eg 1710, 1710
         SetData(std::move(p_data)).
@@ -83,7 +83,7 @@ SpectrumLoader& SpectrumLoader::AddData(DataBlock p_data, int p_pulslen)
 /// Convenience: add ZX Spectrum standard pause (eg before 2nd leader)
 SpectrumLoader& SpectrumLoader::AddPause(std::chrono::milliseconds p_duration)
 {
-    PausePulser(m_use_standard_clock_for_rom ? spectrum::g_tstate_dur : GetTstateDuration()).
+    PausePulser(m_use_standard_clock_for_rom ? spectrum::tstate_dur : GetTstateDuration()).
         SetLength(p_duration).
         MoveToLoader(*this);
     return *this;

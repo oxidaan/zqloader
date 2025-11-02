@@ -189,10 +189,11 @@ public:
         }
     }
 
+    /// Only used for fun attributs
     void AddDataBlock(DataBlock p_block, uint16_t p_start_address)
     {
         m_turboblocks.AddDataBlock(std::move(p_block), p_start_address);
-        m_turboblocks.MoveToLoader(m_spectrumloader);
+        m_turboblocks.MoveToLoader(m_spectrumloader, true);
     }
 
 
@@ -226,7 +227,7 @@ public:
     {
         m_is_zqloader = true;
         AddZqLoaderFile(GetNormalFilename());
-        m_turboblocks.MoveToLoader(m_spectrumloader);
+        m_turboblocks.MoveToLoader(m_spectrumloader, true);
         m_is_preloaded = true;
     }
 
@@ -441,7 +442,7 @@ A second filename argument and/or parameters are only usefull when using zqloade
         Tloader tap_or_tzx_loader;
         tap_or_tzx_loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string)
                                               {
-                                                  p_spectrum_loader.AddLeaderPlusData(std::move(p_block), spectrum::g_tstate_quick_zero, 1750ms); // .AddPause(100ms);
+                                                  p_spectrum_loader.AddLeaderPlusData(std::move(p_block), spectrum::tstate_quick_zero, 1750ms); // .AddPause(100ms);
                                                   return false;
                                               }
                                               );
@@ -628,6 +629,14 @@ ZQLoader& ZQLoader::SetCompressionType(CompressionType p_compression_type)
     m_pimpl->m_turboblocks.SetCompressionType(p_compression_type);
     return *this;
 }
+
+ZQLoader& ZQLoader::SetDeCompressionSpeed(int p_kb_per_sec)
+{
+    m_pimpl->m_turboblocks.SetDeCompressionSpeed(p_kb_per_sec);
+    return *this;
+}
+
+
 
 ZQLoader& ZQLoader::SetSpectrumClock(int p_spectrum_clock)
 {

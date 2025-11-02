@@ -94,14 +94,14 @@ public:
 
     /// Convenience: add ZX Spectrum standard data block.
     /// This is raw data so should already include startbyte + checksum
-    SpectrumLoader& AddData(DataBlock p_data, int p_pulslen = spectrum::g_tstate_zero);
+    SpectrumLoader& AddData(DataBlock p_data, int p_pulslen = spectrum::tstate_zero);
 
     /// Convenience: add ZX Spectrum standard pause (eg before 2nd leader)
     SpectrumLoader& AddPause(std::chrono::milliseconds p_duration = 500ms);
 
     /// Convenience: add ZX Spectrum standard leader+sync+data block.
     /// This is raw data which (should) already include startbyte + checksum
-    SpectrumLoader& AddLeaderPlusData(DataBlock p_data, int p_pulslen = spectrum::g_tstate_zero, std::chrono::milliseconds p_leader_duration = 3000ms)
+    SpectrumLoader& AddLeaderPlusData(DataBlock p_data, int p_pulslen = spectrum::tstate_zero, std::chrono::milliseconds p_leader_duration = 3000ms)
     {
         return AddLeader(p_leader_duration).AddSync().AddData(std::move(p_data), p_pulslen);
     }
@@ -211,6 +211,6 @@ private:
     DoneFun             m_OnDone;
     //mutable Doublesec   m_time_estimated{};
     mutable int         m_duration_in_tstates{};
-    Doublesec           m_tstate_dur = spectrum::g_tstate_dur;
+    Doublesec           m_tstate_dur = spectrum::tstate_dur;
     bool                m_use_standard_clock_for_rom = false;
 }; // class SpectrumLoader
