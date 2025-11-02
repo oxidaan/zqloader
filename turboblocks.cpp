@@ -955,8 +955,6 @@ std::chrono::milliseconds TurboBlocks::EstimateHowLongSpectrumWillTakeToDecompre
     }
     if (p_block.GetHeader().m_compression_type == CompressionType::rle)
     {
-        std::cout << "*Old value: " << (p_block.m_data_size * 100ms / 5000).count() << std::endl; 
-        std::cout << "*New value: " << (10ms + 1ms * ((p_block.m_data_size * 1000) / (1024 * m_decompression_speed))).count() << std::endl;
         return 10ms + 1ms * ((p_block.m_data_size * 1000) / (1024 * m_decompression_speed));
     }
     // Uses ldir

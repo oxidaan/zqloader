@@ -833,7 +833,7 @@ bool ZQLoader::WriteTextToAttr(DataBlock& out_attr, const std::string& p_text, s
 void ZQLoader::Version()
 {
     std::cout << 1 + &*R"(
-ZQLoader version 2.2
+ZQLoader version 2.2.1
 Copyright (c) 2025 Daan Scherft [Oxidaan].
 https://github.com/oxidaan/zqloader
 This project uses the MIT license. See LICENSE.txt for details.
