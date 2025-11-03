@@ -520,15 +520,15 @@ inline void Dialog::Save() const
 }
 
 // Save all line edits + dialog position to given settings
-inline void Dialog::Write(QSettings& settings, const QObject *p_for_what) const
+inline void Dialog::Write(QSettings& p_settings, const QObject *p_for_what) const
 {
     {
         // save dialogs (that is only main dialog)
         auto for_what = dynamic_cast<const QDialog*>(p_for_what);
         if (for_what)
         {
-            settings.setValue("pos", pos());
-            settings.setValue("size", size());
+            p_settings.setValue("pos", pos());
+            p_settings.setValue("size", size());
         }
     }
     {
@@ -536,7 +536,7 @@ inline void Dialog::Write(QSettings& settings, const QObject *p_for_what) const
         auto for_what = dynamic_cast<const QLineEdit*>(p_for_what);
         if (for_what)
         {
-            settings.setValue(for_what->objectName(), for_what->text());
+            p_settings.setValue(for_what->objectName(), for_what->text());
         }
     }
     {
@@ -544,7 +544,7 @@ inline void Dialog::Write(QSettings& settings, const QObject *p_for_what) const
         auto for_what = dynamic_cast<const QComboBox*>(p_for_what);
         if (for_what)
         {
-            settings.setValue(for_what->objectName(), for_what->currentIndex());
+            p_settings.setValue(for_what->objectName(), for_what->currentIndex());
         }
     }
     {
@@ -552,7 +552,7 @@ inline void Dialog::Write(QSettings& settings, const QObject *p_for_what) const
         auto for_what = dynamic_cast<const QSlider*>(p_for_what);
         if (for_what)
         {
-            settings.setValue(for_what->objectName(), for_what->value());
+            p_settings.setValue(for_what->objectName(), for_what->value());
         }
     }
     {
@@ -560,12 +560,12 @@ inline void Dialog::Write(QSettings& settings, const QObject *p_for_what) const
         auto for_what = dynamic_cast<const QCheckBox*>(p_for_what);
         if (for_what)
         {
-            settings.setValue(for_what->objectName(), for_what->isChecked());
+            p_settings.setValue(for_what->objectName(), for_what->isChecked());
         }
     }
     for(const QObject* child : p_for_what->children())
     {
-        Write(settings, child);        // recusive
+        Write(p_settings, child);        // recusive
     }
 }
 
@@ -589,18 +589,18 @@ inline void Dialog::Load()
 
 /// Read all line edits + dialog position from given settings
 /// returns false when any of them fails.
-inline bool Dialog::Read(QSettings& settings, QObject *p_for_what)
+inline bool Dialog::Read(QSettings& p_settings, QObject *p_for_what)
 {
     {
         // load dialogs (that is only main dialog)
         auto for_what = dynamic_cast<QDialog*>(p_for_what);
         if (for_what)
         {
-            QVariant value = settings.value("pos");
+            QVariant value = p_settings.value("pos");
             if (!value.isNull())
             {
-                for_what->move(settings.value("pos").toPoint());
-                for_what->resize(settings.value("size").toSize());
+                for_what->move(p_settings.value("pos").toPoint());
+                for_what->resize(p_settings.value("size").toSize());
             }
             else
             {
@@ -613,7 +613,7 @@ inline bool Dialog::Read(QSettings& settings, QObject *p_for_what)
         auto for_what = dynamic_cast<QLineEdit*>(p_for_what);
         if (for_what)
         {
-            QVariant value = settings.value(for_what->objectName());
+            QVariant value = p_settings.value(for_what->objectName());
             if(!value.isNull())
             {
                 for_what->setText(value.toString());
@@ -629,7 +629,7 @@ inline bool Dialog::Read(QSettings& settings, QObject *p_for_what)
         auto for_what = dynamic_cast<QComboBox*>(p_for_what);
         if (for_what)
         {
-            QVariant value = settings.value(for_what->objectName());
+            QVariant value = p_settings.value(for_what->objectName());
             if(!value.isNull())
             {
                 for_what->setCurrentIndex(value.toInt());
@@ -645,7 +645,7 @@ inline bool Dialog::Read(QSettings& settings, QObject *p_for_what)
         auto for_what = dynamic_cast<QSlider*>(p_for_what);
         if (for_what)
         {
-            QVariant value = settings.value(for_what->objectName());
+            QVariant value = p_settings.value(for_what->objectName());
             if(!value.isNull())
             {
                 for_what->setValue(value.toInt());
@@ -661,7 +661,7 @@ inline bool Dialog::Read(QSettings& settings, QObject *p_for_what)
         auto for_what = dynamic_cast<QCheckBox*>(p_for_what);
         if (for_what)
         {
-            QVariant value = settings.value(for_what->objectName());
+            QVariant value = p_settings.value(for_what->objectName());
             if(!value.isNull())
             {
                 for_what->setChecked(value.toBool());
@@ -674,7 +674,7 @@ inline bool Dialog::Read(QSettings& settings, QObject *p_for_what)
     }
     for(QObject* child: p_for_what->children())
     {
-        if(!Read(settings, child))        // recusive
+        if(!Read(p_settings, child))        // recusive
         {
             return false;
         }
@@ -728,14 +728,14 @@ inline void Dialog::CalculateLoaderParametersFromSlider(int p_index )
 //  (*) because the zero edges are shorter than the loop length.
 inline void Dialog::CalculateLoaderParameters(double p_wanted_zero_cyclii, int p_zero_max, double p_wanted_one_cyclii, bool p_special_case )
 {
-    if(p_wanted_zero_cyclii < 1)
+    if(p_wanted_zero_cyclii < 1.0)
     {
         // Cannot be zero (one IN needed at least)
-        p_wanted_zero_cyclii = 1;
+        p_wanted_zero_cyclii = 1.0;
     }
     if(p_zero_max <= p_wanted_zero_cyclii)
     {
-        p_zero_max = p_wanted_zero_cyclii + 1;
+        p_zero_max = int(p_wanted_zero_cyclii + 1.0);
         //throw std::runtime_error("'zero_max' must be bigger than 'Wanted zero cyclii' + 1 so bigger than: " + std::to_string(int(wanted_zero_cyclii) + 1));
     }
     if(p_wanted_one_cyclii <= p_zero_max)

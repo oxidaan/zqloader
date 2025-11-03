@@ -43,7 +43,6 @@ public:
     ///  Initialize with argc and argv taken from main.
     CommandLine(int argc, char** argv) noexcept
     {
-        std::string s;
         for (int n = 0; n < argc; n++)
         {
             m_args.push_back(std::string(argv[n]));
@@ -80,7 +79,7 @@ public:
     
     /// Get value of given named commandine parameter overload for const char *.
     /// Return given default when not found.
-    std::string GetParameter(std::string_view p_param, const char* p_default) noexcept
+    std::string GetParameter(std::string_view p_param, const char* p_default) const noexcept
     {
         auto opt = TryGetParameter(p_param);
         if (opt.has_value())
@@ -93,7 +92,7 @@ public:
     /// Get value of given named commandine parameter as TData.
     /// Return given default when not found.
     template <class TData>
-    TData GetParameter(std::string_view p_param, TData p_default) noexcept
+    TData GetParameter(std::string_view p_param, TData p_default) const noexcept
     {
         auto opt = TryGetParameter<TData>(p_param);
         if (opt.has_value())

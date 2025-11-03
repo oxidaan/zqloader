@@ -52,10 +52,10 @@ public:
 
     /// CTORs
     TurboBlocks() ;
-    TurboBlocks(TurboBlocks &&);
+    TurboBlocks(TurboBlocks &&) noexcept;
     TurboBlocks(const TurboBlocks &) = delete;
 
-    TurboBlocks & operator = (TurboBlocks &&);
+    TurboBlocks & operator = (TurboBlocks &&) noexcept;
     TurboBlocks & operator = (const TurboBlocks &) = delete;
 
     /// DTOR

@@ -146,7 +146,7 @@ private:
 
     // Get next sound samples,
     // called in miniaudio device thread
-    void DataCallback(ma_device* pDevice, void* pOutput, uint32_t frameCount);
+    void DataCallback(ma_device* p_device, void* out_data, uint32_t p_frame_count);
 
     // Get next single sound sample,
     // called in miniaudio device thread (from DataCallback)
@@ -216,6 +216,6 @@ private:
     float                        m_volume_left  = 1.0f;     // -1.0 .. 1.0
     float                        m_volume_right = 1.0f;     // -1.0 .. 1.0
     uint32_t                     m_sample_rate  = 0;        // Set to 0 to use the device's native sample rate.
-    Doublesec                    m_sample_period;
+    Doublesec                    m_sample_period{};
 
 }; // class SampleSender

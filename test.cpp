@@ -72,8 +72,8 @@ void DumpBlock(const DataBlock &p_block)
 
 void TestCompressor()
 {
-    Compressor<DataBlock> c;
-    Compressor<DataBlock>::RLE_Meta rle;
+    using Compressor = Compressor<DataBlock>;
+    Compressor::RLE_Meta rle{};
     DataBlock block;
     for(int n = 0; n < 8; n++)
     {
@@ -95,8 +95,8 @@ void TestCompressor()
     }
 
     uint16_t decompress_counter;
-    DataBlock compressed = c.Compress(block, rle, decompress_counter);
-    DataBlock decompressed = c.DeCompress(compressed, rle);
+    DataBlock compressed = Compressor::Compress(block, rle, decompress_counter);
+    DataBlock decompressed = Compressor::DeCompress(compressed, rle);
     std::cout << "Orginal size = " << block.size()  << ' ' << 
                 "Compressed size = " << compressed.size() << ' ' << 
                 ((decompressed == block) ? "OK" : "NOK") << std::endl;
@@ -109,7 +109,7 @@ void TestCompressor()
 
 /// returns USR (MC code start) address to go to after loading is done (0 = return to basic)
 ///  "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader.tap" "C:\Projects\Visual Studio\Projects\zqloader\z80\zqloader_test.bin"
-uint16_t Test(TurboBlocks& p_blocks, fs::path p_filename)
+uint16_t Test(TurboBlocks& p_blocks, const fs::path &p_filename)
 {
     (void)p_blocks;
     std::cout << "Running test... (" << p_filename << ")" << std::endl;

@@ -12,7 +12,6 @@
 
 #include "zqloader.h"
 #include "tools.h"
-#include "zqloader.h"
 #include "spectrum_loader.h"
 #include "taploader.h"
 #include "tzxloader.h"
@@ -252,7 +251,7 @@ public:
     /// Try to find the path/to/zqloader.tap 
     /// (when p_filename has no path yet)
     /// Throws when file not found.
-    fs::path FindZqLoaderTapfile(const fs::path &p_filename)
+    fs::path FindZqLoaderTapfile(const fs::path &p_filename) const
     {
         fs::path filename = p_filename;
         if(p_filename == p_filename.filename())     // given just zqloader.tap w/o path so try to find
@@ -289,7 +288,7 @@ public:
     }
     void Test()
     {
-        extern uint16_t Test(TurboBlocks & p_blocks, fs::path p_filename);
+        extern uint16_t Test(TurboBlocks & p_blocks, const fs::path &p_filename);
         auto adr = Test(m_turboblocks, "");
         m_turboblocks.Finalize(adr).MoveToLoader(m_spectrumloader);
     }
@@ -298,7 +297,7 @@ private:
 
 
 
-    std::ofstream OpenFileToWrite(fs::path p_filename, bool p_allow_overwrite)
+    static std::ofstream OpenFileToWrite(const fs::path &p_filename, bool p_allow_overwrite)
     {
         if (!p_allow_overwrite && std::filesystem::exists(p_filename))
         {
@@ -376,7 +375,7 @@ A second filename argument and/or parameters are only usefull when using zqloade
                  p_filename == "testdata")
         {
             // reserved for Test
-            extern uint16_t Test(TurboBlocks & p_blocks, fs::path p_filename);
+            extern uint16_t Test(TurboBlocks & p_blocks, const fs::path &p_filename);
             auto adr = Test(m_turboblocks, p_filename);
             m_turboblocks.Finalize(adr);
         }

@@ -458,11 +458,12 @@ private:
             p_compression_type == CompressionType::automatic)
         {
             DataBlock compressed_data;
-            Compressor<DataBlock> compressor;
+            using Compressor = Compressor<DataBlock>;
+            //Compressor<DataBlock> compressor;
 
 
             // Compress. Also to check size
-            auto try_compressed_data = compressor.CompressInline(p_data, out_rle_meta, out_decompress_counter, p_tries);
+            auto try_compressed_data = Compressor::CompressInline(p_data, out_rle_meta, out_decompress_counter, p_tries);
             if (!try_compressed_data)
             {
                 // failed to compress inline
@@ -481,8 +482,7 @@ private:
 
             // @DEBUG
             {
-                Compressor<DataBlock> compressor;
-                DataBlock decompressed_data = compressor.DeCompress(compressed_data, out_rle_meta);
+                DataBlock decompressed_data = Compressor::DeCompress(compressed_data, out_rle_meta);
                 if (decompressed_data != p_data)
                 {
                     throw std::runtime_error("Compression algorithm error!");
@@ -521,9 +521,9 @@ private:
 
 
 
-TurboBlocks::TurboBlocks()                             = default;
-TurboBlocks::TurboBlocks(TurboBlocks &&)               = default;
-TurboBlocks & TurboBlocks::operator = (TurboBlocks &&) = default;
+TurboBlocks::TurboBlocks()                                      = default;
+TurboBlocks::TurboBlocks(TurboBlocks &&) noexcept               = default;
+TurboBlocks & TurboBlocks::operator = (TurboBlocks &&) noexcept = default;
 
 
 /// Take an export file name that will be used to load symbols.
@@ -958,5 +958,5 @@ std::chrono::milliseconds TurboBlocks::EstimateHowLongSpectrumWillTakeToDecompre
         return 10ms + 1ms * ((p_block.m_data_size * 1000) / (1024 * m_decompression_speed));
     }
     // Uses ldir
-    return 10ms + 1ms * ((p_block.m_data_size * 1000)/ (1024 * loader_defaults::ldir_speed));
+    return 10ms + 1ms * ((p_block.m_data_size * 1000)/ (1024 * loader_tstates::ldir_speed));
 }

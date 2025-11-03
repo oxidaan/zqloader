@@ -19,14 +19,14 @@ SampleSender& SampleSender::operator = (SampleSender&&) noexcept = default;
 
 
 
-SampleSender::~SampleSender()
+SampleSender::~SampleSender() noexcept
 {
     if (m_device)
     {
         Stop();
         // Some weird COM error/bug causes QT's clipboard to stop working when this is done in
         // QT's main thread. (ChatGpt hint). Whatever. (Was not needed for ma_device_init)
-        // Also cause open file dialog problems.
+        // Also causes open file QDialog problems.
         // Hence the std::thread here.
         std::thread t([this]{
         ma_device_uninit(m_device.get());

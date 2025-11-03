@@ -92,7 +92,7 @@ public:
     ZQLoader& SetDeCompressionSpeed(int p_kb_per_sec);
 
     /// Set clock frequency in hz
-    ZQLoader& SetSpectrumClock(int p_hz);
+    ZQLoader& SetSpectrumClock(int p_spectrum_clock);
 
     // Ignore speed as set by SetTstateDuration for normal speed (=rom) loading routines
     // Then take 3.5Mhz.

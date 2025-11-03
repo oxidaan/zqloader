@@ -39,13 +39,13 @@ public:
         Cancelled                   // Playing was cancelled
     };
     Dialog(QWidget *parent = nullptr);
-    ~Dialog();
+    ~Dialog() override;
 private:
     void Go();
     void Load();
     void Save() const;
-    bool Read(QSettings& settings, QObject *p_parent);
-    void Write(QSettings& settings, const QObject *p_parent) const;
+    bool Read(QSettings& p_settings, QObject *p_for_what);
+    void Write(QSettings& p_settings, const QObject *p_for_what) const;
     void UpdateUI();
 
     void SetState(State p_state);

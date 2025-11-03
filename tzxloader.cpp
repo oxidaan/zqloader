@@ -108,7 +108,7 @@ struct GeneralizedDataBlock
                (sizeof(SymDef) + npd * sizeof(WORD)) * asd +
                p_size_of_data;
     }
-    std::ostream &operator << (std::ostream &&p_stream)
+    std::ostream &operator << (std::ostream &p_stream) const
     {
         p_stream << "block_length = " << block_length
                  << "pause = " << pause 
@@ -348,8 +348,7 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
 
 bool TzxLoader::HandleTapBlock(std::istream& p_stream, std::string p_zxfilename, int p_length)
 {
-    TapLoader taploader;
-    auto block = taploader.LoadTapBlock(p_stream, p_length);
+    auto block = TapLoader::LoadTapBlock(p_stream, p_length);
     if (m_OnHandleTapBlock)
     {
         return m_OnHandleTapBlock(std::move(block), std::move(p_zxfilename));

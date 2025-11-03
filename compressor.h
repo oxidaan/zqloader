@@ -23,6 +23,7 @@
 #include <optional>         // std::optional
 #include <iostream>         // cout
 #include <algorithm>        // std::sort
+#include <vector>
 #include "byte_tools.h"
 
 

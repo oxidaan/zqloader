@@ -26,7 +26,7 @@ constexpr uint16_t SCREEN_SIZE = 6 * 1024 + 768;
 constexpr uint16_t PROG = 23755;      // *usual* start of basic. s/a PRINT PEEK(23635) + 256 * PEEK(23636)
 
 
-constexpr int spectrum_clock = 3500000;                         // 3.5 MHz clock speed of the ZX spectrum   
+constexpr int spectrum_clock = 3500000;                       // 3.5 MHz clock speed of the ZX spectrum
 constexpr Doublesec tstate_dur = 1s / double(spectrum_clock); // Tstate duration as std::duration in seconds
 
 

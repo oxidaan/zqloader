@@ -23,6 +23,7 @@ constexpr int decompression_loop           = 72;    // min 65; realistic 72; dec
 #else
 constexpr int decompression_loop           = 72+15; // decompresion loop speed tstates/byte
 #endif
+constexpr int ldir_speed                   = spectrum::spectrum_clock / (21 * 1024);         // 21=ldir tstates. kb / second
 }
 
 namespace loader_defaults
@@ -50,6 +51,5 @@ constexpr CompressionType compression_type = CompressionType::automatic;
 
 constexpr int decompression_speed          = spectrum::spectrum_clock / (loader_tstates::decompression_loop * 1024);   // kb / second
 
-constexpr int ldir_speed                   = spectrum::spectrum_clock / (21 * 1024);         // 21=ldir tstates. kb / second
 
 }

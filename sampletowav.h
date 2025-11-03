@@ -99,7 +99,7 @@ public:
     SampleToWav& Run();
 
     /// Run; then write stored buffer to given WAV file.
-    SampleToWav& WriteToFile(std::ostream &p_file);
+    SampleToWav& WriteToFile(std::ostream &p_stream);
 
     /// Set volume. When negative basically inverts. 100 is max.
     SampleToWav& SetVolume(int p_volume_left, int p_volume_right)
