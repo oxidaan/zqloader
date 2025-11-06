@@ -320,7 +320,7 @@ uint16_t Test(TurboBlocks& p_blocks, const fs::path &p_filename)
     }
     std::cout << "Size = " << block.size() << std::endl;
     //  TurboBlocks tblocks(p_loader_length, CompressionType::none);
-    p_blocks.AddDataBlock(std::move(block), uint16_t(16384));
+    p_blocks.AddMemoryBlock({std::move(block), uint16_t(16384)});
     //  p_blocks.MoveToLoader(spectrumloader);
     return 0;
 #endif

@@ -11,6 +11,7 @@
 
 
 #include "datablock.h"
+#include "memoryblock.h"
 #include "symbols.h"         // Symbols member
 #include <memory>            // std::unique_ptr
 #include <iostream>
@@ -74,17 +75,9 @@ public:
     /// Get # turbo blocks added
     size_t size() const;
 
-    /// Add given Datablock as Turboblock at given address.
-    /// Check if zqloader (upper) is overlapped.
-    /// Check if zqloader (lower, at basic) is overlapped.
-    TurboBlocks& AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr);
+    /// Add given MemoryBlock.
+    TurboBlocks& AddMemoryBlock(MemoryBlock&& p_block);
 
-
-    /// Convenience. Add a Datablock as Turboblock at given symbol name address (see class Symbols).
-    TurboBlocks& AddDataBlock(DataBlock&& p_block, const std::string& p_symbol)
-    {
-        return AddDataBlock(std::move(p_block), m_symbols.GetSymbol(p_symbol));
-    }
 
     /// p_usr_address: when done loading all blocks end start machine code here as in RANDOMIZE USR xxxx
     /// p_clear_address: when done loading put stack pointer here, which is a bit like CLEAR xxxx
@@ -139,7 +132,7 @@ public:
         return *this;
     }
 
-    /// Set DeCompression speed (kb/sec).
+    /// Set DeCompression speed (kb/sec). Determines how long to wait after block.
     TurboBlocks& SetDeCompressionSpeed(int p_kb_per_sec)
     {
         m_decompression_speed = p_kb_per_sec;
@@ -171,7 +164,7 @@ public:
     // Length needed when loader code needs to be moved away from BASIC location
     uint16_t GetLoaderCodeLength(bool p_with_registers) const;
    
-    TurboBlocks&SetSymbolFilename(const std::filesystem::path &p_symbol_file_name);
+    TurboBlocks& SetSymbolFilename(const std::filesystem::path &p_symbol_file_name);
 private:
 
 
@@ -191,11 +184,12 @@ private:
     void SetDataToZqLoaderTap(const char* p_name, std::byte p_value);
 
 
-    // Add given datablock with given start address
-    void AddTurboBlock(DataBlock&& p_block, uint16_t p_dest_address);
+    // Add given MemoryBlock as turbo block
+    // So convert to TurboBlock.
+    void AddTurboBlock(MemoryBlock&& p_block);
 
     // Just add given turboblock at end.
-    void AddTurboBlock(TurboBlock&& p_block);
+   // void AddTurboBlock(TurboBlock&& p_block);
 
     std::chrono::milliseconds EstimateHowLongSpectrumWillTakeToDecompress(const TurboBlock &p_block) const;
 
@@ -203,8 +197,9 @@ private:
 
     DataBlock                     m_zqloader_header;               // standard zx header for zqloader
     DataBlock                     m_zqloader_code;                 // block with entire code for zqloader
+    MemoryBlocks                  m_memory_blocks;
     std::vector<TurboBlock>       m_turbo_blocks;                  // turbo blocks to load
-    std::unique_ptr<TurboBlock>   m_upper_block;                   // when a block is found that overlaps our loader (nullptr when not) must be loaded last
+    //std::unique_ptr<TurboBlock>   m_upper_block;                   // when a block is found that overlaps our loader (nullptr when not) must be loaded last
     uint16_t                      m_loader_copy_start = 0;         // start of free space were our loader can be copied to, begins with stack, then Control code copied from basic
     CompressionType               m_compression_type        = loader_defaults::compression_type;
     Symbols                       m_symbols;                       // named symbols as read from EXP file
@@ -220,10 +215,4 @@ private:
 
 
 
-// Do 2 blocks overlap?
-template <class T1, class T2, class T3, class T4>
-static bool Overlaps(T1 p_start, T2 p_end, T3 p_start2, T4 p_end2)
-{
-    return (int(p_end) > int(p_start2)) && (int(p_start) < int(p_end2));
-}
 

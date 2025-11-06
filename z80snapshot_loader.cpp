@@ -370,9 +370,9 @@ void SnapShotLoader::MoveToTurboBlocks(TurboBlocks& p_turbo_blocks, uint16_t p_n
         std::copy(text_attr.begin(), text_attr.end(), screenblock.begin() + (spectrum::ATTR_23RD - z80_snapshot_offset));
 
     }
-    p_turbo_blocks.AddDataBlock(std::move(screenblock), spectrum::SCREEN_START);                     // screen
+    p_turbo_blocks.AddMemoryBlock({std::move(screenblock), spectrum::SCREEN_START});                     // screen
     p_turbo_blocks.SetLoaderCopyTarget(p_new_loader_location);
-    p_turbo_blocks.AddDataBlock(std::move(payload), spectrum::SCREEN_START + spectrum::SCREEN_SIZE); // rest
+    p_turbo_blocks.AddMemoryBlock({std::move(payload), spectrum::SCREEN_START + spectrum::SCREEN_SIZE}); // rest
     // This puts startaddress at where registers are restored, thus starting the snapshot.
     m_usr = register_code_start;
 }

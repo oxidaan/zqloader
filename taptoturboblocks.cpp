@@ -58,7 +58,7 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, const std::string &p_zx
                              m_loadcodes[m_codecount] : // taking address from last unused LOAD "" CODE XXXXX as found in basic
                              m_last_header.GetStartAddress();
 
-            m_tblocks.AddDataBlock(std::move(block), start_adr);
+            m_tblocks.AddMemoryBlock({std::move(block), start_adr});
             m_codecount++;
         }
         else if (m_last_header.m_type == TapeHeader::Type::basic_program)

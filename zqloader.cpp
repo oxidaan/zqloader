@@ -191,7 +191,7 @@ public:
     /// Only used for fun attributs
     void AddDataBlock(DataBlock p_block, uint16_t p_start_address)
     {
-        m_turboblocks.AddDataBlock(std::move(p_block), p_start_address);
+        m_turboblocks.AddMemoryBlock({std::move(p_block), p_start_address});
         m_turboblocks.MoveToLoader(m_spectrumloader, true);
     }
 

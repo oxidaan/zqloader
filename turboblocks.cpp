@@ -57,7 +57,7 @@ public:
         // Else start MC code here as USR. Then this must be last block.
 
         union
-        {  
+        {
             uint16_t   m_clear_address = 0;     // 10-11 CLEAR (SP address)
             uint16_t   m_bank_to_switch;        // 10-11 bank to switch to (Zx Spectrum 128)
         };
@@ -189,6 +189,7 @@ private:
 
     // See https://wikiti.brandonw.net/index.php?title=Z80_Optimization#Looping_with_16_bit_counter
     // 'Looping with 16 bit counter'
+    // For decompression.
     static uint16_t Adjust16bitCounterForUseWithDjnz(uint16_t p_counter)
     {
         uint8_t b        = p_counter & 0xff;        // lsb - used at djnz 'ld b, e'
@@ -296,12 +297,10 @@ private:
 
         if(p_pause_before > 0ms)
         {
-            PausePulser(p_loader.GetTstateDuration()).SetLength(p_pause_before).MoveToLoader(p_loader);                 // pause before
+            PausePulser(p_loader.GetTstateDuration()).SetLength(p_pause_before).MoveToLoader(p_loader);           // pause before
         }
-        TonePulser(p_loader.GetTstateDuration()).SetPattern(500, 500).SetLength(200ms).MoveToLoader(p_loader);      // leader
-//        TonePulser().SetPattern(500).SetLength(200ms).MoveToLoader(p_loader);         // (same) leader
-        TonePulser(p_loader.GetTstateDuration()).SetPattern(250).SetLength(1).MoveToLoader(p_loader);             // sync
-//        PausePulser().SetLength(250).SetEdge(Edge::toggle).MoveToLoader(p_loader);      // sync (same)
+        TonePulser(p_loader.GetTstateDuration()).SetPattern(500).SetLength(200ms).MoveToLoader(p_loader);         // leader
+        PausePulser(p_loader.GetTstateDuration()).SetLength(250).SetEdge(Edge::toggle).MoveToLoader(p_loader);    // sync
 
         const auto &data = GetData();
         DataBlock header(data.begin(), data.begin() + sizeof(Header));      // split (eg for minisync)
@@ -345,7 +344,7 @@ private:
 
 
 
-
+    /*
     // Set a flag indicating this block overwrites our zqloader code at upper memory.
     // Need to load it elsewhere first, then copy to final location. Cannot load anything after that.
     // Adjusts loadaddress and dest address accordingly.
@@ -356,8 +355,12 @@ private:
         SetDestAddress(0xffff - (p_loader_upper_length - 1));
         return *this;
     }
-
-
+    */
+    TurboBlock& SetOverwritesLoader()
+    {
+        m_overwrites_loader = true;
+        return *this;
+    }
     // Get prepared data.
     const DataBlock &GetData() const
     {
@@ -543,7 +546,7 @@ TurboBlocks& TurboBlocks::SetSymbolFilename(const fs::path& p_symbol_file_name)
 
 TurboBlocks::~TurboBlocks() = default;
 
-/// Add given tap file at normal speed, must be zqloader.tap.
+/// Add zqloader.tap file (normal speed).
 /// Patches zqloader.tap eg BIT_LOOP_MAX etc.
 /// Also loads symbol file (has same base name).
 TurboBlocks& TurboBlocks::AddZqLoader(const fs::path& p_filename)
@@ -568,9 +571,20 @@ TurboBlocks& TurboBlocks::AddZqLoader(const fs::path& p_filename)
 /// Get # turbo blocks added
 size_t TurboBlocks::size() const
 {
-    return m_turbo_blocks.size() + (m_upper_block != nullptr);
+    return m_turbo_blocks.size(); //+ (m_upper_block != nullptr);
 }
 
+
+
+TurboBlocks& TurboBlocks::AddMemoryBlock(MemoryBlock&& p_block)
+{
+    m_memory_blocks.push_back(std::move(p_block));
+    return *this;
+}
+
+
+
+#if 0
 /// Add given Datablock as TurboBlock at given address.
 /// Check if zqloader (upper) is overlapped.
 /// Check if zqloader (lower, at basic) is overlapped.
@@ -592,7 +606,8 @@ TurboBlocks& TurboBlocks::AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr
         int size_before = int(loader_upper_start) - int(p_start_adr);
         if (size_before > 0)
         {
-            data_block = DataBlock(p_block.begin(), p_block.begin() + size_before);   // the lower part, truncate
+            DataBlock before;
+            before = DataBlock(p_block.begin(), p_block.begin() + size_before);   // the lower part, truncate
             end_adr    = p_start_adr + size_before;
         }
         DataBlock block_upper(p_block.begin() + size_before, p_block.end());  // part overwriting loader *must* be loaded last
@@ -614,9 +629,10 @@ TurboBlocks& TurboBlocks::AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr
     // block overwrites our (not yet moved) loader code at the BASIC rem (CLEAR) statement
     // SCREEN_END + 768 + 256 is an estimate of PROG; (256 is printerbuffer)
     auto prog = spectrum::PROG;   // spectrum::SCREEN_END + 768 + 256;
-    if ( m_loader_copy_start == 0 && Overlaps(p_start_adr, end_adr, prog, m_symbols.GetSymbol("CLEAR")))
+    if ( m_loader_copy_start == 0 && OverLapsLoaderAtBasic(p_block, p_start_adr))
     {
         // set m_loader_copy_start to copy loader to m_copy_me_start_location
+        // Note: at snapshots is probably already set.
         m_loader_copy_start = spectrum::SCREEN_23RD;       // default when not set otherwise
         std::cout << "Block overlaps loader at BASIC (=" << prog << ", " << m_symbols.GetSymbol("CLEAR") <<
             "). Will copy loader to screen at " <<
@@ -648,7 +664,7 @@ TurboBlocks& TurboBlocks::AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr
         }
         if (size_before <= 0 && size_after <= 0)
         {
-            // asume this is a snapshot/register block
+            // asume this is a snapshot/register block - allow overwrite.
             AddTurboBlock(std::move(data_block), p_start_adr);
         }
     }
@@ -658,6 +674,7 @@ TurboBlocks& TurboBlocks::AddDataBlock(DataBlock&& p_block, uint16_t p_start_adr
     }
     return *this;
 }
+#endif
 
 
 
@@ -676,31 +693,37 @@ TurboBlocks& TurboBlocks::CopyLoaderToScreen(uint16_t p_value)
 // private
 // Add given datablock as turbo block at given start address
 // to end of list of turboblocks
-void TurboBlocks::AddTurboBlock(DataBlock&& p_block, uint16_t p_dest_address)
+void TurboBlocks::AddTurboBlock(MemoryBlock&& p_block)
 {
     if(m_turbo_blocks.size() == 0)
     {
-        // when first block overlaps loader at basic, add an empty block before it
+        // when first block overlaps loader *at basic*, add an empty block before it
         // will get SetCopyLoader (like CopyLoaderToScreen)
-        if (Overlaps(p_dest_address, p_dest_address + p_block.size(), spectrum::PROG, m_symbols.GetSymbol("CLEAR")))
+        // (note: this can not be a screen)
+        if (Overlaps(p_block, spectrum::PROG, m_symbols.GetSymbol("CLEAR")))
         {
-            TurboBlock tblock;
+            TurboBlock tblock;      // empty
             m_turbo_blocks.push_back(std::move(tblock));
         }
     }
     TurboBlock tblock;
-    tblock.SetDestAddress(p_dest_address);
-    tblock.SetData(std::move(p_block), m_compression_type);
+    tblock.SetDestAddress(p_block.m_address);
+    tblock.SetData(std::move(p_block.m_datablock), m_compression_type);
     m_turbo_blocks.push_back(std::move(tblock));
 }
 
 
 
 // Just add given turboblock at end
-void TurboBlocks::AddTurboBlock(TurboBlock&& p_block)
-{
-    m_turbo_blocks.push_back(std::move(p_block));
-}
+//void TurboBlocks::AddTurboBlock(TurboBlock&& p_block)
+//{
+    //m_turbo_blocks.push_back(std::move(p_block));
+//}
+
+
+
+
+
 
 
 /// To be called after last block was added.
@@ -714,6 +737,138 @@ void TurboBlocks::AddTurboBlock(TurboBlock&& p_block)
 /// p_clear_address: when done loading put stack pointer here, which is a bit like CLEAR xxxxx
 TurboBlocks &TurboBlocks::Finalize(uint16_t p_usr_address, uint16_t p_clear_address)
 {
+    auto memory_blocks = Compact(m_memory_blocks);
+
+    if(memory_blocks.size() == 0)
+    {
+        throw std::runtime_error("Nothing to do!");
+    }
+    {
+        MemoryBlock &first = memory_blocks.front();
+        // First block includes screen but is bigger than that.
+        // For visually appealing split of screen to load screen first. Also to move loader at end of this first block.
+        if(first.GetStartAddress() == spectrum::SCREEN_START && first.size() > spectrum::SCREEN_SIZE)
+        {
+            auto [screen, after] = SplitBlock(first, spectrum::SCREEN_START + spectrum::SCREEN_SIZE);
+            memory_blocks.pop_front();          // kick of first and
+            memory_blocks.push_front(std::move(after));    // replace with these two.
+            memory_blocks.push_front(std::move(screen));
+        }
+    }
+
+    // Check and set m_loader_copy_start when not done so already.
+    // Will be set when any block overlaps loader at basic.
+    if(m_loader_copy_start == 0)
+    {
+        for(auto &block: memory_blocks)
+        {
+            if(Overlaps(block, spectrum::PROG, m_symbols.GetSymbol("CLEAR")))
+            {
+                m_loader_copy_start = spectrum::SCREEN_23RD;       // default when not set otherwise
+                std::cout << "Block overlaps loader at BASIC (=" << spectrum::PROG << ", " << m_symbols.GetSymbol("CLEAR") <<
+                    "). Will copy loader to screen at " <<
+                    m_loader_copy_start + m_symbols.GetSymbol("STACK_SIZE") <<
+                    " (loader will use block: start = " << m_loader_copy_start <<
+                    " end = " << m_loader_copy_start + GetLoaderCodeLength(false) - 1 << ")" << std::endl;
+                break;
+            }
+        }
+    }
+
+
+
+    // There are blocks that overlap loader at basic.
+    // So loader will be moved (to m_loader_copy_start)
+    if(m_loader_copy_start)
+    {
+        // Check if any block overwrites our loader copied loader code (after copy)
+        // cut it in two pieces before and after thus leaving space,
+        // ignoring the middle part (must be screen or emtpy snapshot region)
+        MemoryBlocks new_blocks;
+        uint16_t loader_copy_end = m_loader_copy_start + GetLoaderCodeLength(false);
+        for(auto &block: memory_blocks)
+        {
+            if(Overlaps(block, m_loader_copy_start, loader_copy_end ))
+            {
+                std::cout << "Block overlaps the copied loader code. Will split in two." << std::endl;
+                auto [first, second, third] = SplitBlock3(block, m_loader_copy_start, loader_copy_end);
+                if (first.m_datablock.size() > 0)
+                {
+                    new_blocks.push_back(std::move(first));
+                }
+                // ignore 2nd block. Must be screen or emtpy snapshot region. Loader occupy this area!
+                if (third.m_datablock.size() > 0)
+                {
+                    new_blocks.push_back(std::move(third));
+                }
+
+            }
+            else
+            {
+                new_blocks.push_back(std::move(block));
+            }
+        }
+        memory_blocks = std::move(new_blocks);
+    }
+
+
+
+    // Check if a block overwrites our (always copied) loader code at upper regions.
+    MemoryBlock overwrites_loader;
+    {
+        // Check if any block overwrites our loader copied loader code (at upper) (after copy)
+        // cut it in two pieces before and after thus leaving space
+        // except when it is presumably a register block
+        MemoryBlocks new_blocks;
+    // Does it overwrite our loader (at upper regions)?
+        auto loader_upper_start = m_symbols.GetSymbol("ASM_UPPER_START");
+        auto loader_upper_end  = loader_upper_start + m_symbols.GetSymbol("ASM_UPPER_LEN");
+        for(auto &block: memory_blocks)
+        {
+            if(Overlaps(block, loader_upper_start, loader_upper_end))
+            {
+                if (overwrites_loader.size() != 0)
+                {
+                    throw std::runtime_error("Already found a block loading to loader-overlapped region, blocks overlap");
+                }
+                std::cout << "Block overlaps loader at upper memory region. Adding extra block..." << std::endl;
+                auto[first, second, third] =  SplitBlock3(block, loader_upper_start, loader_upper_end);
+                if (first.size() > 0)
+                {
+                    new_blocks.push_back(std::move(first));
+                }
+                overwrites_loader = std::move(second);      // can not have size zero, also checked below again.
+                overwrites_loader.m_address = m_symbols.GetSymbol("ASM_UPPER_START_OFFSET");
+                if (third.size() > 0)
+                {
+                    new_blocks.push_back(std::move(third));
+                }
+            }
+            else
+            {
+                new_blocks.push_back(std::move(block));
+            }
+        }
+        memory_blocks = std::move(new_blocks);
+    }
+
+    for(auto &block: memory_blocks)
+    {
+        AddTurboBlock(std::move(block));
+    }
+
+
+    if(overwrites_loader.size())
+    {
+        TurboBlock tblock;
+        tblock.SetLoadAddress(m_symbols.GetSymbol("ASM_UPPER_START_OFFSET"));
+        tblock.SetDestAddress(overwrites_loader.m_address);
+        tblock.SetOverwritesLoader();
+        tblock.SetData(overwrites_loader.m_datablock, m_compression_type);
+        m_turbo_blocks.push_back(std::move(tblock));
+    }
+
+
 
     if(m_loader_copy_start && !IsZqLoaderAdded())
     {
@@ -734,7 +889,7 @@ TurboBlocks &TurboBlocks::Finalize(uint16_t p_usr_address, uint16_t p_clear_addr
         auto copy_me_length          = m_symbols.GetSymbol("ASM_CONTROL_CODE_LEN");
         bool overlaps  = Overlaps(copy_me_source_location, copy_me_source_location + copy_me_length, copy_me_target_location, copy_me_target_location + copy_me_length);
         bool copy_lddr = copy_me_target_location > copy_me_source_location;
-        if(!copy_lddr)    
+        if(!copy_lddr)
         {
             // when false: use LDIR, copies from low to high
             // when dest address is before source when overlapping
@@ -746,7 +901,7 @@ TurboBlocks &TurboBlocks::Finalize(uint16_t p_usr_address, uint16_t p_clear_addr
             SetDataToZqLoaderTap("COPY_ME_LDDR_OR_LDIR", 0xb0ed); // LDIR! Endianness swapped
         }
         else
-        {    
+        {
             // when true: use LDDR, copies from high to low
             // when dest address is after source when overlapping
             //   <- xxxxxxxx <-
@@ -762,17 +917,7 @@ TurboBlocks &TurboBlocks::Finalize(uint16_t p_usr_address, uint16_t p_clear_addr
 
     }
 
-    if (m_upper_block)
-    {
-        if (m_loader_copy_start)
-        {
-            // adjust place to temporary store last block into (that overwrites loader at upper itself)
-            m_upper_block->SetLoadAddress(m_loader_copy_start + m_symbols.GetSymbol("STACK_SIZE") + m_symbols.GetSymbol("ASM_CONTROL_CODE_LEN"));
-        }
-        // Add upperblock (when present) as last to list
-        AddTurboBlock(std::move(*m_upper_block));
-        m_upper_block = nullptr;
-    }
+
 
     if (m_turbo_blocks.size() > 0)
     {
@@ -842,8 +987,8 @@ inline uint16_t TurboBlocks::GetLoaderCodeLength(bool p_with_registers) const
 }
 
 
-
 // Handle the tap block for zqloader.tap - so our loader itself.
+// Called when reading tap file.
 // patch certain parameters, then move to spectrumloader (normal speed)
 inline bool TurboBlocks::HandleZqLoaderTapBlock(DataBlock p_block)
 {
@@ -936,7 +1081,7 @@ TurboBlocks &TurboBlocks::SetDurations(int p_zero_duration, int p_one_duration, 
     {
         m_one_duration = p_one_duration;
     }
-    if (p_end_of_byte_delay != 0)       
+    if (p_end_of_byte_delay != 0)
     {
         m_end_of_byte_delay = p_end_of_byte_delay;
     }
