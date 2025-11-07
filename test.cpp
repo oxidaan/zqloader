@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <ios>
 #include <vector>
+#include "memoryblock.h"
 
 template <class TIterator>
 uint16_t Crc16(TIterator p_begin, TIterator p_end)

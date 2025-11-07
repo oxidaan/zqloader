@@ -52,10 +52,11 @@ public:
         return *this;
     }
 
-    ///  Load (binary) from given file
-    DataBlock& LoadFromFile(const std::filesystem::path &p_filename);
 
-    /// Save (binary) to given file
-    const DataBlock& SaveToFile(const std::filesystem::path &p_filename) const;
 };
 
+///  Load (binary) from given file
+DataBlock LoadFromFile(const std::filesystem::path &p_filename);
+
+/// Save (binary) to given file
+void SaveToFile(const DataBlock &p_to_save, const std::filesystem::path &p_filename);

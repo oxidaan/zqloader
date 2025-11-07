@@ -1,28 +1,23 @@
 // ==============================================================================
 // PROJECT:         zqloader
-// FILE:            turboblock.cpp
-// DESCRIPTION:     Defintion of class TurboBlocks
+// FILE:            turboblocks.h
+// DESCRIPTION:     Definition of class TurboBlocks
 //
-// Copyright (c) 2023 Daan Scherft [Oxidaan]
+// Copyright (c) 2025 Daan Scherft [Oxidaan]
 // This project uses the MIT license. See LICENSE.txt for details.
 // ==============================================================================
 
 #pragma once
 
 
-#include "datablock.h"
-#include "memoryblock.h"
-#include "symbols.h"         // Symbols member
 #include <memory>            // std::unique_ptr
-#include <iostream>
-#include <filesystem>
+#include <filesystem>        // std::filesystem::path
 #include "types.h"           // CompressionType
-#include "loader_defaults.h"
 
-
+class Symbols;
 class TurboBlock;
 class SpectrumLoader;
-
+struct MemoryBlock;
 
 
 
@@ -39,20 +34,8 @@ class TurboBlocks
 {
 public:
 
-    // What to do after a block was loaded, stored at m_usr_start_address
-    enum class AfterBlock : uint16_t
-    {
-        LoadNext      = 256,        // go on to next block (H=1 at z80)
-        CopyLoader    = 512,        // copy z80 loader code, then go on to next block (H=2 at z80)
-        ReturnToBasic = 768,        // return to basic (H=3 at z80)
-        BankSwitch    = 1024,       // TODO zx spectrum 128 back switch command (H=4)
-        // all other values are like RANDOMIZE USR xxxxx so start MC there (and this was last block)
-    };
-
-public:
-
     /// CTORs
-    TurboBlocks() ;
+    TurboBlocks();
     TurboBlocks(TurboBlocks &&) noexcept;
     TurboBlocks(const TurboBlocks &) = delete;
 
@@ -64,30 +47,43 @@ public:
 
 
     /// Load given file at normal speed, typically loads zqloader.tap.
-    TurboBlocks& AddZqLoader(const std::filesystem::path &p_filename);
+    /// Add zqloader.tap file (normal speed).
+    /// Patches zqloader.tap eg BIT_LOOP_MAX etc.
+    /// Also loads symbol file (has same base name).
+    TurboBlocks& AddZqLoader(const std::filesystem::path& p_filename);
 
     ///  Is ZqLoader added (with AddZqLoader above)?
-    bool IsZqLoaderAdded() const
-    {
-        return m_zqloader_code.size() != 0;
-    }
+    bool IsZqLoaderAdded() const;
 
     /// Get # turbo blocks added
     size_t size() const;
 
-    /// Add given MemoryBlock.
-    TurboBlocks& AddMemoryBlock(MemoryBlock&& p_block);
 
+    TurboBlocks& AddMemoryBlock(MemoryBlock p_block);
 
     /// p_usr_address: when done loading all blocks end start machine code here as in RANDOMIZE USR xxxx
     /// p_clear_address: when done loading put stack pointer here, which is a bit like CLEAR xxxx
+    /// To be called after last block was added.
+    /// Make sure:
+    ///     to add upperblock (overwriting loader) as last in the chain.
+    ///     patch loader code.
+    ///     first block will copy loader to alternative location.
+    /// To be called after adding last AddDataBlock, before MoveToLoader.
+    /// p_usr_address: when done loading all blocks end start machine code here as in RANDOMIZE USR xxxxx
+    ///     (When 0 return to BASIC)
+    /// p_clear_address: when done loading put stack pointer here, which is a bit like CLEAR xxxxx
     TurboBlocks& Finalize(uint16_t p_usr_address, uint16_t p_clear_address = 0);
+    
 
     /// Move all added turboblocks to SpectrumLoader as given at CTOR.
     /// Call after Finalize.
-    void MoveToLoader(SpectrumLoader& p_spectrumloader, bool p_is_fun_attribute = false);
+    /// to given SpectrumLoader.
+    /// no-op when there are no blocks.
+    TurboBlocks& MoveToLoader(SpectrumLoader& p_spectrumloader, bool p_is_fun_attribute = false);
 
 
+    /// Set durations in T states for zero and one pulses.
+    /// When 0 keep defaults.
     /// Set durations in T states for zero and one pulses.
     /// When 0 keep defaults.
     TurboBlocks& SetDurations(int p_zero_duration, int p_one_duration, int p_end_of_byte_delay);
@@ -96,122 +92,49 @@ public:
 
     /// Set this ZQLoader parameter
     /// When 0 keep defaults.
-    TurboBlocks& SetBitLoopMax(int p_value)
-    {
-        if(p_value)
-        {
-            m_bit_loop_max = p_value;
-        }
-        return *this;
-    }
+    TurboBlocks& SetBitLoopMax(int p_value);
 
 
     /// Set this ZQLoader parameter
     /// When 0 keep defaults.
-    TurboBlocks& SetZeroMax(int p_value)
-    {
-        if(p_value)
-        {
-            m_zero_max = p_value;
-        }
-        return *this;
-    }
+    TurboBlocks& SetZeroMax(int p_value);
 
     /// Set this ZQLoader parameter
-    TurboBlocks& SetIoValues(int p_io_init_value, int p_io_xor_value)
-    {
-        m_io_init_value = p_io_init_value;
-        m_io_xor_value = (p_io_xor_value | 0b01000000);      // edge needs to be xored always (dialog does this too)
-        return *this;
-    }
+    TurboBlocks& SetIoValues(int p_io_init_value, int p_io_xor_value);
 
     /// Set compression type.
-    TurboBlocks& SetCompressionType(CompressionType p_compression_type)
-    {
-        m_compression_type = p_compression_type;
-        return *this;
-    }
+    TurboBlocks& SetCompressionType(CompressionType p_compression_type);
 
     /// Set DeCompression speed (kb/sec). Determines how long to wait after block.
-    TurboBlocks& SetDeCompressionSpeed(int p_kb_per_sec)
-    {
-        m_decompression_speed = p_kb_per_sec;
-        return *this;
-    }
+    TurboBlocks& SetDeCompressionSpeed(int p_kb_per_sec);
 
 
 
     /// Add just a header with a 'copy to screen' command (no data)
     /// Mainly for debugging!
+    /// Add just a header with a 'copy to screen' command (no data)
+    /// Mainly for debugging!
     TurboBlocks& CopyLoaderToScreen(uint16_t p_value);
 
     /// Set start of free space to copy loader including space for sp.
-    TurboBlocks& SetLoaderCopyTarget(uint16_t p_value )
-    {
-        m_loader_copy_start = p_value;
-        return *this;
-    }
+    TurboBlocks& SetLoaderCopyTarget(uint16_t p_value );
 
 
 
     /// Convenience public read access to Symbols as loaded by CTOR.
-    const Symbols& GetSymbols() const
-    {
-        return m_symbols;
-    }
+    const Symbols& GetSymbols() const;
 
 
     // Length needed when loader code needs to be moved away from BASIC location
     uint16_t GetLoaderCodeLength(bool p_with_registers) const;
    
-    TurboBlocks& SetSymbolFilename(const std::filesystem::path &p_symbol_file_name);
-private:
-
-
-
-    bool HandleZqLoaderTapBlock(DataBlock p_block);
-
-    // Get corrected address at datablock as read from zqloader.tap
-    uint16_t GetZqLoaderSymbolAddress(const char* p_name) const;
-
-
-    // Convenience
-    // Set a 8 bit byte or 16 bit word to the TAP block that contains ZQLoader Z80. To set parameters to ZQLoader.
-    // p_block: block to modify data to, should be zqloader.tap.
-    // p_name: symbol name as exported by sjasmplus, see Symbols.
-    // p_value: new byte value.
-    void SetDataToZqLoaderTap(const char* p_name, uint16_t p_value);
-    void SetDataToZqLoaderTap(const char* p_name, std::byte p_value);
-
-
-    // Add given MemoryBlock as turbo block
-    // So convert to TurboBlock.
-    void AddTurboBlock(MemoryBlock&& p_block);
-
-    // Just add given turboblock at end.
-   // void AddTurboBlock(TurboBlock&& p_block);
-
-    std::chrono::milliseconds EstimateHowLongSpectrumWillTakeToDecompress(const TurboBlock &p_block) const;
+    /// Take an export file name that will be used to load symbols.
+    TurboBlocks& SetSymbolFilename(const std::filesystem::path& p_symbol_file_name);
 
 private:
-
-    DataBlock                     m_zqloader_header;               // standard zx header for zqloader
-    DataBlock                     m_zqloader_code;                 // block with entire code for zqloader
-    MemoryBlocks                  m_memory_blocks;
-    std::vector<TurboBlock>       m_turbo_blocks;                  // turbo blocks to load
-    //std::unique_ptr<TurboBlock>   m_upper_block;                   // when a block is found that overlaps our loader (nullptr when not) must be loaded last
-    uint16_t                      m_loader_copy_start = 0;         // start of free space were our loader can be copied to, begins with stack, then Control code copied from basic
-    CompressionType               m_compression_type        = loader_defaults::compression_type;
-    Symbols                       m_symbols;                       // named symbols as read from EXP file
-    int                           m_zero_duration           = loader_defaults::zero_duration;
-    int                           m_one_duration            = loader_defaults::one_duration;
-    int                           m_end_of_byte_delay       = loader_defaults::end_of_byte_delay;
-    int                           m_bit_loop_max            = loader_defaults::bit_loop_max;        // aka ONE_MAX, the wait for edge loop counter until timeout  
-    int                           m_zero_max                = loader_defaults::zero_max;            // aka ZERO_MAX sees a 'one' when waited more than this number of cycli at wait for edge
-    int                           m_io_init_value           = loader_defaults::io_init_value;        // aka ONE_MAX, the wait for edge loop counter until timeout  
-    int                           m_io_xor_value            = loader_defaults::io_xor_value;            // aka ZERO_MAX sees a 'one' when waited more than this number of cycli at wait for edge
-    int                           m_decompression_speed     = loader_defaults::decompression_speed;     // kb/second time spectrum needsto decompress before sending next block
-}; // class TurboBlocks
+    class Impl;
+    std::unique_ptr<Impl> m_pimpl;
+}; 
 
 
 

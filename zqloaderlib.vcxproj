@@ -207,6 +207,7 @@
     <ClCompile Include="taptoturboblocks.cpp" />
     <ClCompile Include="test.cpp" />
     <ClCompile Include="tools.cpp" />
+    <ClCompile Include="turboblock.cpp" />
     <ClCompile Include="turboblocks.cpp" />
     <ClCompile Include="tzxloader.cpp" />
     <ClCompile Include="z80snapshot_loader.cpp" />
@@ -257,6 +258,7 @@
     <ClInclude Include="event.h" />
     <ClInclude Include="loadbinary.h" />
     <ClInclude Include="loader_defaults.h" />
+    <ClInclude Include="memoryblock.h" />
     <ClInclude Include="pulsers.h" />
     <ClInclude Include="samplesender.h" />
     <ClInclude Include="sampletowav.h" />
@@ -267,6 +269,7 @@
     <ClInclude Include="taploader.h" />
     <ClInclude Include="taptoturboblocks.h" />
     <ClInclude Include="tools.h" />
+    <ClInclude Include="turboblock.h" />
     <ClInclude Include="turboblocks.h" />
     <ClInclude Include="types.h" />
     <ClInclude Include="tzxloader.h" />

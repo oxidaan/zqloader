@@ -17,20 +17,20 @@
 // Also bank number.
 struct MemoryBlock
 {
-    uint16_t GetStartAddress() const
+    int GetStartAddress() const
     {
         return m_address;
     }
-    uint16_t size() const
+    int size() const
     {
         return uint16_t(m_datablock.size());
     }
-    uint16_t GetEndAddress() const
+    int GetEndAddress() const
     {
-        return  m_address + m_datablock.size();
+        return  m_address + int(m_datablock.size());
     }
     DataBlock m_datablock;
-    uint16_t m_address{};
+    int m_address{};
     int m_bank{};
 };
 
@@ -38,24 +38,26 @@ using MemoryBlocks = std::list<MemoryBlock>;
 
 
 
-// find next start or end address in all given blocks - starting at p_search_from.
-// return address plus a counter giving the balance/difference between start and and address found at that location.
+// Find next start or end address in all given blocks - starting at p_search_from.
+// return address plus a counter giving the balance/difference between start and and address found *at that* location.
+// counter 1: found single begin addres; -1 found single end addres.
 // Return <0 for address when not found (p_search_from reached end)
 // (when there is overlap)
-inline std::pair<int, int> FindNextAddress(const MemoryBlocks &p_memory_blocks, uint16_t p_search_from)
+inline std::pair<int, int> FindNextAddress(const MemoryBlocks &p_memory_blocks, int p_search_from)
 {
-    int lowest = -1;
+    int lowest_adr = -1;
     int how_much = 0;       // balance counter
-    auto Check=[&](int adr, int to_add)
+    auto CheckLessLowest=[&](int adr, int to_add)
     {
             if( adr >= p_search_from)
             {
-                if(adr < lowest || lowest < 0)
+                // found an address less than lowest, or first
+                if(adr < lowest_adr || lowest_adr < 0)
                 {
-                    lowest = adr;
+                    lowest_adr = adr;
                     how_much = to_add;
                 }
-                else if(adr == lowest)
+                else if(adr == lowest_adr)
                 {
                     how_much += to_add;
                 }
@@ -63,31 +65,32 @@ inline std::pair<int, int> FindNextAddress(const MemoryBlocks &p_memory_blocks, 
     };
     for(const auto &block: p_memory_blocks)
     {
-        Check(block.GetStartAddress(), 1);
-        Check(block.GetEndAddress(), -1);
+        CheckLessLowest(block.GetStartAddress(), 1);
+        CheckLessLowest(block.GetEndAddress(), -1);
     }
-    return {lowest, how_much};
+    return {lowest_adr, how_much};
 }
 
 
-// Compact/simplifyfies given memory blocks.
-// Compbines directly adjacent memory blocks into one.
+// Compact/simplifies given memory blocks.
+// Combines directly adjacent memory blocks into one.
 // Combines overlapping memoy blocks, content of last has highest priority.
-inline MemoryBlocks Compact(const MemoryBlocks &p_memory_blocks)
+inline MemoryBlocks Compact(MemoryBlocks p_memory_blocks)
 {
     MemoryBlocks retval;
     DataBlock mem_combined;
-    // dump in correct order at mem_combined from begin to end
+    mem_combined.resize(64*1024);
+    memset(mem_combined.data(), 255, mem_combined.size());
+    // dump in loading order at mem_combined
     for(const auto &block: p_memory_blocks)
     {
-        mem_combined.resize(std::max(size_t(block.m_address), mem_combined.size()));        // can only grow
-        mem_combined.insert(mem_combined.begin() + block.m_address, block.m_datablock.begin(), block.m_datablock.end() );
+        mem_combined.resize(std::max(size_t(block.m_address + block.size()), mem_combined.size()));        // can only grow
+        std::copy( block.m_datablock.begin(), block.m_datablock.end(), mem_combined.begin() + block.m_address);
     }
-    //std::cout << "Size of combined = " << mem_combined.size() << std::endl;
-
+    
     int counter = 0;
-    uint16_t search_from = 0;
-    uint16_t found_start{};
+    int search_from = 0;
+    int found_start{};
     while(true)
     {
         auto [found_address, how_much] = FindNextAddress(p_memory_blocks, search_from);
@@ -100,7 +103,7 @@ inline MemoryBlocks Compact(const MemoryBlocks &p_memory_blocks)
         {
             if(counter == 0)
             {
-                found_start = found_address;
+                found_start = uint16_t(found_address);
             }
         }
         counter+= how_much;
@@ -114,7 +117,7 @@ inline MemoryBlocks Compact(const MemoryBlocks &p_memory_blocks)
             {
                 MemoryBlock b;
                 b.m_address = found_start;
-                b.m_datablock.resize(found_address-found_start);
+                b.m_datablock.resize(found_address - found_start);
                 //std::cout << "found_start = " << found_start << " found_address(end) = " << found_address << " len = " << found_address - found_start << std::endl;
                 std::copy(mem_combined.begin() + found_start, mem_combined.begin() + found_address, b.m_datablock.begin());
                 retval.push_back(std::move(b));
@@ -122,11 +125,10 @@ inline MemoryBlocks Compact(const MemoryBlocks &p_memory_blocks)
         }
         search_from = found_address + 1;
     }
-    //std::cout << std::endl;
     return retval;
 }
 
-
+// Split DataBlock in two
 inline std::pair<DataBlock, DataBlock> SplitBlock(const DataBlock& p_data, size_t p_start)
 {
     p_start = std::min(p_start, p_data.size());
@@ -135,18 +137,7 @@ inline std::pair<DataBlock, DataBlock> SplitBlock(const DataBlock& p_data, size_
     return {std::move(first), std::move(second)};
 }
 
-
-inline std::pair<MemoryBlock, MemoryBlock> SplitBlock(const MemoryBlock& p_data, uint16_t p_start)
-{
-    auto start = p_start > p_data.GetStartAddress() ? p_start - p_data.GetStartAddress() : 0;        // adjust, now from DataBlock start
-    MemoryBlock first;
-    MemoryBlock second;
-    std::tie(first.m_datablock, second.m_datablock) = SplitBlock(p_data.m_datablock, start);
-    first.m_address  = p_data.m_address;
-    second.m_address = p_start;
-    return {std::move(first), std::move(second)};
-}
-
+// Split DataBlock in three
 inline std::tuple<DataBlock, DataBlock, DataBlock> SplitBlock3(const DataBlock& p_data, size_t p_start, size_t p_end)
 {
     // Clamp indices to valid range
@@ -160,10 +151,26 @@ inline std::tuple<DataBlock, DataBlock, DataBlock> SplitBlock3(const DataBlock& 
     return {std::move(first), std::move(second), std::move(third)};
 }
 
+// Split MemoryBlock in two
+inline std::pair<MemoryBlock, MemoryBlock> SplitBlock(const MemoryBlock& p_data, int p_start)
+{
+    // adjust, now from DataBlock start; also check.
+    int start = p_start > p_data.GetStartAddress() ? p_start - p_data.GetStartAddress() : 0; 
+    MemoryBlock first;
+    MemoryBlock second;
+    std::tie(first.m_datablock, second.m_datablock) = SplitBlock(p_data.m_datablock, start);
+    first.m_address  = p_data.m_address;
+    second.m_address = p_start;
+    return {std::move(first), std::move(second)};
+}
+
+
+// Split MemoryBlock in three
 inline std::tuple<MemoryBlock, MemoryBlock, MemoryBlock> SplitBlock3(const MemoryBlock& p_data, int p_start, int p_end)
 {
-    auto start = p_start > p_data.GetStartAddress() ? p_start - p_data.GetStartAddress() : 0;        // adjust, now from DataBlock start
-    auto end   = p_end   > p_data.GetStartAddress() ? p_end   - p_data.GetStartAddress() : 0;
+    // adjust, now from DataBlock start; also check.
+    int start = p_start > p_data.GetStartAddress() ? p_start - p_data.GetStartAddress() : 0;    
+    int end   = p_end   > p_data.GetStartAddress() ? p_end   - p_data.GetStartAddress() : 0;
     MemoryBlock first;
     MemoryBlock second;
     MemoryBlock third;
@@ -184,14 +191,14 @@ static bool Overlaps(T1 start1, T2 end1, T3 start2, T4 end2)
     return (C(end1) > C(start2)) && (C(start1) < C(end2));
 }
 
-// Do 1 MemoryBlock overlap with region?
+// Does 1 MemoryBlock overlap with region?
 template <class T1, class T2>
 static bool Overlaps(const MemoryBlock &p_block, T1 p_start2, T2 p_end2)
 {
     return Overlaps(p_block.GetStartAddress(), p_block.GetEndAddress(),p_start2, p_end2 );
 }
 
-// Do 2 MemoryBlock overlap?
+// Do 2 MemoryBlocks overlap?
 inline bool Overlaps(const MemoryBlock &p_block1, const MemoryBlock &p_block2)
 {
     return Overlaps(p_block1.GetStartAddress(), p_block1.GetEndAddress(),p_block2.GetStartAddress(), p_block2.GetEndAddress() );

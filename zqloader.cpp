@@ -16,6 +16,7 @@
 #include "taploader.h"
 #include "tzxloader.h"
 #include "turboblocks.h"
+#include "memoryblock.h"
 #include <iostream>
 #include <fstream>
 #include "taptoturboblocks.h"
@@ -27,6 +28,11 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
+
+LIB_API const char *GetVersion()
+{
+    return "2.2.2";
+}
 
 
 class ZQLoader::Impl
@@ -419,8 +425,7 @@ A second filename argument and/or parameters are only usefull when using zqloade
         fs::path snapshot_regs_filename = FindZqLoaderTapfile(GetNormalFilename());
         snapshot_regs_filename.replace_filename("snapshotregs");
         snapshot_regs_filename.replace_extension("bin");
-        DataBlock regblock;
-        regblock.LoadFromFile(snapshot_regs_filename);
+        DataBlock regblock = LoadFromFile(snapshot_regs_filename);
         if(!m_turboblocks.IsZqLoaderAdded())      // else already done at AddZqLoader 
         {
             fs::path filename_exp = FindZqLoaderTapfile(GetNormalFilename());
@@ -831,8 +836,8 @@ bool ZQLoader::WriteTextToAttr(DataBlock& out_attr, const std::string& p_text, s
 // static
 void ZQLoader::Version()
 {
+    std::cout << "ZQLoader version " << GetVersion() << "\n";
     std::cout << 1 + &*R"(
-ZQLoader version 2.2.1
 Copyright (c) 2025 Daan Scherft [Oxidaan].
 https://github.com/oxidaan/zqloader
 This project uses the MIT license. See LICENSE.txt for details.

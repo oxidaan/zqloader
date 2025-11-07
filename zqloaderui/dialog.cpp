@@ -78,7 +78,7 @@ Dialog::Dialog(QWidget *parent)
     (void)oldCoutBuffer;
 
     ZQLoader::Version();
-
+    ui->labelAbout->setText(ui->labelAbout->text().replace("%0", GetVersion()));
 
 
 
@@ -757,6 +757,17 @@ inline void Dialog::CalculateLoaderParameters(double p_wanted_zero_cyclii, int p
         ui->lineEditZeroTStates->setText(QString::number(zero_tstates - 10));
     }
     ui->lineEditOneTStates->setText(QString::number(one_tstates));
+}
+
+
+// Title bar close pressed. Save anyway.
+void Dialog::closeEvent(QCloseEvent* event)
+{
+    if(event->spontaneous())
+    {
+        Save();
+    }
+    QDialog::closeEvent(event);  
 }
 
 

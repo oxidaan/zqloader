@@ -11,6 +11,9 @@
 #include "taptoturboblocks.h"
 #include <iostream>
 #include "byte_tools.h"
+#include "memoryblock.h"
+#include <string>
+
 
 /// call back
 /// Handle loaded/incoming data block:

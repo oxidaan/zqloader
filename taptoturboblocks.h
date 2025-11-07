@@ -40,7 +40,7 @@ public:
     /// (As earlier found with TryFindUsr)
     uint16_t GetUsrAddress() const
     {
-        return m_usr == 0 ? uint16_t(TurboBlocks::AfterBlock::ReturnToBasic) : m_usr;
+        return m_usr;
     }
 
 

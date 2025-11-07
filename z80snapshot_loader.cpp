@@ -11,12 +11,15 @@
 #include "z80snapshot_loader.h"
 #include "loadbinary.h"
 #include "datablock.h"
+#include "symbols.h"
 #include "turboblocks.h"
+#include "memoryblock.h"
 #include "byte_tools.h"
 #include "tools.h"
 #include <fstream>
 #include <filesystem>
 #include <string>
+
 
 
 

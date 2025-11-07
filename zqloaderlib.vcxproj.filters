@@ -17,6 +17,7 @@
     <ClCompile Include="tzxloader.cpp" />
     <ClCompile Include="z80snapshot_loader.cpp" />
     <ClCompile Include="zqloader.cpp" />
+    <ClCompile Include="turboblock.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="byte_tools.h" />
@@ -40,6 +41,8 @@
     <ClInclude Include="z80snapshot_loader.h" />
     <ClInclude Include="zqloader.h" />
     <ClInclude Include="loader_defaults.h" />
+    <ClInclude Include="memoryblock.h" />
+    <ClInclude Include="turboblock.h" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="z80\zqloader.z80asm">

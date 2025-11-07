@@ -178,3 +178,5 @@ private:
     std::unique_ptr<Impl> m_pimpl;
 };
 
+
+LIB_API const char *GetVersion();
