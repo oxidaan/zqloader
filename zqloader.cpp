@@ -433,7 +433,7 @@ A second filename argument and/or parameters are only usefull when using zqloade
             m_turboblocks.SetSymbolFilename(filename_exp);      
         }
         snapshotloader.Load(p_filename).SetRegBlock(std::move(regblock)).MoveToTurboBlocks(m_turboblocks, m_new_loader_location, m_use_fun_attribs);
-        m_turboblocks.Finalize(snapshotloader.GetUsrAddress());
+        m_turboblocks.Finalize(snapshotloader.GetUsrAddress(), 0, snapshotloader.GetLastBankToSwicthTo());
     }
 
 

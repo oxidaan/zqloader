@@ -31,7 +31,7 @@ struct MemoryBlock
     }
     DataBlock m_datablock;
     int m_address{};
-    int m_bank{};
+    int m_bank = -1;        // <0: no back set eg 48k ZX Spectrum
 };
 
 using MemoryBlocks = std::list<MemoryBlock>;
@@ -47,7 +47,7 @@ inline std::pair<int, int> FindNextAddress(const MemoryBlocks &p_memory_blocks, 
 {
     int lowest_adr = -1;
     int how_much = 0;       // balance counter
-    auto CheckLessLowest=[&](int adr, int to_add)
+    auto UpdateLowest=[&](int adr, int to_add)
     {
             if( adr >= p_search_from)
             {
@@ -65,8 +65,11 @@ inline std::pair<int, int> FindNextAddress(const MemoryBlocks &p_memory_blocks, 
     };
     for(const auto &block: p_memory_blocks)
     {
-        CheckLessLowest(block.GetStartAddress(), 1);
-        CheckLessLowest(block.GetEndAddress(), -1);
+        if(block.m_bank < 0)
+        {
+            UpdateLowest(block.GetStartAddress(), 1);
+            UpdateLowest(block.GetEndAddress(), -1);
+        }
     }
     return {lowest_adr, how_much};
 }
@@ -75,17 +78,21 @@ inline std::pair<int, int> FindNextAddress(const MemoryBlocks &p_memory_blocks, 
 // Compact/simplifies given memory blocks.
 // Combines directly adjacent memory blocks into one.
 // Combines overlapping memoy blocks, content of last has highest priority.
+// Result is sorted form low address to high address.
 inline MemoryBlocks Compact(MemoryBlocks p_memory_blocks)
 {
     MemoryBlocks retval;
     DataBlock mem_combined;
     mem_combined.resize(64*1024);
-    memset(mem_combined.data(), 255, mem_combined.size());
-    // dump in loading order at mem_combined
+    // dump in *loading* order at mem_combined thus taking care of overlaps.
     for(const auto &block: p_memory_blocks)
     {
-        mem_combined.resize(std::max(size_t(block.m_address + block.size()), mem_combined.size()));        // can only grow
-        std::copy( block.m_datablock.begin(), block.m_datablock.end(), mem_combined.begin() + block.m_address);
+        if(block.m_bank < 0)
+        {
+            mem_combined.resize(std::max(size_t(block.m_address + block.size()), mem_combined.size()));        // can only grow
+            // cpy datablock->mem_combined
+            std::copy( block.m_datablock.begin(), block.m_datablock.end(), mem_combined.begin() + block.m_address);
+        }
     }
     
     int counter = 0;
@@ -106,7 +113,7 @@ inline MemoryBlocks Compact(MemoryBlocks p_memory_blocks)
                 found_start = uint16_t(found_address);
             }
         }
-        counter+= how_much;
+        counter += how_much;
         if(how_much < 0)
         {
             if(counter < 0)
@@ -119,11 +126,20 @@ inline MemoryBlocks Compact(MemoryBlocks p_memory_blocks)
                 b.m_address = found_start;
                 b.m_datablock.resize(found_address - found_start);
                 //std::cout << "found_start = " << found_start << " found_address(end) = " << found_address << " len = " << found_address - found_start << std::endl;
+                // cpy mem_combined -> m_datablock
                 std::copy(mem_combined.begin() + found_start, mem_combined.begin() + found_address, b.m_datablock.begin());
                 retval.push_back(std::move(b));
             }
         }
         search_from = found_address + 1;
+    }
+    // Add 128K banks at end.
+    for(auto &block: p_memory_blocks)
+    {
+        if(block.m_bank >= 0)
+        {
+            retval.push_back(std::move(block));
+        }
     }
     return retval;
 }

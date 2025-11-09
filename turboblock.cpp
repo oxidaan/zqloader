@@ -271,8 +271,9 @@ std::ostream& operator << (std::ostream& p_stream, const TurboBlock::Header& p_h
         << ((p_header.m_after_block == TurboBlock::AfterBlock::LoadNext)      ? "LoadNext" :
             (p_header.m_after_block == TurboBlock::AfterBlock::CopyLoader)    ? "CopyLoader" :
             (p_header.m_after_block == TurboBlock::AfterBlock::ReturnToBasic) ? "ReturnToBasic" :
-            "Start MC at : " + std::to_string(p_header.m_usr_start_address)) << "\n"
-        << "CLEAR address/SP = " << p_header.m_clear_address << "\n"
+            (p_header.m_after_block == TurboBlock::AfterBlock::BankSwitch)    ? "Switch Bank to: "  + std::to_string(p_header.m_bank_to_switch) :
+            "Start MC at: " + std::to_string(p_header.m_usr_start_address) + 
+            "; CLEAR address/SP = " + std::to_string(p_header.m_clear_address)) << "\n"
         << std::hex << "m_code_for_most = " << int(p_header.m_code_for_most) << ' '
         << "m_decompress_counter = " << p_header.m_decompress_counter << ' '
         << "m_code_for_multiples = " << int(p_header.m_code_for_multiples) << ' '

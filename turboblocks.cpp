@@ -191,14 +191,14 @@ public:
     /// p_usr_address: when done loading all blocks end start machine code here as in RANDOMIZE USR xxxxx
     ///     (When 0 return to BASIC)
     /// p_clear_address: when done loading put stack pointer here, which is a bit like CLEAR xxxxx
-    void Finalize(uint16_t p_usr_address, uint16_t p_clear_address)
+    void Finalize(uint16_t p_usr_address, uint16_t p_clear_address, int p_last_bank_to_set)
     {
         if (m_memory_blocks.size() == 0)
         {
             throw std::runtime_error("No Memory block added. Nothing to do!");
         }
 
-
+        // Combine adjacent blocks, combine overlapping blocks; order from high to low.
         auto memory_blocks = Compact(std::move(m_memory_blocks));
         DONT_USE(m_memory_blocks);
         {
@@ -222,7 +222,7 @@ public:
 
 
         // Make space for new loader location
-        // skip when at screen 2/3rd
+        // skip when at screen 2/3rd - not need then and is actually slower.
         if (loader_copy_start && loader_copy_start != spectrum::SCREEN_23RD )
         {
             memory_blocks = MakeSpaceForCopiedLoader(std::move(memory_blocks), loader_copy_start);
@@ -230,7 +230,7 @@ public:
 
         memory_blocks = MakeSpaceForUpperLoader(std::move(memory_blocks));
 
-        MemoryBlocksToTurboBlocks(std::move(memory_blocks), loader_copy_start);
+        MemoryBlocksToTurboBlocks(std::move(memory_blocks), loader_copy_start, p_usr_address, p_clear_address, p_last_bank_to_set);
 
 
 
@@ -284,24 +284,6 @@ public:
 
 
 
-        if (m_turbo_blocks.size() > 0)
-        {
-            // When indicated, after loading *first* block, loader will be copied.
-            if (loader_copy_start)
-            {
-                m_turbo_blocks.front().SetAfterBlockDo(TurboBlock::AfterBlock::CopyLoader);
-            }
-            // What should be done after last block
-            if (p_usr_address)
-            {
-                m_turbo_blocks.back().SetUsrStartAddress(p_usr_address);
-            }
-            else
-            {
-                m_turbo_blocks.back().SetAfterBlockDo(TurboBlock::AfterBlock::ReturnToBasic);
-            }
-            m_turbo_blocks.back().SetClearAddress(p_clear_address);
-        }
     }
 
     /// Move all added turboblocks to SpectrumLoader as given at CTOR.
@@ -472,28 +454,61 @@ private:
     }
 
 
-    void MemoryBlocksToTurboBlocks(MemoryBlocks p_memory_blocks, uint16_t p_loader_copy_start)
+    void MemoryBlocksToTurboBlocks(MemoryBlocks p_memory_blocks, uint16_t p_loader_copy_start, uint16_t p_usr_address, uint16_t p_clear_address, int p_last_bank_to_set)
     {
+        TurboBlock *prev = nullptr;
+        TurboBlock *prevprev = nullptr;
+        int prev_bank_set = -1;
         for (auto& block : p_memory_blocks)
         {
+            prevprev = prev;
             if(block.size())
             {
+                if(prev && block.m_bank >= 0 && block.m_bank != prev_bank_set)
+                {
+                    prev->SwitchBankTo(block.m_bank);
+                    prev_bank_set = block.m_bank;
+                }
                 if(&block == &p_memory_blocks.back())
                 {
-                    AddTurboBlock(std::move(block), p_loader_copy_start + m_symbols.GetSymbol("STACK_SIZE") + m_symbols.GetSymbol("ASM_CONTROL_CODE_LEN"));
+                    prev = &AddTurboBlock(std::move(block), p_loader_copy_start + m_symbols.GetSymbol("STACK_SIZE") + m_symbols.GetSymbol("ASM_CONTROL_CODE_LEN"));
                 }        
                 else
                 {
-                    AddTurboBlock(std::move(block));
+                    prev = &AddTurboBlock(std::move(block));
                 }
             }
+        }
+        if(prevprev && p_last_bank_to_set >=0 && p_last_bank_to_set != prev_bank_set)
+        {
+            prevprev->SwitchBankTo(p_last_bank_to_set);
+            prevprev->DebugDump();
+        }
+        if (m_turbo_blocks.size() > 0)
+        {
+            // When indicated, after loading *first* block, loader will be copied.
+            // TODO goes wrong when also has 'SetBank'
+            if (p_loader_copy_start)
+            {
+                m_turbo_blocks.front().SetAfterBlockDo(TurboBlock::AfterBlock::CopyLoader);
+            }
+            // What should be done after last block
+            if (p_usr_address)
+            {
+                m_turbo_blocks.back().SetUsrStartAddress(p_usr_address);
+            }
+            else
+            {
+                m_turbo_blocks.back().SetAfterBlockDo(TurboBlock::AfterBlock::ReturnToBasic);
+            }
+            m_turbo_blocks.back().SetClearAddress(p_clear_address);
         }
     }
     // Add given MemoryBlock as turbo block.
     // So convert to TurboBlock.
     // Add given datablock as turbo block at given start address
     // to end of list of turboblocks
-    void AddTurboBlock(MemoryBlock&& p_block, uint16_t p_load_address = 0)
+    TurboBlock &AddTurboBlock(MemoryBlock&& p_block, uint16_t p_load_address = 0)
     {
         if (m_turbo_blocks.size() == 0)
         {
@@ -502,18 +517,20 @@ private:
             // (note: this can not be a screen)
             if (Overlaps(p_block, spectrum::PROG, m_symbols.GetSymbol("CLEAR")))
             {
-                TurboBlock tblock;      // empty
-                m_turbo_blocks.push_back(std::move(tblock));
+                TurboBlock empty;      
+                m_turbo_blocks.push_back(std::move(empty));
             }
         }
         TurboBlock tblock;
         tblock.SetDestAddress(uint16_t(p_block.m_address));
+        // tblock.SetBank(p_block.m_bank);
         if(p_load_address)
         {
             tblock.SetLoadAddress(p_load_address);
         }
         tblock.SetData(std::move(p_block.m_datablock), m_compression_type);
         m_turbo_blocks.push_back(std::move(tblock));
+        return m_turbo_blocks.back();
     }
 
 
@@ -528,7 +545,7 @@ private:
     DataBlock                     m_zqloader_header;               // standard zx header for zqloader
     DataBlock                     m_zqloader_code;                 // block with entire code for zqloader
     MemoryBlocks                  m_memory_blocks;
-    std::vector<TurboBlock>       m_turbo_blocks;                  // turbo blocks to load
+    std::list<TurboBlock>       m_turbo_blocks;                  // turbo blocks to load
     //std::unique_ptr<TurboBlock>   m_upper_block;                   // when a block is found that overlaps our loader (nullptr when not) must be loaded last
     uint16_t                      m_loader_copy_start = 0;         // start of free space were our loader can be copied to, begins with stack, then Control code copied from basic
     CompressionType               m_compression_type        = loader_defaults::compression_type;
@@ -585,9 +602,9 @@ TurboBlocks& TurboBlocks::AddMemoryBlock(MemoryBlock p_block)
     return *this;
 }
 
-TurboBlocks &TurboBlocks::Finalize(uint16_t p_usr_address, uint16_t p_clear_address)
+TurboBlocks &TurboBlocks::Finalize(uint16_t p_usr_address, uint16_t p_clear_address, int p_last_bank_to_set)
 {
-    m_pimpl->Finalize(p_usr_address, p_clear_address);
+    m_pimpl->Finalize(p_usr_address, p_clear_address, p_last_bank_to_set);
     return *this;
 }
 

@@ -29,7 +29,7 @@ public:
         LoadNext      = 256,        // go on to next block (H=1 at z80)
         CopyLoader    = 512,        // copy z80 loader code, then go on to next block (H=2 at z80)
         ReturnToBasic = 768,        // return to basic (H=3 at z80)
-        BankSwitch    = 1024,       // TODO zx spectrum 128 back switch command (H=4)
+        BankSwitch    = 1024,       // TODO zx spectrum 128 bank switch command (H=4)
         // all other values are like RANDOMIZE USR xxxxx so start MC there (and this was last block)
     };
 
@@ -45,8 +45,8 @@ private:
         uint8_t           m_checksum;                                  // 7 checksum
         union
         {
-            uint16_t   m_usr_start_address;
-            AfterBlock m_after_block    = AfterBlock::LoadNext; // 8-9
+            uint16_t   m_usr_start_address{};
+            AfterBlock m_after_block; // 8-9
         };
         // When LoadNext: more blocks follow. This is the default.
         // When CopyLoader is 'copy loader' command, more blocks follow.
@@ -101,16 +101,7 @@ public:
 
 public:
 
-    /// Set machine code start address to be executed after loading this block.
-    /// (This makes the current block the last block)
-    /// As if RANDOMIZE USR xxxxx thus starting machine code.
-    /// Can also be AfterBlock::ReturnToBasic
-    /// shares union with SetAfterBlockDo
-    TurboBlock& SetUsrStartAddress(uint16_t p_address)
-    {
-        GetHeader().m_usr_start_address = p_address;
-        return *this;
-    }
+
 
     /// Used to check against HEADER_LEN
     static size_t GetHeaderSize() 
@@ -144,13 +135,41 @@ public:
         return *this;
     }
 
+    /// Set machine code start address to be executed after loading this block.
+    /// (This makes the current block the last block)
+    /// As if RANDOMIZE USR xxxxx thus starting machine code.
+    /// Can also be AfterBlock::ReturnToBasic
+    /// shares union with SetAfterBlockDo
+    TurboBlock& SetUsrStartAddress(uint16_t p_address)
+    {
+        GetHeader().m_usr_start_address = p_address;
+        return *this;
+    }
+
+    /// Set bank nr for NEXT block (to switch after loading this block) (128 K)
+    /// Calls  SetAfterBlockDo(AfterBlock::BankSwitch);
+    TurboBlock& SwitchBankTo(int p_bank)
+    {
+        if(p_bank >= 0)
+        {
+            GetHeader().m_bank_to_switch = uint16_t(p_bank);
+            SetAfterBlockDo(AfterBlock::BankSwitch);
+        }
+        return *this;
+    }
+
     /// Indicate what to do after block was loaded:
     /// AfterBlock::LoadNext: load next block (this is the default)
     /// AfterBlock::CopyLoader: the loader code need to be copied (to make space) after loading this block, then load next.
     /// AfterBlock::ReturnToBasic: Return to basic (so this is last block)
+    /// AfterBlock::BanckSwitch: Switch to bank as given at SetBank, then load next.
     /// shares union with SetUsrStartAddress
     TurboBlock& SetAfterBlockDo(AfterBlock p_what)
     {
+        if(GetHeader().m_after_block != AfterBlock::LoadNext)
+        {
+            throw std::runtime_error("After block command already set to " + std::to_string(int(GetHeader().m_after_block)));
+        }
         GetHeader().m_after_block = p_what;
         return *this;
     }

@@ -17,6 +17,7 @@ namespace spectrum
 
 constexpr uint16_t SCREEN_START = 16384;
 constexpr uint16_t ROM_LENGTH = 16384;
+constexpr uint16_t RAM_START = 16384;
 constexpr uint16_t SCREEN_23RD = SCREEN_START + 4 * 1024;
 constexpr uint16_t SCREEN_END = SCREEN_START + 6 * 1024;
 constexpr uint16_t ATTR_BEGIN = SCREEN_END;

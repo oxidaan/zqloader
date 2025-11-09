@@ -19,9 +19,63 @@
 #include <fstream>
 #include <filesystem>
 #include <string>
+/*
+https://worldofspectrum.org/faq/reference/z80format.htm
+https://worldofspectrum.net/zx-modules/fileformats/z80format.html
+https://worldofspectrum.org/faq/reference/128kreference.htm
+I cant find the term samram nowhere but here. Dunno what it is. Ignored it.
+Changed page to bank in second column. Asume thats a mistake.
+Added bank address column. Note the weird shift between bank 0-1-2.
 
+        Page    In '48 mode     In '128 mode    
+        ----------------------------------------
+         0      48K rom         rom (basic)     
+         1      Interface I, Disciple or Plus D 
+         2      -               rom (reset)     
+         3      -               bank 0          c000-ffff
+         4      8000-bfff (b2)  bank 1          c000-ffff
+         5      c000-ffff (b0)  bank 2          8000-bfff
+         6      -               bank 3          c000-ffff
+         7      -               bank 4          c000-ffff
+         8      4000-7fff (b5)  bank 5          4000-7fff
+         9      -               bank 6          c000-ffff
+        10      -               bank 7          c000-ffff
+        11      Multiface rom   Multiface rom   
+*/
 
+inline uint16_t PageToAddress(int p_page_num, bool p_48_mode)
+{
+    // page #                    3       4       5       6       7       8       9       10
+    constexpr uint16_t a128[] = {0xC000, 0xC000, 0x8000, 0xC000, 0xC000, 0x4000, 0xC000, 0xC000};
+    constexpr uint16_t a48[] =  {0x0,    0x8000, 0xC000, 0x0,    0x0,    0x4000, 0x0,    0x0   };
+    if(p_page_num < 3 || p_page_num > 10 )
+    {
+        throw std::runtime_error("Page number " + std::to_string(p_page_num) + " is rom bank");
+    }
+    return p_48_mode ? a48[p_page_num - 3] : a128[p_page_num - 3];
+}
 
+inline int PageToBank(int p_page_num, bool p_48_mode)
+{
+    // page #                    3       4       5       6       7       8       9       10
+    constexpr int b128[]      = {0,      1,      2,      3,      4,      5,      6,      7  };
+    constexpr int b48[]       = {0,      2,      0,      0,      0,      5,      0,      0  };
+    if(p_page_num < 3 || p_page_num > 10 )
+    {
+        throw std::runtime_error("Page number " + std::to_string(p_page_num) + " is rom bank");
+    }
+    return p_48_mode ?  b48[p_page_num - 3] : b128[p_page_num - 3];
+
+}
+
+inline bool GetIs48K(uint8_t p_byte34, bool p_is_v3)
+{
+    if(p_byte34 == 2)
+    {
+        throw std::runtime_error("SAMRAM not supported, I dont know what that is, sorry");
+    }
+    return p_byte34 == 0 || p_byte34 == 1 || (p_byte34 == 3 && p_is_v3 == true);
+}
 
 namespace fs = std::filesystem;
 
@@ -37,12 +91,12 @@ SnapShotLoader& SnapShotLoader::Load(const fs::path &p_filename)
     {
         if(ToLower(p_filename.extension().string()) == ".z80")
         {
-            std::cout << "Loading file Z80 snapshot file: " << p_filename << std::endl;
+//            std::cout << "Loading file Z80 snapshot file: " << p_filename << std::endl;
             LoadZ80(fileread);
         }
         if(ToLower(p_filename.extension().string()) == ".sna")
         {
-            std::cout << "Loading file sna snapshot file: " << p_filename << std::endl;
+//            std::cout << "Loading file sna snapshot file: " << p_filename << std::endl;
             LoadSna(fileread);
         }
     }
@@ -70,83 +124,102 @@ SnapShotLoader& SnapShotLoader::LoadZ80(std::istream& p_stream)
     }
     // adjust the weird bit 8 for R-register
     header.R_reg = (header.R_reg & 0x7f) | ((header.flags_and_border & 0x1) << 8);
-    m_mem48k.resize(48 * 1024);
-    if (header.PC_reg == 0)      // v2 or v3
+    if (header.PC_reg != 0)      // v1
+    {
+        MemoryBlock mem48k;
+        mem48k.m_datablock.resize(48 * 1024);
+        mem48k.m_address = spectrum::RAM_START;
+        std::cout << "Z80 version1 file" << std::endl;
+        p_stream.read(reinterpret_cast<char*>(mem48k.m_datablock.data()), 48 * 1024);       // will normally read less than 48k
+        mem48k.m_datablock = DeCompress(mem48k.m_datablock);
+        if( mem48k.m_datablock.size() != 48 * 1024)
+        {
+            throw std::runtime_error("Size of uncompressed Z80 block should be 48K but is: " + std::to_string(mem48k.m_datablock.size()));
+        }
+        m_ram.push_back(std::move(mem48k));
+        m_is_48K = true;
+    }
+    else        // v2 or v3
     {
         auto length_and_version = LoadBinary<uint16_t>(p_stream);
-        auto header2 = LoadBinary<Z80SnapShotHeader2>(p_stream);
-        Z80SnapShotHeader3 header3{};
-        uint8_t last_out_0x1ffd{};
         // "The value of the word at position 30 is 23 for version 2 files, and 54 or 55 for version 3"
         if (length_and_version == 23)
         {
-            std::cout << "Z80 version2 file" << std::endl;
+            std::cout << "Z80 version2 file; ";
         }
-        if (length_and_version == 54)
+        if (length_and_version == 54 || length_and_version == 55)
         {
-            std::cout << "Z80 version3 file" << std::endl;
-            header3 = LoadBinary<Z80SnapShotHeader3>(p_stream);
+            std::cout << "Z80 version3 file; ";
         }
-        if (length_and_version == 55)
+        else
         {
-            std::cout << "Z80 version3 file (+'last OUT to port 0x1ffd')" << std::endl;
-            header3 = LoadBinary<Z80SnapShotHeader3>(p_stream);
-            last_out_0x1ffd = LoadBinary<uint8_t>(p_stream);
+            throw std::runtime_error("Invalid Length of additional header block");
         }
-        (void)last_out_0x1ffd;
+        DataBlock buf(length_and_version);
+        p_stream.read(reinterpret_cast<char *>(buf.data()), length_and_version);
+        Z80SnapShotHeader2 header2{};
+        memcpy(&header2, buf.data(), length_and_version);
+
         header.PC_reg = header2.PC_reg;
+
+        m_is_48K = GetIs48K(header2.hardware_mode, length_and_version != 23);
+        std::cout << (m_is_48K ? "48" : "128") << "K snapshot." << std::endl;
+        m_current_bank =  int(header2.current_bank);
+        std::cout << "Current bank = " << m_current_bank << std::endl;
+
         // Read data blocks
+        MemoryBlock mem48k;
+        mem48k.m_datablock.resize(48 * 1024);
+        mem48k.m_address = spectrum::RAM_START;
+        int cnt = 0;
         while (p_stream.peek() && p_stream.good())
         {
+            cnt++;
             auto data_header = LoadBinary<Z80SnapShotDataHeader>(p_stream);
-            DataBlock block;
+            MemoryBlock bank16k;
             // "If length=0xffff, data is 16384 bytes long and not compressed"
             if (data_header.length != 0xffff)
             {
                 DataBlock cblock;
                 cblock.resize(data_header.length);
                 p_stream.read(reinterpret_cast<char*>(cblock.data()), data_header.length);
-                block = DeCompress(cblock);        // z80 decompression algo
+                bank16k.m_datablock = DeCompress(cblock);        // z80 decompression algo
             }
             else
             {
-                block.resize(16384);
-                p_stream.read(reinterpret_cast<char*>(block.data()), 16384);
+                bank16k.m_datablock.resize(16384);
+                p_stream.read(reinterpret_cast<char*>(bank16k.m_datablock.data()), 16384);
             }
-            if (block.size() != 16384)
+            if (bank16k.size() != 16384)
             {
-                throw std::runtime_error("Error reading z80 file block size not correct must be 16384 but is: " + std::to_string(block.size()));
+                throw std::runtime_error("Error reading z80 file block size not correct must be 16384 but is: " + std::to_string(bank16k.size()) + ".");
             }
-            uint16_t offset;
-            switch (data_header.page_num)
+            bank16k.m_address = PageToAddress(data_header.page_num, m_is_48K);
+            bank16k.m_bank = PageToBank(data_header.page_num, m_is_48K);
+            // std::cout << int(data_header.page_num) << ' ' << bank16k.m_bank << ' ' << bank16k.m_address <<  ' ' << int(header2.current_bank) << std::endl;
+            if(bank16k.m_bank == 2 || bank16k.m_bank == 5 ||  bank16k.m_bank == header2.current_bank)
             {
-            case 4:
-                offset = 0x8000 - 16384;
-                break;
-            case 5:
-                offset = 0xc000 - 16384;
-                break;
-            case 8:
-                offset = 0x4000 - 16384;
-                break;
-            default:
-                throw std::runtime_error("Error z80 pagenum is: " + std::to_string(data_header.page_num) + "; not a 48k snapshot?");
+                std::copy(bank16k.m_datablock.begin(), bank16k.m_datablock.end(), mem48k.m_datablock.begin() +  bank16k.m_address - spectrum::RAM_START);
             }
-            std::copy(block.begin(),
-                      block.end(),
-                      m_mem48k.begin() + offset);
+            else
+            {
+                m_ram.push_back(std::move(bank16k));
+            }
         }
-    }
-    else
-    {
-        std::cout << "Z80 version1 file" << std::endl;
-        p_stream.read(reinterpret_cast<char*>(m_mem48k.data()), 48 * 1024);       // will normally read less than 48k
-        m_mem48k = DeCompress(m_mem48k);
-        if(m_mem48k.size() != 48 * 1024)
+        m_ram.push_front( std::move(mem48k));
+        if(m_is_48K)
         {
-            throw std::runtime_error("Size of uncompressed Z80 block should be 48K but is: " + std::to_string(m_mem48k.size()));
+            if(cnt != 3)
+            {
+                throw std::runtime_error("Error Expect 48K snapshot to contain 3 16K blocks, but has: " + std::to_string(cnt));
+            }
+            // make it just 1 48 block. As does v1 snapshot. And SNA snapshot.
+            // m_ram = std::move(Compact(std::move(m_ram)));
         }
+
+
     }
+
     m_z80_snapshot_header = std::move(header);
     return *this;
 }
@@ -158,13 +231,46 @@ SnapShotLoader& SnapShotLoader::LoadZ80(std::istream& p_stream)
 SnapShotLoader& SnapShotLoader::LoadSna(std::istream& p_stream)
 {
     SnaSnapshotShotHeader header = LoadBinary<SnaSnapshotShotHeader>(p_stream);
-    m_mem48k.resize(48 * 1024);
-    p_stream.read(reinterpret_cast<char*>(m_mem48k.data()), 48 * 1024);
 
-    static constexpr uint16_t snapshot_offset = 16384;                                                                                                               // 48k z80 snapshot starts here (offset)
-    uint16_t pc                               = uint16_t(m_mem48k[header.SP_reg - snapshot_offset]) + 256 * uint16_t(m_mem48k[header.SP_reg + 1 - snapshot_offset]); // 'pop pc'
-    header.SP_reg += 2;
+    MemoryBlock mem48k;
+    mem48k.m_datablock.resize(48 * 1024);
+    mem48k.m_address = spectrum::RAM_START;
+    p_stream.read(reinterpret_cast<char*>(mem48k.m_datablock.data()), 48 * 1024);
 
+    uint16_t pc;
+    if(p_stream.peek() && p_stream.good())
+    {
+        // File is longer so its a 128k sna file.
+        std::cout << "128K SNA snapshot file" << std::endl;
+        pc = LoadBinary<uint16_t>(p_stream);
+        m_current_bank = int(LoadBinary<uint8_t>(p_stream));       // = port 0x7ffd
+        std::cout << "Current bank = " << m_current_bank << std::endl;
+        uint8_t trdos_rom_paged  = LoadBinary<uint8_t>(p_stream);
+        (void)trdos_rom_paged;
+        m_ram.push_back(std::move(mem48k));
+        int banks[] = {0,1,3,4,6,7};        // all not duplicate banks
+        for(int bank : banks)
+        {
+            if(bank != m_current_bank)
+            {
+                MemoryBlock bank16k;
+                bank16k.m_address = 0xc000;
+                bank16k.m_bank = bank;
+                bank16k.m_datablock.resize(16384);
+                p_stream.read(reinterpret_cast<char*>(bank16k.m_datablock.data()), 16384);
+                m_ram.push_back(std::move(bank16k));
+            }
+        }
+    }
+    else
+    {
+        std::cout << "48K SNA snapshot file" << std::endl;
+        static constexpr uint16_t snapshot_offset = 16384;      // 48k z80 snapshot starts here (offset)
+        // 'pop pc'
+        pc = uint16_t(mem48k.m_datablock[header.SP_reg - snapshot_offset]) + 256 * uint16_t(mem48k.m_datablock[header.SP_reg + 1 - snapshot_offset]);
+        header.SP_reg += 2;
+        m_ram.push_back(std::move(mem48k));
+    }
     // sna snapshot header -> z80 snapshot header
     m_z80_snapshot_header.A_reg            = (header.AF_reg >> 8) & 0xff;
     m_z80_snapshot_header.F_reg            = header.AF_reg & 0xff;
@@ -186,6 +292,17 @@ SnapShotLoader& SnapShotLoader::LoadSna(std::istream& p_stream)
     m_z80_snapshot_header.ei_di            = header.iff2;
     m_z80_snapshot_header.iff2             = 0;
     m_z80_snapshot_header.flags_and_imode  = header.imode;
+
+
+    if(p_stream.fail())
+    {
+        throw std::runtime_error("Some error reading SNA file, file is shorter than expected");
+    }
+    p_stream.peek();
+    if(p_stream.good())
+    {
+        throw std::runtime_error("Some error reading SNA file, file is longer than expected");
+    }
     return *this;
 }
 
@@ -330,54 +447,67 @@ inline uint16_t GetEmptySpaceLocation(const DataBlock &p_block, uint16_t p_len, 
 void SnapShotLoader::MoveToTurboBlocks(TurboBlocks& p_turbo_blocks, uint16_t p_new_loader_location, bool p_write_fun_attribs)
 {
     const auto &symbols = p_turbo_blocks.GetSymbols();              // alias
-    auto snapshot_data  = GetData();                                // the z80 snapshot, 48k
-
-    static constexpr uint16_t z80_snapshot_offset = 16384;                                    // 48k z80 snapshot starts here (offset)
-    if(p_new_loader_location == 0)
+    MemoryBlocks all_blocks =  GetRam();
+    bool first = true;
+    for(auto &block: all_blocks)
     {
-        uint16_t len_needed = p_turbo_blocks.GetLoaderCodeLength(true); // space needed for our loader code
-        p_new_loader_location = GetEmptySpaceLocation(snapshot_data, len_needed, 6 * 1024 + 768); // location for our loader code
-        if(p_new_loader_location == 0)                                                            // no empty space found, use last 3rd of screen
+        if(first)
         {
-            p_new_loader_location = spectrum::SCREEN_23RD;
-            std::cout << "Not enough empty space found in snapshot. Will copy loader code to screen. (" << spectrum::SCREEN_23RD << "; length = " << len_needed << ")" << std::endl;
+            DataBlock &first_block  = block.m_datablock;                               // the first block
+
+            uint16_t z80_snapshot_offset = uint16_t(block.GetStartAddress());                                    // 48k z80 snapshot starts here (offset)
+            if(p_new_loader_location == 0)
+            {
+                uint16_t len_needed = p_turbo_blocks.GetLoaderCodeLength(true); // space needed for our loader code
+                p_new_loader_location = GetEmptySpaceLocation(first_block, len_needed, 6 * 1024 + 768); // location for our loader code
+                if(p_new_loader_location == 0)                                                            // no empty space found, use last 3rd of screen
+                {
+                    p_new_loader_location = spectrum::SCREEN_23RD;
+                    std::cout << "Not enough empty space found in snapshot. Will copy loader code to screen. (" << spectrum::SCREEN_23RD << "; length = " << len_needed << ")" << std::endl;
+                }
+                else
+                {
+                    p_new_loader_location += z80_snapshot_offset;       // adjust offset within (48k) snapshot
+                    std::cout << "Found empty space to copy loader code to: " << p_new_loader_location << ". (length = " << len_needed << ")" << std::endl;
+                }
+            }
+            uint16_t register_code_start = p_new_loader_location +
+                                           symbols.GetSymbol("STACK_SIZE") +
+                                           symbols.GetSymbol("ASM_CONTROL_CODE_LEN") +
+                                           symbols.GetSymbol("ASM_UPPER_LEN");
+
+            Z80SnapShotHeaderToSnapShotRegs(symbols);       // fill register values into ->m_reg_block
+            // copy m_reg_block directly into 48k data block
+            // without the int cast below crashes (msvc)? Dunno why?
+            // or put brackets around it. Else iterator is temporary out of range which asserts.
+            std::copy(m_reg_block.begin(), m_reg_block.end(), first_block.begin() + (register_code_start - z80_snapshot_offset));
+
+            DataBlock screenblock(first_block.begin(), first_block.begin() + spectrum::SCREEN_SIZE);      // split
+            DataBlock payload(first_block.begin() + spectrum::SCREEN_SIZE, first_block.end());
+
+            if(p_write_fun_attribs)
+            {
+                // For fun write a attribute block -> text_attr (last 3rd)
+                // at the bottom 1/3rd of screen were our loader is.
+                // We also wont see the loader code then.
+                DataBlock text_attr;
+                text_attr.resize(256);
+                WriteTextToAttr(text_attr, ToUpper(m_name), 0_byte, true, 0);    // 0_byte: random colors
+                std::copy(text_attr.begin(), text_attr.end(), screenblock.begin() + (spectrum::ATTR_23RD - z80_snapshot_offset));
+
+            }
+            p_turbo_blocks.AddMemoryBlock({std::move(screenblock), spectrum::SCREEN_START});                     // screen
+            p_turbo_blocks.SetLoaderCopyTarget(p_new_loader_location);
+            p_turbo_blocks.AddMemoryBlock({std::move(payload), spectrum::SCREEN_START + spectrum::SCREEN_SIZE}); // rest
+            // This puts startaddress at where registers are restored, thus starting the snapshot.
+            m_usr = register_code_start;
+            first = false;
         }
         else
         {
-            p_new_loader_location += z80_snapshot_offset;       // adjust offset within (48k) snapshot
-            std::cout << "Found empty space to copy loader code to: " << p_new_loader_location << ". (length = " << len_needed << ")" << std::endl;
+            p_turbo_blocks.AddMemoryBlock(std::move(block));   
         }
     }
-    uint16_t register_code_start = p_new_loader_location +
-                                   symbols.GetSymbol("STACK_SIZE") +
-                                   symbols.GetSymbol("ASM_CONTROL_CODE_LEN") +
-                                   symbols.GetSymbol("ASM_UPPER_LEN");
-
-    Z80SnapShotHeaderToSnapShotRegs(symbols);       // fill register values into ->m_reg_block
-    // copy m_reg_block directly into 48k data block
-    // without the int cast below crashes (msvc)? Dunno why?
-    // or put brackets around it. Else iterator is temporary out of range which asserts.
-    std::copy(m_reg_block.begin(), m_reg_block.end(), snapshot_data.begin() + (register_code_start - z80_snapshot_offset));
-
-    DataBlock screenblock(snapshot_data.begin(), snapshot_data.begin() + spectrum::SCREEN_SIZE);      // split
-    DataBlock payload(snapshot_data.begin() + spectrum::SCREEN_SIZE, snapshot_data.end());
-
-    if(p_write_fun_attribs)
-    {
-        // For fun write a attribute block -> text_attr (last 3rd)
-        // at the bottom 1/3rd of screen were our loader is.
-        // We also wont see the loader code then.
-        DataBlock text_attr;
-        text_attr.resize(256);
-        WriteTextToAttr(text_attr, ToUpper(m_name), 0_byte, true, 0);    // 0_byte: random colors
-        std::copy(text_attr.begin(), text_attr.end(), screenblock.begin() + (spectrum::ATTR_23RD - z80_snapshot_offset));
-
-    }
-    p_turbo_blocks.AddMemoryBlock({std::move(screenblock), spectrum::SCREEN_START});                     // screen
-    p_turbo_blocks.SetLoaderCopyTarget(p_new_loader_location);
-    p_turbo_blocks.AddMemoryBlock({std::move(payload), spectrum::SCREEN_START + spectrum::SCREEN_SIZE}); // rest
-    // This puts startaddress at where registers are restored, thus starting the snapshot.
-    m_usr = register_code_start;
 }
 
 

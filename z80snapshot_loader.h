@@ -10,9 +10,10 @@
 #pragma once
 
 #include <string>
-#include "datablock.h"
+#include "memoryblock.h"
 #include <cstdint>
 #include <filesystem>
+
 
 class TurboBlocks;
 class Symbols;
@@ -48,39 +49,34 @@ class SnapShotLoader
         uint8_t  flags_and_imode;       // Interrupt mode (0, 1 or 2)
     };
 
-    // z80 v2 snapshot header
     struct Z80SnapShotHeader2
     {
-        // uint16_t  length_and_version;       // extra header length exluding this value itself
+        // version 2
+        // uint16_t  length_and_version;             // extra header length exluding this value itself (read separately)
         uint16_t PC_reg;
         uint8_t  hardware_mode;
-        uint8_t  out_mode;
-        uint8_t  out_mode_intf1;
-        uint8_t  simulator_flags;
-        uint8_t  soundchip_reg_number;
-        uint8_t  soundchip_registers[16];
-    };
-
-    // z80 v3 snapshot header
-    struct Z80SnapShotHeader3
-    {
-        uint16_t  low_tstate_counter;
+        uint8_t  current_bank;                      // 'If in 128 mode, contains last OUT to 0x7ffd'
+        uint8_t  out_mode_intf1;                    // 'Contains 0xff if Interface I rom paged'
+        uint8_t  simulator_flags;                   // not needed for real hardware
+        uint8_t  soundchip_reg_number;              // 'Last OUT to port 0xfffd (soundchip register number)'
+        uint8_t  soundchip_registers[16];           // 'Contents of the sound chip registers'
+        // version 3
+        uint16_t low_tstate_counter;
         uint8_t  high_tstate_counter;
-        uint8_t  reserved_for_spectator;
+        uint8_t  reserved_for_spectator;            // not used
         uint8_t  mgt_rom_paged;
-        uint8_t  multiface_rom_paged;
-        uint8_t  rom_is_ram1;
-        uint8_t  rom_is_ram2;
-        uint8_t  keyboard_joystick_mappings1[10];
-        uint8_t  keyboard_joystick_mappings2[10];
+        uint8_t  multiface_rom_paged;               // always 0
+        uint8_t  rom_is_ram1;                       // not needed for real hardware
+        uint8_t  rom_is_ram2;                       // not needed for real hardware
+        uint8_t  keyboard_joystick_mappings1[10];   // not needed for real hardware
+        uint8_t  keyboard_joystick_mappings2[10];   // not needed for real hardware
         uint8_t  mgt_type;
         uint8_t  inhibit_button_status;
         uint8_t  inhibit_flag_rom;
+        // not always there
+        uint8_t  last_out_0x1ffd;   
     };
-    struct Z80SnapShotHeader31
-    {
-        uint8_t  last_out_0x1ffd;
-    };
+    // Only used at z80 v2
     struct Z80SnapShotDataHeader
     {
         uint16_t length;
@@ -89,10 +85,7 @@ class SnapShotLoader
 #pragma pack(pop)
 
     static_assert(sizeof(Z80SnapShotHeader)  == 30,   "Sizeof Z80SnapShotHeader must be 30");
-    static_assert(sizeof(Z80SnapShotHeader2) == 23, "Sizeof Z80SnapShotHeader2 must be 23");
-    static_assert(sizeof(Z80SnapShotHeader2) + sizeof(Z80SnapShotHeader3) == 54, "Sizeof Z80SnapShotHeader2 must be 54");
-    static_assert(sizeof(Z80SnapShotHeader31) == 1, "Sizeof Z80SnapShotHeader3.1 must be 1");
-    static_assert(sizeof(Z80SnapShotHeader) + sizeof(Z80SnapShotHeader2) + sizeof(Z80SnapShotHeader3) == 84, "Sizeof Z80SnapShotHeaders must be 86");
+    static_assert(sizeof(Z80SnapShotHeader2) == 55, "Sizeof Z80SnapShotHeader2 must be 55");
 
 #pragma pack(push, 1)
     // https://worldofspectrum.org/faq/reference/formats.htm
@@ -153,12 +146,22 @@ public:
         return m_usr;
     }
 
-    ///  Get entire (48kb) snapshot but excluding registers.
-    DataBlock GetData()
+    int GetLastBankToSwicthTo() const
     {
-        return std::move(m_mem48k);
+        return m_current_bank;
     }
 
+    ///  Get entire (48kb) snapshot but excluding registers.
+    MemoryBlocks GetRam()
+    {
+        return std::move(m_ram);
+    }
+
+
+    bool Is48KSnapShot() const
+    {
+        return m_is_48K;
+    }
 
 
 private:
@@ -169,10 +172,13 @@ private:
     DataBlock DeCompress(const DataBlock& p_block);
 private:
     Z80SnapShotHeader m_z80_snapshot_header {};
-    DataBlock m_mem48k;         // snapshot data (as read from z80 file)
+    int m_current_bank = -1;
+//    DataBlock m_mem48k;         // 48k snapshot data (as read from z80 file)
+    MemoryBlocks m_ram;   // 8*16K banks
     DataBlock m_reg_block;      // Typically would be snapshotregs.bin as created by sjasmplus.
     uint16_t m_usr = 0;
     std::string m_name;
+    bool m_is_48K = true;
 };
 
 bool WriteTextToAttr(DataBlock& out_attr, const std::string& p_text1, std::byte p_color, bool p_center = true, int p_col = 0);

@@ -17,7 +17,7 @@
 
 // Must match value at compressor.h:
 //    DEFINE DO_COMRESS_PAIRS
-//    DEFINE BANKSWITCH128       
+    DEFINE BANKSWITCH128       
 
 
     DEVICE ZXSPECTRUM48
@@ -235,13 +235,13 @@ copy_done:
     pop DE                      // #PP3 clear_address(->sp)
     ld A, H
     dec A
-    jr z, next_block            // when H == 1 (TurboBlocks::LoadNext) continue to next block
+    jr z, next_block            // when H == 1 (AfterBlock::LoadNext) continue to next block
     dec A
-    jp z, COPY_ME               // when H = 2 (TurboBlocks::CopyLoader) copy me, then to next block (at new location)
+    jp z, COPY_ME               // when H = 2 (AfterBlock::CopyLoader) copy me, then to next block (at new location)
     dec A
-    jr z, END_TO_BASIC          // when H = 3 (TurboBlocks::ReturnToBasic) so last block but do not start MC, return to BASIC.
+    jr z, END_TO_BASIC          // when H = 3 (AfterBlock::ReturnToBasic) so last block but do not start MC, return to BASIC.
  IFDEF BANKSWITCH128
-    dec A
+    dec A                       // when H = 4 (AfterBlock::BankSwitch) ZX spectrum 128 bank switch command
     jr z, BANKSWITCH
  ENDIF
     // TODO can add ZXSpectrem 128 bankswitching here.
