@@ -19,6 +19,7 @@
 #include <fstream>
 #include <filesystem>
 #include <string>
+#include <cstring>  // memcpy
 /*
 https://worldofspectrum.org/faq/reference/z80format.htm
 https://worldofspectrum.net/zx-modules/fileformats/z80format.html
@@ -167,11 +168,11 @@ SnapShotLoader& SnapShotLoader::LoadZ80(std::istream& p_stream)
         m_current_bank =  int(header2.current_bank);
         std::cout << "Current bank = " << m_current_bank << std::endl;
 
-        // Read data blocks
         MemoryBlock mem48k;
         mem48k.m_datablock.resize(48 * 1024);
         mem48k.m_address = spectrum::RAM_START;
         int cnt = 0;
+        // Read 16K data blocks
         while (p_stream.peek() && p_stream.good())
         {
             cnt++;
@@ -199,10 +200,13 @@ SnapShotLoader& SnapShotLoader::LoadZ80(std::istream& p_stream)
             // std::cout << int(data_header.page_num) << ' ' << bank16k.m_bank << ' ' << bank16k.m_address <<  ' ' << int(header2.current_bank) << std::endl;
             if(bank16k.m_bank == 2 || bank16k.m_bank == 5 ||  bank16k.m_bank == header2.current_bank)
             {
+                // Copy these banks to the 48K datablock; will be the first.
+                // Same as v1 snapshot. And SNA snapshot.
                 std::copy(bank16k.m_datablock.begin(), bank16k.m_datablock.end(), mem48k.m_datablock.begin() +  bank16k.m_address - spectrum::RAM_START);
             }
             else
             {
+                // Its a switchable bank.
                 m_ram.push_back(std::move(bank16k));
             }
         }
@@ -213,8 +217,6 @@ SnapShotLoader& SnapShotLoader::LoadZ80(std::istream& p_stream)
             {
                 throw std::runtime_error("Error Expect 48K snapshot to contain 3 16K blocks, but has: " + std::to_string(cnt));
             }
-            // make it just 1 48 block. As does v1 snapshot. And SNA snapshot.
-            // m_ram = std::move(Compact(std::move(m_ram)));
         }
 
 
@@ -248,7 +250,7 @@ SnapShotLoader& SnapShotLoader::LoadSna(std::istream& p_stream)
         uint8_t trdos_rom_paged  = LoadBinary<uint8_t>(p_stream);
         (void)trdos_rom_paged;
         m_ram.push_back(std::move(mem48k));
-        int banks[] = {0,1,3,4,6,7};        // all not duplicate banks
+        int banks[] = {0,1,3,4,6,7};        // all not duplicated banks
         for(int bank : banks)
         {
             if(bank != m_current_bank)
@@ -265,9 +267,8 @@ SnapShotLoader& SnapShotLoader::LoadSna(std::istream& p_stream)
     else
     {
         std::cout << "48K SNA snapshot file" << std::endl;
-        static constexpr uint16_t snapshot_offset = 16384;      // 48k z80 snapshot starts here (offset)
         // 'pop pc'
-        pc = uint16_t(mem48k.m_datablock[header.SP_reg - snapshot_offset]) + 256 * uint16_t(mem48k.m_datablock[header.SP_reg + 1 - snapshot_offset]);
+        pc = uint16_t(mem48k.m_datablock[header.SP_reg - spectrum::RAM_START]) + 256 * uint16_t(mem48k.m_datablock[header.SP_reg + 1 - spectrum::RAM_START]);
         header.SP_reg += 2;
         m_ram.push_back(std::move(mem48k));
     }

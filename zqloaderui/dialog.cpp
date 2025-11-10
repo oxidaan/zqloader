@@ -42,7 +42,7 @@ void WriteFunText(ZQLoader &p_zq_loader, bool p_first)
         DataBlock all_attr;
         all_attr.resize(768);
         p_zq_loader.SetCompressionType(CompressionType::automatic);
-        p_zq_loader.AddDataBlock(std::move(all_attr), 16384 + 6 * 1024 );
+        p_zq_loader.AddDataBlock(std::move(all_attr), spectrum::ATTR_BEGIN);
     }
     else
     {
@@ -51,7 +51,7 @@ void WriteFunText(ZQLoader &p_zq_loader, bool p_first)
         empty = ZQLoader::WriteTextToAttr(text_attr, text, std::byte{}, false, col);    // 0_byte: random colors
         // copy fun attributes into 48k data block
         p_zq_loader.SetCompressionType(CompressionType::none);      // else ugly
-        p_zq_loader.AddDataBlock(std::move(text_attr), 16384 + 6 * 1024 + 512);
+        p_zq_loader.AddDataBlock(std::move(text_attr), spectrum::ATTR_23RD);
     }
     col --;
     if(empty)

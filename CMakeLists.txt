@@ -40,6 +40,7 @@ set(SOURCE_LIB
     test.cpp
     tools.cpp
     turboblocks.cpp
+    turboblock.cpp
     tzxloader.cpp
     sampletowav.cpp
     pulsers.cpp

@@ -205,7 +205,7 @@ public:
             const MemoryBlock& first = memory_blocks.front();
             // First block includes screen but is bigger than that.
             // For visually appealing split of screen to load screen first.
-            // Also to add move loader command at end of this first block.
+            // Also to add move loader command at end of this first block (later)
             if (first.GetStartAddress() == spectrum::SCREEN_START && first.size() > spectrum::SCREEN_SIZE)
             {
                 auto [screen, after] = SplitBlock(first, spectrum::SCREEN_START + spectrum::SCREEN_SIZE);
@@ -230,8 +230,9 @@ public:
 
         memory_blocks = MakeSpaceForUpperLoader(std::move(memory_blocks));
 
-        MemoryBlocksToTurboBlocks(std::move(memory_blocks), loader_copy_start, p_usr_address, p_clear_address, p_last_bank_to_set);
 
+
+        MemoryBlocksToTurboBlocks(std::move(memory_blocks), loader_copy_start, p_usr_address, p_clear_address, p_last_bank_to_set);
 
 
 
@@ -471,6 +472,7 @@ private:
                 }
                 if(&block == &p_memory_blocks.back())
                 {
+                    // This is the block that overwrites our loader at upper.
                     prev = &AddTurboBlock(std::move(block), p_loader_copy_start + m_symbols.GetSymbol("STACK_SIZE") + m_symbols.GetSymbol("ASM_CONTROL_CODE_LEN"));
                 }        
                 else
@@ -486,8 +488,8 @@ private:
         }
         if (m_turbo_blocks.size() > 0)
         {
-            // When indicated, after loading *first* block, loader will be copied.
-            // TODO goes wrong when also has 'SetBank'
+            // When indicated, after loading *first* block, loader will be copied. (eg to screen)
+            // TODO goes wrong (but throws) when already has 'SetBank'
             if (p_loader_copy_start)
             {
                 m_turbo_blocks.front().SetAfterBlockDo(TurboBlock::AfterBlock::CopyLoader);

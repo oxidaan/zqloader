@@ -220,7 +220,7 @@ inline std::vector<uint16_t> TapToTurboBlocks::TryFindLoadCode(const DataBlock& 
             p_basic_block[cnt] == 0xAA_byte && // SCREEN$
             p_basic_block[cnt - 1] == std::byte('"'))
         {
-            return 16384; // so SCREEN$
+            return int(spectrum::SCREEN_START); // so SCREEN$
         }
         return 0;
     });
