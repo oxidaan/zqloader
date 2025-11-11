@@ -49,27 +49,26 @@ public:
     void SetNormalFilename(fs::path p_filename)
     {
         m_normal_filename = std::move(p_filename);
-        if(!m_is_zqloader)
+        if(!FileIsZqLoader(m_normal_filename))
         {
-            m_is_zqloader = ToLower(m_normal_filename.stem().string()) == "zqloader";
-        }
-        if(!m_is_zqloader)
-        {
-            AddNormalSpeedFile(GetNormalFilename());    // when p_filename emtpy makes it zqloader.tap
+            AddNormalSpeedFile(m_normal_filename);    // when p_filename emtpy makes it zqloader.tap
         }
         else
         {
-            AddZqLoaderFile(GetNormalFilename());
+            AddZqLoader(m_normal_filename);
         }
     }
 
+    bool FileIsZqLoader(fs::path p_filename) const
+    {
+        return ToLower(p_filename.stem().string()).find("zqloader") == 0;
+    }
     // Set turbo filename eg the 2nd filename in the dialog.
     void SetTurboFilename(fs::path p_filename )
     {
         if(!p_filename.empty())
         {
             m_turbo_filename = std::move(p_filename);
-            m_is_zqloader = true;
             AddTurboSpeedFile(m_turbo_filename);
         }
     }
@@ -230,8 +229,7 @@ public:
 
     void SetPreload()
     {
-        m_is_zqloader = true;
-        AddZqLoaderFile(GetNormalFilename());
+        AddZqLoader(m_normal_filename);
         m_turboblocks.MoveToLoader(m_spectrumloader, true);
         m_is_preloaded = true;
     }
@@ -340,11 +338,11 @@ private:
         }
     }
 
-    void AddZqLoaderFile(const fs::path &p_filename)
+    void AddZqLoader(const fs::path &p_filename)
     {
         if(!m_is_preloaded && !m_turboblocks.IsZqLoaderAdded())
         {
-            if(ToLower(p_filename.stem().string()) != "zqloader")
+            if( !FileIsZqLoader(p_filename))
             {
                 throw std::runtime_error(1 + &*R"(
 A second filename argument and/or parameters are only usefull when using zqloader.tap 
@@ -358,7 +356,7 @@ A second filename argument and/or parameters are only usefull when using zqloade
 
     void AddTurboSpeedFile(const fs::path &p_filename)
     {
-        AddZqLoaderFile(GetNormalFilename());
+        AddZqLoader(m_normal_filename);
 
 
         if (ToLower(p_filename.extension().string()) == ".tap")
@@ -422,13 +420,13 @@ A second filename argument and/or parameters are only usefull when using zqloade
     {
         SnapShotLoader snapshotloader;
         // Read file snapshotregs.bin (created by sjasmplus) -> regblock
-        fs::path snapshot_regs_filename = FindZqLoaderTapfile(GetNormalFilename());
+        fs::path snapshot_regs_filename = FindZqLoaderTapfile(m_normal_filename);
         snapshot_regs_filename.replace_filename("snapshotregs");
         snapshot_regs_filename.replace_extension("bin");
         DataBlock regblock = LoadFromFile(snapshot_regs_filename);
         if(!m_turboblocks.IsZqLoaderAdded())      // else already done at AddZqLoader 
         {
-            fs::path filename_exp = FindZqLoaderTapfile(GetNormalFilename());
+            fs::path filename_exp = FindZqLoaderTapfile(m_normal_filename);
             filename_exp.replace_extension("exp");          // zqloader.exp (symbols)
             m_turboblocks.SetSymbolFilename(filename_exp);      
         }
@@ -460,9 +458,8 @@ A second filename argument and/or parameters are only usefull when using zqloade
     void Check()
     {
         // also called when preload clicked, then 2nd file not needed to be present.
-        if(m_is_zqloader && m_turbo_filename.empty() && !m_is_preloaded)
+        if(FileIsZqLoader(m_normal_filename) && m_turbo_filename.empty() && !m_is_preloaded)
         {
-            m_is_zqloader = false;
             throw std::runtime_error(1 + &*R"(
 When using zqloader.tap a 2nd filename is needed as runtime argument,
 with the program to be turboloaded. A game for example. 
@@ -509,14 +506,7 @@ Please add a normal and or turbo speed file.
         return m_output_filename;
     }
 
-    fs::path GetNormalFilename() const
-    {
-        if(m_is_zqloader && m_normal_filename.empty())
-        {
-            return "zqloader.tap";  // will try to find path
-        }
-        return m_normal_filename;
-    }
+
 
 
 public:
@@ -537,7 +527,7 @@ public:
     Action                                  m_action = Action::play_audio;
 
     bool                                    m_is_busy = false;
-    bool                                    m_is_zqloader         = false; // zqloader.tap seen
+    bool                                    m_128_mode            = false;
     bool                                    m_is_preloaded = false;
     DoneFun                                 m_OnDone;
 

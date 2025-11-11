@@ -164,7 +164,7 @@ public:
                     new_blocks.push_back(std::move(first));
                 }
                 overwrites_loader = std::move(second);      // can not have size zero, also checked below again.
-                overwrites_loader.m_address = start;
+                overwrites_loader.m_address = start;        // -> dest address
                 if (third.size() > 0)
                 {
                     new_blocks.push_back(std::move(third));
@@ -175,7 +175,7 @@ public:
                 new_blocks.push_back(std::move(block));
             }
         }
-        new_blocks.push_back(std::move(overwrites_loader));     // so last
+        new_blocks.push_back(std::move(overwrites_loader));     // so last, can have size zero!
         return new_blocks;
     }
     
@@ -470,21 +470,26 @@ private:
                     prev->SwitchBankTo(block.m_bank);
                     prev_bank_set = block.m_bank;
                 }
+                uint16_t load_address = 0;
                 if(&block == &p_memory_blocks.back())
                 {
-                    // This is the block that overwrites our loader at upper.
-                    prev = &AddTurboBlock(std::move(block), p_loader_copy_start + m_symbols.GetSymbol("STACK_SIZE") + m_symbols.GetSymbol("ASM_CONTROL_CODE_LEN"));
+                    // Last block when size != 0 is always the the block that overwrites our loader at upper. 
+                    // Set load-address. Dest address already ok.
+                    if(p_loader_copy_start)
+                    {
+                        load_address =  p_loader_copy_start + m_symbols.GetSymbol("STACK_SIZE") + m_symbols.GetSymbol("ASM_CONTROL_CODE_LEN");
+                    }
+                    else
+                    {
+                        load_address = m_symbols.GetSymbol("ASM_UPPER_START_OFFSET");
+                    }
                 }        
-                else
-                {
-                    prev = &AddTurboBlock(std::move(block));
-                }
+                prev = &AddTurboBlock(std::move(block), load_address);
             }
         }
         if(prevprev && p_last_bank_to_set >=0 && p_last_bank_to_set != prev_bank_set)
         {
             prevprev->SwitchBankTo(p_last_bank_to_set);
-            prevprev->DebugDump();
         }
         if (m_turbo_blocks.size() > 0)
         {

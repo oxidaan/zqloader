@@ -54,6 +54,9 @@
     <CustomBuild Include="z80\zqloader_test2.z80asm">
       <Filter>Z80</Filter>
     </CustomBuild>
+    <CustomBuild Include="z80\zqloader128.z80asm">
+      <Filter>Z80</Filter>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <Image Include="resource\icon2.ico" />
@@ -61,6 +64,9 @@
   <ItemGroup>
     <None Include="README.md" />
     <None Include="zqloader.vcxproj" />
+    <None Include="z80\zqloader.i">
+      <Filter>Z80</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="LICENSE.txt" />
