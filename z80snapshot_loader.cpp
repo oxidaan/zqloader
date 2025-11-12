@@ -148,13 +148,13 @@ SnapShotLoader& SnapShotLoader::LoadZ80(std::istream& p_stream)
         {
             std::cout << "Z80 version2 file; ";
         }
-        if (length_and_version == 54 || length_and_version == 55)
+        else if (length_and_version == 54 || length_and_version == 55)
         {
             std::cout << "Z80 version3 file; ";
         }
         else
         {
-            throw std::runtime_error("Invalid Length of additional header block");
+            throw std::runtime_error("Invalid Length of additional header block (" + std::to_string(length_and_version) + ")");
         }
         DataBlock buf(length_and_version);
         p_stream.read(reinterpret_cast<char *>(buf.data()), length_and_version);

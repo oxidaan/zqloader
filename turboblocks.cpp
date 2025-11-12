@@ -157,7 +157,7 @@ public:
                     // Note: Should not be possible because of Compact().
                     throw std::runtime_error("Already found a block loading to loader-overlapped region, blocks overlap");
                 }
-                std::cout << "Block overlaps loader at upper memory region. Adding extra block..." << std::endl;
+                std::cout << "Block overlaps loader at upper memory region (at " << start << "). Adding extra block..." << std::endl;
                 auto [first, second, third] = SplitBlock3(block, start, end);
                 if (first.size() > 0)
                 {

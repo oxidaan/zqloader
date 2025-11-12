@@ -53,16 +53,14 @@ public:
         {
             AddNormalSpeedFile(m_normal_filename);    // when p_filename emtpy makes it zqloader.tap
         }
-        else
-        {
-            AddZqLoader(m_normal_filename);
-        }
     }
 
+    // File is a zqloader.tap file?
     bool FileIsZqLoader(fs::path p_filename) const
     {
         return ToLower(p_filename.stem().string()).find("zqloader") == 0;
     }
+
     // Set turbo filename eg the 2nd filename in the dialog.
     void SetTurboFilename(fs::path p_filename )
     {
@@ -229,6 +227,7 @@ public:
 
     void SetPreload()
     {
+        m_128_mode = true;
         AddZqLoader(m_normal_filename);
         m_turboblocks.MoveToLoader(m_spectrumloader, true);
         m_is_preloaded = true;
@@ -258,33 +257,42 @@ public:
     fs::path FindZqLoaderTapfile(const fs::path &p_filename) const
     {
         fs::path filename = p_filename;
-        if(p_filename == p_filename.filename())     // given just zqloader.tap w/o path so try to find
+        if(filename.empty())
+        {
+            filename = m_128_mode ? "zqloader128.tap" : "zqloader.tap";
+        }
+        if(!FileIsZqLoader(filename))
+        {
+            throw std::runtime_error("First file needs to be a version of zqloader (now: '" + filename.string() + "')");
+        }
+
+        if(filename == filename.filename())     // given just zqloader.tap w/o path so try to find
         {
             // Try to find zqloader.tap file
-            if (!std::filesystem::exists(p_filename))
+            if (!std::filesystem::exists(filename))
             {
                 // try at current executable directory by default
-                filename = m_exe_path / p_filename.filename();
+                filename = m_exe_path / filename.filename();
             }
             if (!std::filesystem::exists(filename))
             {
                 // try at current executable directory/z80 by default
-                filename = m_exe_path / "z80" / p_filename.filename();
+                filename = m_exe_path / "z80" / filename.filename();
             }
             if (!std::filesystem::exists(filename))
             {
                 // then workdir
-                filename = std::filesystem::current_path() / p_filename.filename();
+                filename = std::filesystem::current_path() / filename.filename();
             }
             if (!std::filesystem::exists(filename))
             {
                 // then workdir/z80
-                filename = std::filesystem::current_path() / "z80" / p_filename.filename();
+                filename = std::filesystem::current_path() / "z80" / filename.filename();
             }
         }
         if (!std::filesystem::exists(filename))
         {
-            throw std::runtime_error("ZQLoader file '" + p_filename.string() + "' not found. (checked: "
+            throw std::runtime_error("ZQLoader file '" + filename.string() + "' not found. (checked: "
             + m_exe_path.string() + ", " + std::filesystem::current_path().string() +
             ") Please give path/to/zqloader.tap. (this is the tap file that contains the ZX Spectrum turboloader)");
         }
@@ -342,23 +350,14 @@ private:
     {
         if(!m_is_preloaded && !m_turboblocks.IsZqLoaderAdded())
         {
-            if( !FileIsZqLoader(p_filename))
-            {
-                throw std::runtime_error(1 + &*R"(
-A second filename argument and/or parameters are only usefull when using zqloader.tap 
-(which is the turbo loader) as (1st) file.
-)");
-            }
             auto filename = FindZqLoaderTapfile(p_filename);
             m_turboblocks.AddZqLoader(filename);                 // zqloader.tap
+            m_zqloader_filename = filename;
         }
     }
 
     void AddTurboSpeedFile(const fs::path &p_filename)
     {
-        AddZqLoader(m_normal_filename);
-
-
         if (ToLower(p_filename.extension().string()) == ".tap")
         {
             std::cout << "Processing tap file: " << p_filename << " (turbo speed)" << std::endl;
@@ -400,6 +399,8 @@ A second filename argument and/or parameters are only usefull when using zqloade
     template<class Tloader>
     void AddFileToTurboBlocks(const fs::path &p_filename)
     {
+        m_128_mode = false;
+        AddZqLoader(m_normal_filename);
         TapToTurboBlocks tab_to_turbo_blocks{ m_turboblocks };
         Tloader tap_or_tzx_loader;
         tap_or_tzx_loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string p_zxfilename)
@@ -419,6 +420,10 @@ A second filename argument and/or parameters are only usefull when using zqloade
     void AddSnapshotToTurboBlocks(const fs::path &p_filename)
     {
         SnapShotLoader snapshotloader;
+        snapshotloader.Load(p_filename);
+        m_128_mode = !snapshotloader.Is48KSnapShot();
+        AddZqLoader(m_normal_filename);
+
         // Read file snapshotregs.bin (created by sjasmplus) -> regblock
         fs::path snapshot_regs_filename = FindZqLoaderTapfile(m_normal_filename);
         snapshot_regs_filename.replace_filename("snapshotregs");
@@ -430,7 +435,7 @@ A second filename argument and/or parameters are only usefull when using zqloade
             filename_exp.replace_extension("exp");          // zqloader.exp (symbols)
             m_turboblocks.SetSymbolFilename(filename_exp);      
         }
-        snapshotloader.Load(p_filename).SetRegBlock(std::move(regblock)).MoveToTurboBlocks(m_turboblocks, m_new_loader_location, m_use_fun_attribs);
+        snapshotloader.SetRegBlock(std::move(regblock)).MoveToTurboBlocks(m_turboblocks, m_new_loader_location, m_use_fun_attribs);
         m_turboblocks.Finalize(snapshotloader.GetUsrAddress(), 0, snapshotloader.GetLastBankToSwicthTo());
     }
 
@@ -521,13 +526,14 @@ public:
     uint32_t                                m_sample_rate         = loader_defaults::sample_rate;
     bool                                    m_allow_overwrite     = false; // see OpenFileToWrite
     fs::path                                m_normal_filename;             // usually zqloader.tap
+    fs::path                                m_zqloader_filename;
     fs::path                                m_turbo_filename;
     fs::path                                m_output_filename;             // writing wav or tzx
     fs::path                                m_exe_path;                    // s/a argv[0]
     Action                                  m_action = Action::play_audio;
 
     bool                                    m_is_busy = false;
-    bool                                    m_128_mode            = false;
+    bool                                    m_128_mode = false;
     bool                                    m_is_preloaded = false;
     DoneFun                                 m_OnDone;
 
@@ -801,7 +807,7 @@ uint32_t ZQLoader::GetDeviceSampleRate() const
 // For restore defaults only
 std::filesystem::path ZQLoader::GetZqLoaderFile() const
 {
-    return m_pimpl->FindZqLoaderTapfile("zqloader.tap");
+    return m_pimpl->m_zqloader_filename;
 }
 
 void ZQLoader::Test()

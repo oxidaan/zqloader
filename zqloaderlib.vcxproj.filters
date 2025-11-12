@@ -64,7 +64,7 @@
   <ItemGroup>
     <None Include="README.md" />
     <None Include="zqloader.vcxproj" />
-    <None Include="z80\zqloader.i">
+    <None Include="z80\zqloader.inc">
       <Filter>Z80</Filter>
     </None>
   </ItemGroup>

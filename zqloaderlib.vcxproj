@@ -251,7 +251,7 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">z80\zqloader_snapshottest.sna</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">z80\zqloader_snapshottest.sna</Outputs>
     </CustomBuild>
-    <None Include="z80\zqloader.i" />
+    <None Include="z80\zqloader.inc" />
     <CustomBuild Include="z80\zqloader128.z80asm">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">cmd /c "for /F %%i in ('where sjasmplus') do cd "%(FullPath)\..\" &amp; del z80\%(Filename).tap &amp; sjasmplus --fullpath -i%%i/../examples/BasicLib --exp="%(FullPath)\..\%(Filename).exp" --syntax=abf "%(FullPath)" "</Command>

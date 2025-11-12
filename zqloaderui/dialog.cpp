@@ -222,7 +222,7 @@ Dialog::Dialog(QWidget *parent)
             m_zqloader.Reset();
             fs::path filename1 = ui->lineEditNormalFile->text().toStdString();
             m_zqloader.SetNormalFilename(filename1).SetPreload();       // should be zqloader or empty
-
+            ui->lineEditNormalFile->setText(QString::fromStdString(m_zqloader.GetZqLoaderFile().string()));  // get result
             m_zqloader.SetSampleRate(ui->lineEditSampleRate->text().toInt());
             m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());
 
@@ -426,7 +426,7 @@ inline void Dialog::RestoreDefaults()
     ui->horizontalSliderSpeed->setValue(0);
     try
     {
-        ui->lineEditNormalFile->setText(QString::fromStdString(m_zqloader.GetZqLoaderFile().string()));
+        ui->lineEditNormalFile->setText("");
     }
     catch(...)
     {
@@ -497,6 +497,7 @@ inline void Dialog::Go()
 
     m_zqloader.SetNormalFilename(filename1);
     m_zqloader.SetTurboFilename(filename2);
+    ui->lineEditNormalFile->setText(QString::fromStdString(m_zqloader.GetZqLoaderFile().string()));  // get result
 
     m_zqloader.SetSampleRate(ui->lineEditSampleRate->text().toInt());
     m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());

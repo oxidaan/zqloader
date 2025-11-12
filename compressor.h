@@ -113,7 +113,7 @@ public:
             }
             // std::cout << "Compression attempt #" << (tr + 1) << " Failed..." << std::endl;
         }
-        std::cout << "Inline compression failed" << std::endl;
+        std::cout << "Inline compression failed." << std::endl;
         return {};  // failed...
     }
 
