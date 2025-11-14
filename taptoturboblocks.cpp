@@ -17,6 +17,7 @@
 
 /// call back
 /// Handle loaded/incoming data block:
+/// p_block includes type and checksum but not the length.
 /// When header: check name; store as last header.
 /// When data: based on last header header:
 ///     When basic: try get addresses like RANDOMIZE USR XXXXX
@@ -50,6 +51,7 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, const std::string &p_zx
     }
     else if (type == TapeBlockType::data)
     {
+        std::cout << "  Data Block with payload length: " << block.size() <<" (" << m_last_header.m_type << ")"; 
         if (m_last_block != TapeBlockType::header && m_headercnt >= 1)
         {
             throw std::runtime_error("Found headerless, can not handle (can't know were it should go to)");
@@ -57,34 +59,43 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, const std::string &p_zx
         if (m_last_header.m_type == TapeHeader::Type::code ||
             m_last_header.m_type == TapeHeader::Type::screen)
         {
-            auto start_adr = (m_loadcodes.size() > m_codecount) ?
+            auto start_adr = (m_loadcodes.size() > m_codecount &&  m_loadcodes[m_codecount] != 0 ) ?
                              m_loadcodes[m_codecount] : // taking address from last unused LOAD "" CODE XXXXX as found in basic
                              m_last_header.GetStartAddress();
 
             m_tblocks.AddMemoryBlock({std::move(block), start_adr});
             m_codecount++;
+
         }
         else if (m_last_header.m_type == TapeHeader::Type::basic_program)
         {
             if (m_codecount == 0)
             {
-                auto usr = TryFindUsr(block);
-                if (usr)
+                auto usrs = TryFindUsr(block);
+                for (auto usr: usrs)
                 {
-                    std::cout << "Found USR " << usr << " in BASIC." << std::endl;
-                    m_usr = usr;
+                    std::cout << "\n  Found USR " << usr << " in BASIC.";
                 }
+                if(usrs.size() != 1)
+                {
+                    std::cout << "\nWarning: Found " << usrs.size() << "x USR xxxx in BASIC. Code is probably protected and will not work!";// << std::endl;
+                }
+                else
+                {
+                    m_usr = *usrs.begin();
+                }
+
                 auto clear = TryFindClear(block);
                 if (clear)
                 {
-                    std::cout << "Found CLEAR " << clear << " in BASIC" << std::endl;
+                    std::cout << "\n  Found CLEAR " << clear << " in BASIC";
                     m_clear = clear;
                 }
 
                 m_loadcodes = TryFindLoadCode(block);
                 for (auto code : m_loadcodes)
                 {
-                    std::cout << "Found LOAD \"\" CODE " << code << " in BASIC" << std::endl;
+                    std::cout << "\n  Found LOAD \"\" CODE " << (code ? std::to_string(code) : "") << " in BASIC";
                 }
             }
             else
@@ -92,6 +103,7 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, const std::string &p_zx
                 done = true;        // Found basic after code. We are done.
             }
         }
+        std::cout << std::endl;
         m_last_block = type;
     }
     return done;
@@ -102,37 +114,40 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, const std::string &p_zx
 // read a number from basic either as VAL "XXXXX" or a 2 byte int.
 // 0 when failed/not found.
 // (note when it is truly 0 makes no sence like RANDOMIZE USR 0, CLEAR 0, LOAD "" CODE 0)
-inline uint16_t TapToTurboBlocks::TryReadNumberFromBasic(const DataBlock& p_basic_block, int p_cnt)
+inline uint16_t TapToTurboBlocks::TryReadNumberFromBasic(const DataBlock& p_basic_block, int p_cnt, int p_max)
 {
     std::string valstring;
-    auto c = p_basic_block[p_cnt];
-    if (p_cnt < p_basic_block.size() - 1 &&
-        c == 0xB0_byte &&                                      //  VAL
-        p_basic_block[p_cnt + 1] == std::byte('"'))            //  VAL "
+    for(int cnt = p_cnt; cnt < p_cnt + p_max; cnt++)
     {
-        // VAL "XXXX"
-        p_cnt += 2;     // skip VAL "
-        c      = p_basic_block[p_cnt];
-        while (c != std::byte('"') && p_cnt < p_basic_block.size())
+        auto c = p_basic_block[cnt];
+        if (cnt < p_basic_block.size() - 2 &&
+            c == 0xB0_byte &&                                      //  VAL
+            p_basic_block[cnt + 1] == std::byte('"'))            //  VAL "
         {
-            valstring += char(c);
-            p_cnt++;
-            c          = p_basic_block[p_cnt];
+            // VAL "XXXX"
+            cnt += 2;     // skip VAL "
+            c      = p_basic_block[cnt];
+            while (c != std::byte('"') && cnt < p_basic_block.size())
+            {
+                valstring += char(c);
+                cnt++;
+                c          = p_basic_block[cnt];
+            }
+            return uint16_t(std::atoi(valstring.c_str()));     // done
         }
-        return uint16_t(std::atoi(valstring.c_str()));     // done
-    }
-    else if (p_cnt < p_basic_block.size() - 5 &&
-             c == 0x0E_byte &&
-             char(p_basic_block[p_cnt + 1]) == 0 &&
-             char(p_basic_block[p_cnt + 2]) == 0 &&
-             char(p_basic_block[p_cnt + 5]) == 0)
-    {
-        // https://retrocomputing.stackexchange.com/questions/5932/why-does-this-basic-program-declare-variables-for-the-numbers-0-to-4
-        // 0x0E is kind of int flag at ZX basic. Followed by two zero's.
-        // [0x0E] [0] [0] [LSB] [MSB] [0]
-        // [RANDOMIZE USR] XXXXX       stored as int.
-        p_cnt += 3;
-        return *reinterpret_cast<const uint16_t*>(&p_basic_block[p_cnt]);
+        else if (cnt < p_basic_block.size() - 5 &&
+                 c == 0x0E_byte &&
+                 char(p_basic_block[cnt + 1]) == 0 &&
+                 char(p_basic_block[cnt + 2]) == 0 &&
+                 char(p_basic_block[cnt + 5]) == 0)
+        {
+            // https://retrocomputing.stackexchange.com/questions/5932/why-does-this-basic-program-declare-variables-for-the-numbers-0-to-4
+            // 0x0E is kind of int flag at ZX basic. Followed by two zero's.
+            // [0x0E] [0] [0] [LSB] [MSB] [0]
+            // [RANDOMIZE USR] XXXXX       stored as int.
+            cnt += 3;
+            return *reinterpret_cast<const uint16_t*>(&p_basic_block[cnt]);
+        }
     }
     return 0;
 }
@@ -141,29 +156,35 @@ inline uint16_t TapToTurboBlocks::TryReadNumberFromBasic(const DataBlock& p_basi
 
 inline std::vector<uint16_t> TapToTurboBlocks::TryFindInBasic(const DataBlock& p_basic_block, const CheckFun &p_check_fun)
 {
-    int seen = 0;       // When >0 recently saw pattern to search for
     std::vector<uint16_t> retval;
+    int first_marker_found = 0;     // eg LOAD in LOAD "blabla" CODE
     for (int cnt = 0; cnt < p_basic_block.size(); cnt++)
     {
-        if (seen)
-        {
-            auto val = TryReadNumberFromBasic(p_basic_block, cnt);
-            seen--;
-            if (val >= 16384)  // && val < 65536)
-            {
-                retval.push_back(val);
-                seen = 0;
-            }
-        }
 
         auto check = p_check_fun(p_basic_block, cnt);
         if (check == 1)
         {
-            seen = 8;       // allow some chars searching for number after code(eg the value stored as ASCII)
+            auto val = TryReadNumberFromBasic(p_basic_block, cnt, 8);
+            if (val >= 16384)  // && val < 65536)
+            {
+                retval.push_back(val);
+            }
+            else if(first_marker_found > 0)
+            {
+                retval.push_back(0);
+            }
         }
-        if(check > 1)
+        else if(check == spectrum::SCREEN_START)       // eg SCREEN$
         {
             retval.push_back(uint16_t(check));
+        }
+        else if(check != 0)
+        {
+            first_marker_found = check;
+        }
+        if(first_marker_found > 0)
+        {
+            first_marker_found--;
         }
 
     }
@@ -175,7 +196,7 @@ inline std::vector<uint16_t> TapToTurboBlocks::TryFindInBasic(const DataBlock& p
 // Try to find (first) USR start address in given BASIC block
 // eg RANDOMIZE USR XXXXX
 // or RANDOMIZE USR VAL "XXXXX"
-inline uint16_t TapToTurboBlocks::TryFindUsr(const DataBlock& p_basic_block)
+inline std::vector<uint16_t> TapToTurboBlocks::TryFindUsr(const DataBlock& p_basic_block)
 {
     auto values = TryFindInBasic(p_basic_block, [](const DataBlock& p_basic_block, int cnt)
     {
@@ -186,7 +207,7 @@ inline uint16_t TapToTurboBlocks::TryFindUsr(const DataBlock& p_basic_block)
                 p_basic_block[cnt - 1] == std::byte('=')); // (LET x ) = USR
         return int(b);
     });
-    return values.size() ? values.front() : 0;
+    return values;
 }
 
 
@@ -212,9 +233,14 @@ inline std::vector<uint16_t> TapToTurboBlocks::TryFindLoadCode(const DataBlock& 
     {
         if( cnt > 0 &&
             p_basic_block[cnt] == 0xAF_byte &&        // CODE
-            p_basic_block[cnt - 1] == std::byte('"')) // [LOAD "]" CODE
+            p_basic_block[cnt - 1] == std::byte('"')) // [LOAD "] " CODE
         {
-            return 1;
+            // 2 signals LOAD "" CODE. Only then a number is not mandatory
+            return 1;// + int(p_basic_block[cnt - 2] == std::byte('"'));
+        }
+        if(p_basic_block[cnt] == 0xEF_byte)     // LOAD
+        {
+            return 16;
         }
         if(cnt > 0 &&
             p_basic_block[cnt] == 0xAA_byte && // SCREEN$

@@ -64,6 +64,7 @@ inline TapLoader& TapLoader::Read(std::istream& p_stream, const std::string &p_z
     {
         auto block = LoadTapBlock(p_stream);
         done =       HandleTapBlock(std::move(block), p_zxfilename);   
+        //std::cout << std::endl;
     }
     return *this;
 }

@@ -191,11 +191,16 @@ public:
     /// p_usr_address: when done loading all blocks end start machine code here as in RANDOMIZE USR xxxxx
     ///     (When 0 return to BASIC)
     /// p_clear_address: when done loading put stack pointer here, which is a bit like CLEAR xxxxx
-    void Finalize(uint16_t p_usr_address, uint16_t p_clear_address, int p_last_bank_to_set)
+    /// p_last_bank_to_set last bank to set; when <0: 48K snapshot. Dont do bank setting.
+    void Finalize(uint16_t p_usr_address, uint16_t p_clear_address, int p_last_bank_to_set, size_t p_expected_memorybocks)
     {
         if (m_memory_blocks.size() == 0)
         {
             throw std::runtime_error("No Memory block added. Nothing to do!");
+        }
+        if(m_memory_blocks.size() != p_expected_memorybocks && p_expected_memorybocks)
+        {
+            std::cout << "\nWarning: found code blocks (" << m_memory_blocks.size() << ") not equal to LOAD \"\" CODE statements in BASIC (" << p_expected_memorybocks << ") !\n" << std::endl;
         }
 
         // Combine adjacent blocks, combine overlapping blocks; order from high to low.
@@ -246,7 +251,8 @@ public:
             // patch zqloader itself
             if (p_usr_address == 0)
             {
-                throw std::runtime_error("Loader will be moved, so will stack, but at end returns to BASIC, will almost certainly crash");
+                std::cout << "Warning: No machine code start address found in BASIC (USR). And loader will be moved, so will stack, but at end returns to BASIC, will almost certainly crash!" << std::endl;
+               // TODO @DEBUG throw std::runtime_error("No machine code start address found in BASIC (USR). And loader will be moved, so will stack, but at end returns to BASIC, will almost certainly crash.");
             }
             uint16_t copy_me_target_location = loader_copy_start + m_symbols.GetSymbol("STACK_SIZE");
 
@@ -298,7 +304,7 @@ public:
         {
             p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_header), spectrum::tstate_quick_zero, 1750ms);
             p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_code), spectrum::tstate_quick_zero, 1500ms);
-            p_spectrumloader.AddPause(100ms); // time needed to start our loader after loading itself (basic!)
+            p_spectrumloader.AddPause(m_initial_wait); // time needed to start our loader after loading itself (basic!)
         }
 
         int cnt = 1;
@@ -454,7 +460,7 @@ private:
         std::cout << "Patching byte '" << p_name << "' to: " << int(p_value) << " hex= " << std::hex << int(p_value) << std::dec << " bin= " << std::bitset<8>(int(p_value)) << std::endl;
     }
 
-
+    // p_last_bank_to_set when <0: 48K snapshot. Dont do bank setting.
     void MemoryBlocksToTurboBlocks(MemoryBlocks p_memory_blocks, uint16_t p_loader_copy_start, uint16_t p_usr_address, uint16_t p_clear_address, int p_last_bank_to_set)
     {
         TurboBlock *prev = nullptr;
@@ -465,7 +471,7 @@ private:
             prevprev = prev;
             if(block.size())
             {
-                if(prev && block.m_bank >= 0 && block.m_bank != prev_bank_set)
+                if(prev && block.m_bank >= 0 && block.m_bank != prev_bank_set && p_last_bank_to_set >=0)
                 {
                     prev->SwitchBankTo(block.m_bank);
                     prev_bank_set = block.m_bank;
@@ -552,7 +558,7 @@ private:
     DataBlock                     m_zqloader_header;               // standard zx header for zqloader
     DataBlock                     m_zqloader_code;                 // block with entire code for zqloader
     MemoryBlocks                  m_memory_blocks;
-    std::list<TurboBlock>       m_turbo_blocks;                  // turbo blocks to load
+    std::list<TurboBlock>         m_turbo_blocks;                  // turbo blocks to load
     //std::unique_ptr<TurboBlock>   m_upper_block;                   // when a block is found that overlaps our loader (nullptr when not) must be loaded last
     uint16_t                      m_loader_copy_start = 0;         // start of free space were our loader can be copied to, begins with stack, then Control code copied from basic
     CompressionType               m_compression_type        = loader_defaults::compression_type;
@@ -565,6 +571,7 @@ private:
     int                           m_io_init_value           = loader_defaults::io_init_value;        // aka ONE_MAX, the wait for edge loop counter until timeout  
     int                           m_io_xor_value            = loader_defaults::io_xor_value;            // aka ZERO_MAX sees a 'one' when waited more than this number of cycli at wait for edge
     int                           m_decompression_speed     = loader_defaults::decompression_speed;     // kb/second time spectrum needsto decompress before sending next block
+    std::chrono::milliseconds     m_initial_wait            = loader_defaults::initial_wait;
 }; // class TurboBlocks
 
 
@@ -609,9 +616,9 @@ TurboBlocks& TurboBlocks::AddMemoryBlock(MemoryBlock p_block)
     return *this;
 }
 
-TurboBlocks &TurboBlocks::Finalize(uint16_t p_usr_address, uint16_t p_clear_address, int p_last_bank_to_set)
+TurboBlocks &TurboBlocks::Finalize(uint16_t p_usr_address, uint16_t p_clear_address, int p_last_bank_to_set, size_t p_expected_memory_blocks)
 {
-    m_pimpl->Finalize(p_usr_address, p_clear_address, p_last_bank_to_set);
+    m_pimpl->Finalize(p_usr_address, p_clear_address, p_last_bank_to_set, p_expected_memory_blocks);
     return *this;
 }
 
@@ -661,6 +668,12 @@ TurboBlocks& TurboBlocks::SetCompressionType(CompressionType p_compression_type)
 TurboBlocks& TurboBlocks::SetDeCompressionSpeed(int p_kb_per_sec)
 {
     m_pimpl->m_decompression_speed = p_kb_per_sec;
+    return *this;
+}
+
+TurboBlocks& TurboBlocks::SetInitialWait(std::chrono::milliseconds p_initial_wait)
+{
+    m_pimpl->m_initial_wait = p_initial_wait;
     return *this;
 }
 

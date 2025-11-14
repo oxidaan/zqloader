@@ -72,7 +72,8 @@ public:
     /// p_usr_address: when done loading all blocks end start machine code here as in RANDOMIZE USR xxxxx
     ///     (When 0 return to BASIC)
     /// p_clear_address: when done loading put stack pointer here, which is a bit like CLEAR xxxxx
-    TurboBlocks& Finalize(uint16_t p_usr_address, uint16_t p_clear_address = 0, int p_last_bank_to_set = -1);
+    /// p_last_bank_to_set last bank to set; when <0: 48K snapshot: then dont do bank setting.
+    TurboBlocks& Finalize(uint16_t p_usr_address, uint16_t p_clear_address = 0, int p_last_bank_to_set = -1, size_t p_expected_memory_blocks = 0);
     
 
     /// Move all added turboblocks to SpectrumLoader as given at CTOR.
@@ -107,6 +108,8 @@ public:
 
     /// Set DeCompression speed (kb/sec). Determines how long to wait after block.
     TurboBlocks& SetDeCompressionSpeed(int p_kb_per_sec);
+
+    TurboBlocks& SetInitialWait(std::chrono::milliseconds p_initial_wait);
 
 
 

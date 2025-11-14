@@ -222,7 +222,6 @@ Dialog::Dialog(QWidget *parent)
             m_zqloader.Reset();
             fs::path filename1 = ui->lineEditNormalFile->text().toStdString();
             m_zqloader.SetNormalFilename(filename1).SetPreload();       // should be zqloader or empty
-            ui->lineEditNormalFile->setText(QString::fromStdString(m_zqloader.GetZqLoaderFile().string()));  // get result
             m_zqloader.SetSampleRate(ui->lineEditSampleRate->text().toInt());
             m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());
 
@@ -404,6 +403,8 @@ inline void Dialog::RestoreDefaults()
 
     ui->comboBoxCompressionType->setCurrentIndex(int(loader_defaults::compression_type));
     ui->lineEditDeCompressionSpeed->setText(QString::number(loader_defaults::decompression_speed));
+    ui->lineEditInitialWait->setText(QString::number(loader_defaults::initial_wait.count()));
+
     ui->comboBoxLoaderLocation->setCurrentIndex(1);     // automatic.
     ui->lineEditLoaderAddress->setText(QString::number(spectrum::SCREEN_23RD));
 
@@ -424,14 +425,7 @@ inline void Dialog::RestoreDefaults()
     ui->checkBoxToggleEar->setChecked(bool(loader_defaults::io_xor_value & 0b00010000));
     ui->checkBoxUseStandardClockForRom->setChecked(false);
     ui->horizontalSliderSpeed->setValue(0);
-    try
-    {
-        ui->lineEditNormalFile->setText("");
-    }
-    catch(...)
-    {
-        // not found. Ignore for now. This is only RestoreDefaults.
-    }
+    ui->lineEditNormalFile->setText("[zqloader]");
 }
 
 
@@ -439,76 +433,85 @@ inline void Dialog::RestoreDefaults()
 // 'Go' pressed.
 inline void Dialog::Go()
 {
-    CheckLoaderParameters();        // might throw
-    std::cout << "\n" << std::endl;
-    if(m_state == State::PreloadingFunAttribs)
+    try
     {
-        // update ui
-        SetState(State::Idle);
-    }
+        CheckLoaderParameters();        // might throw
+        ui->pushButtonClean->setEnabled(true);
+        std::cout << "\n" << std::endl;
+        if(m_state == State::PreloadingFunAttribs)
+        {
+            // update ui
+            SetState(State::Idle);
+        }
 
-    // might break ongoing pre-load: 
-    // m_zqloader.Reset();
+        // might break ongoing pre-load: 
+        // m_zqloader.Reset();
 
-    fs::path filename1 = ui->lineEditNormalFile->text().toStdString();
-    fs::path filename2 = ui->lineEditTurboFile->text().toStdString();
+        fs::path filename1 = ui->lineEditNormalFile->text().toStdString();
+        fs::path filename2 = ui->lineEditTurboFile->text().toStdString();
 
 
-    fs::path outputfilename = ui->lineEditOutputFile->text().toStdString();
+        fs::path outputfilename = ui->lineEditOutputFile->text().toStdString();
 
-    // When outputfile="path/to/filename" or -w or -wav given: 
-    // Convert to wav file instead of outputting sound
-    m_zqloader.SetOutputFilename(outputfilename, true);     // allow overwrite for now
+        // When outputfile="path/to/filename" or -w or -wav given: 
+        // Convert to wav file instead of outputting sound
+        m_zqloader.SetOutputFilename(outputfilename, true);     // allow overwrite for now
 
-    m_zqloader.SetBitLoopMax     (ui->lineEditBitLoopMax->text().toInt()).
-               SetZeroMax        (ui->lineEditZeroMax->text().toInt()).
-               SetDurations      (ui->lineEditZeroTStates->text().toInt(),
-                                  ui->lineEditOneTStates->text().toInt(),
-                                  ui->lineEditEndOfByteDelay->text().toInt());
-    int io_init_value =  (ui->comboBoxBorderColor->currentIndex() & 0b00000111) |
-                         (ui->checkBoxOutMic->isChecked() ? 0b00001000 : 0) |
-                         (ui->checkBoxOutEar->isChecked() ? 0b00010000 : 0);
+        m_zqloader.SetBitLoopMax     (ui->lineEditBitLoopMax->text().toInt()).
+                   SetZeroMax        (ui->lineEditZeroMax->text().toInt()).
+                   SetDurations      (ui->lineEditZeroTStates->text().toInt(),
+                                      ui->lineEditOneTStates->text().toInt(),
+                                      ui->lineEditEndOfByteDelay->text().toInt());
+        int io_init_value =  (ui->comboBoxBorderColor->currentIndex() & 0b00000111) |
+                             (ui->checkBoxOutMic->isChecked() ? 0b00001000 : 0) |
+                             (ui->checkBoxOutEar->isChecked() ? 0b00010000 : 0);
 
-    int io_xor_value =   (ui->lineEditBorderToggle->text().toInt() & 0b00000111) |
-                         (ui->checkBoxToggleMic->isChecked() ? 0b00001000 : 0) |
-                         (ui->checkBoxToggleEar->isChecked() ? 0b00010000 : 0) |
-                          0b01000000;       // egde is always xor-ed
-    m_zqloader.SetUseStandaardSpeedForRom(ui->checkBoxUseStandardClockForRom->isChecked());
+        int io_xor_value =   (ui->lineEditBorderToggle->text().toInt() & 0b00000111) |
+                             (ui->checkBoxToggleMic->isChecked() ? 0b00001000 : 0) |
+                             (ui->checkBoxToggleEar->isChecked() ? 0b00010000 : 0) |
+                              0b01000000;       // egde is always xor-ed
+        m_zqloader.SetUseStandaardSpeedForRom(ui->checkBoxUseStandardClockForRom->isChecked());
           
-    m_zqloader.SetIoValues( io_init_value, io_xor_value);
-    m_zqloader.SetSpectrumClock(ui->lineEditClock->text().toInt());
-    m_zqloader.SetCompressionType(CompressionType(ui->comboBoxCompressionType->currentIndex()));                                    
-    m_zqloader.SetDeCompressionSpeed(ui->lineEditDeCompressionSpeed->text().toInt());
+        m_zqloader.SetIoValues( io_init_value, io_xor_value);
+        m_zqloader.SetSpectrumClock(ui->lineEditClock->text().toInt());
+        m_zqloader.SetCompressionType(CompressionType(ui->comboBoxCompressionType->currentIndex()));                                    
+        m_zqloader.SetDeCompressionSpeed(ui->lineEditDeCompressionSpeed->text().toInt());
+        m_zqloader.SetInitialWait(std::chrono::milliseconds(ui->lineEditInitialWait->text().toInt()));
 
-    if(ui->comboBoxLoaderLocation->currentIndex() == 0)
-    {
-        m_zqloader.SetSnapshotLoaderLocation(ZQLoader::LoaderLocation::screen);
-    }
-    else if(ui->comboBoxLoaderLocation->currentIndex() == 1)
-    {
-        m_zqloader.SetSnapshotLoaderLocation(ZQLoader::LoaderLocation::automatic);
-    }
-    else
-    {
-        uint16_t adr = ui->lineEditLoaderAddress->text().toInt();
-        m_zqloader.SetSnapshotLoaderLocation(adr);
-    }
-    m_zqloader.SetFunAttribs(ui->checkBoxFunAttribs->isChecked());
+        if(ui->comboBoxLoaderLocation->currentIndex() == 0)
+        {
+            m_zqloader.SetSnapshotLoaderLocation(ZQLoader::LoaderLocation::screen);
+        }
+        else if(ui->comboBoxLoaderLocation->currentIndex() == 1)
+        {
+            m_zqloader.SetSnapshotLoaderLocation(ZQLoader::LoaderLocation::automatic);
+        }
+        else
+        {
+            uint16_t adr = ui->lineEditLoaderAddress->text().toInt();
+            m_zqloader.SetSnapshotLoaderLocation(adr);
+        }
+        m_zqloader.SetFunAttribs(ui->checkBoxFunAttribs->isChecked());
 
-    m_zqloader.SetNormalFilename(filename1);
-    m_zqloader.SetTurboFilename(filename2);
-    ui->lineEditNormalFile->setText(QString::fromStdString(m_zqloader.GetZqLoaderFile().string()));  // get result
+        m_zqloader.SetNormalFilename(filename1);
+        m_zqloader.SetTurboFilename(filename2);
 
-    m_zqloader.SetSampleRate(ui->lineEditSampleRate->text().toInt());
-    m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());
+        m_zqloader.SetSampleRate(ui->lineEditSampleRate->text().toInt());
+        m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());
 
-    std::cout << "Estimated duration: " << m_zqloader.GetEstimatedDuration().count() << "ms  (" <<  m_zqloader.GetDurationInTStates() << " TStates)" << std::endl;
-    m_zqloader.Start();
-    if(m_zqloader.IsBusy())     // else immidiately done eg writing wav file
-    {
-        SetState(State::Playing);
+        std::cout << "Estimated duration: " << m_zqloader.GetEstimatedDuration().count() << "ms  (" <<  m_zqloader.GetDurationInTStates() << " TStates)" << std::endl;
+        m_zqloader.Start();
+        if(m_zqloader.IsBusy())     // else immidiately done eg writing wav file
+        {
+            SetState(State::Playing);
+        }
     }
-    ui->pushButtonClean->setEnabled(true);
+    catch(...)
+    {
+        m_zqloader.Reset();
+        throw;
+    }
+
 }
 
 // Save all line edits + dialog position

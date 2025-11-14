@@ -9,7 +9,7 @@
 
 
 #pragma once
-#include "spectrum_consts.h"
+#include "spectrum_consts.h"      // spectrum::spectrum_clock
 
 namespace loader_tstates
 {
@@ -25,6 +25,7 @@ constexpr int decompression_loop           = 72+15; // decompresion loop speed t
 #endif
 constexpr int ldir_speed                   = spectrum::spectrum_clock / (21 * 1024);         // 21=ldir tstates. kb / second
 }
+
 
 namespace loader_defaults
 {
@@ -51,5 +52,5 @@ constexpr CompressionType compression_type = CompressionType::automatic;
 
 constexpr int decompression_speed          = spectrum::spectrum_clock / (loader_tstates::decompression_loop * 1024);   // kb / second
 
-
+constexpr std::chrono::milliseconds initial_wait = 100ms;     // first wait after loading zqloader
 }

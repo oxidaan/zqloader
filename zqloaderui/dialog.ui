@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>920</width>
-    <height>795</height>
+    <width>826</width>
+    <height>680</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -94,8 +94,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>894</width>
-            <height>656</height>
+            <width>800</width>
+            <height>541</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_3">
@@ -375,9 +375,9 @@ li.checked::marker { content: &quot;\2612&quot;; }
           <property name="geometry">
            <rect>
             <x>0</x>
-            <y>0</y>
-            <width>618</width>
-            <height>560</height>
+            <y>-44</y>
+            <width>783</width>
+            <height>585</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_421">
@@ -446,7 +446,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <item row="23" column="3" colspan="4">
             <widget class="QLineEdit" name="lineEditDeCompressionSpeed">
              <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;After loading a block, the ZX-Spectrum needs some time to decompress (before it can accept a new block). The value here determines the decompression speed in kb/sec. And thus how long ZQLoader will wait after a block. Default is an estimated value found by just trying.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;After loading a block, the ZX-Spectrum needs some time to decompress (before it can accept a new block). The value here determines the decompression speed in kb/sec. And thus how long ZQLoader will wait after a block. Default is an estimated value found by just trying.&lt;br/&gt;Lower values decrease the compression speed, thus increasing the wait.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
             </widget>
            </item>
@@ -843,6 +843,20 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <item row="37" column="4" colspan="3">
             <widget class="QLineEdit" name="lineEditLoaderAddress"/>
            </item>
+           <item row="24" column="1">
+            <widget class="QLabel" name="label_27">
+             <property name="text">
+              <string>Initial Wait (ms):</string>
+             </property>
+            </widget>
+           </item>
+           <item row="24" column="3" colspan="4">
+            <widget class="QLineEdit" name="lineEditInitialWait">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;After loading a zqloader itself, the ZX-Spectrum needs some time before it can accept the first block (it needs to run some BASIC). The value here determines that time in ms.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+            </widget>
+           </item>
           </layout>
          </widget>
         </widget>
@@ -879,8 +893,8 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>894</width>
-            <height>656</height>
+            <width>98</width>
+            <height>792</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_4">
@@ -973,6 +987,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
   <tabstop>lineEditClock</tabstop>
   <tabstop>checkBoxUseStandardClockForRom</tabstop>
   <tabstop>lineEditDeCompressionSpeed</tabstop>
+  <tabstop>lineEditInitialWait</tabstop>
   <tabstop>comboBoxBorderColor</tabstop>
   <tabstop>lineEditBorderToggle</tabstop>
   <tabstop>checkBoxOutMic</tabstop>
@@ -983,12 +998,13 @@ li.checked::marker { content: &quot;\2612&quot;; }
   <tabstop>comboBoxLoaderLocation</tabstop>
   <tabstop>lineEditLoaderAddress</tabstop>
   <tabstop>checkBoxFunAttribs</tabstop>
-  <tabstop>scrollArea_3</tabstop>
-  <tabstop>scrollArea</tabstop>
+  <tabstop>pushButtonCalculate</tabstop>
   <tabstop>pushButtonTest</tabstop>
   <tabstop>tabWidget</tabstop>
   <tabstop>textEditOutput</tabstop>
-  <tabstop>pushButtonCalculate</tabstop>
+  <tabstop>scrollArea</tabstop>
+  <tabstop>scrollArea_2</tabstop>
+  <tabstop>scrollArea_3</tabstop>
  </tabstops>
  <resources/>
  <connections/>

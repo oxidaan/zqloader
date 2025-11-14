@@ -58,7 +58,7 @@ public:
     // File is a zqloader.tap file?
     bool FileIsZqLoader(fs::path p_filename) const
     {
-        return ToLower(p_filename.stem().string()).find("zqloader") == 0;
+        return ToLower(p_filename.stem().string()).find("zqloader") == 0 || p_filename.empty() || p_filename.string()[0] == '[';
     }
 
     // Set turbo filename eg the 2nd filename in the dialog.
@@ -257,7 +257,7 @@ public:
     fs::path FindZqLoaderTapfile(const fs::path &p_filename) const
     {
         fs::path filename = p_filename;
-        if(filename.empty())
+        if(filename.empty() || filename.string()[0] == '[')
         {
             filename = m_128_mode ? "zqloader128.tap" : "zqloader.tap";
         }
@@ -346,13 +346,14 @@ private:
         }
     }
 
+    // Add/load zqloader.tap (to turboblocks) when not already done so.
+    // throws when p_filename is not zqloader or could not be found/
     void AddZqLoader(const fs::path &p_filename)
     {
         if(!m_is_preloaded && !m_turboblocks.IsZqLoaderAdded())
         {
             auto filename = FindZqLoaderTapfile(p_filename);
             m_turboblocks.AddZqLoader(filename);                 // zqloader.tap
-            m_zqloader_filename = filename;
         }
     }
 
@@ -408,7 +409,7 @@ private:
             return tab_to_turbo_blocks.HandleTapBlock(std::move(p_block), p_zxfilename);
         });
         tap_or_tzx_loader.Load(p_filename, "");
-        m_turboblocks.Finalize(tab_to_turbo_blocks.GetUsrAddress(), tab_to_turbo_blocks.GetClearAddress());
+        m_turboblocks.Finalize(tab_to_turbo_blocks.GetUsrAddress(), tab_to_turbo_blocks.GetClearAddress(), -1, tab_to_turbo_blocks.GetNumberLoadCode());
         if(m_turboblocks.size() == 0)
         {
             throw std::runtime_error("No blocks present in file: '" + p_filename.string() + "' that could be turboloaded (note: can only handle code blocks, not BASIC)");
@@ -526,7 +527,6 @@ public:
     uint32_t                                m_sample_rate         = loader_defaults::sample_rate;
     bool                                    m_allow_overwrite     = false; // see OpenFileToWrite
     fs::path                                m_normal_filename;             // usually zqloader.tap
-    fs::path                                m_zqloader_filename;
     fs::path                                m_turbo_filename;
     fs::path                                m_output_filename;             // writing wav or tzx
     fs::path                                m_exe_path;                    // s/a argv[0]
@@ -636,6 +636,11 @@ ZQLoader& ZQLoader::SetDeCompressionSpeed(int p_kb_per_sec)
     return *this;
 }
 
+ZQLoader& ZQLoader::SetInitialWait(std::chrono::milliseconds p_initial_wait)
+{
+    m_pimpl->m_turboblocks.SetInitialWait( p_initial_wait);
+    return *this;
+}
 
 
 ZQLoader& ZQLoader::SetSpectrumClock(int p_spectrum_clock)
@@ -804,11 +809,6 @@ uint32_t ZQLoader::GetDeviceSampleRate() const
     return SampleSender::GetDeviceSampleRate();
 }
 
-// For restore defaults only
-std::filesystem::path ZQLoader::GetZqLoaderFile() const
-{
-    return m_pimpl->m_zqloader_filename;
-}
 
 void ZQLoader::Test()
 {

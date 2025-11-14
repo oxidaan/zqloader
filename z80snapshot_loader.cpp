@@ -165,7 +165,7 @@ SnapShotLoader& SnapShotLoader::LoadZ80(std::istream& p_stream)
 
         m_is_48K = GetIs48K(header2.hardware_mode, length_and_version != 23);
         std::cout << (m_is_48K ? "48" : "128") << "K snapshot." << std::endl;
-        m_current_bank =  int(header2.current_bank);
+        m_current_bank =  m_is_48K ? -1 : int(header2.current_bank);
         std::cout << "Current bank = " << m_current_bank << std::endl;
 
         MemoryBlock mem48k;

@@ -21,6 +21,7 @@ if(NOT HAVE_SJSASMPLUS)
     install(FILES
             zqloader.exp
             zqloader.tap
+            zqloader128.tap
             snapshotregs.bin
             DESTINATION z80
             )
@@ -48,6 +49,7 @@ Eg: cmake -DPATH_TO_SJASMPLUS=path/to/sjasmplus
     install(FILES
             zqloader.exp
             zqloader.tap
+            zqloader128.tap
             snapshotregs.bin
             DESTINATION z80
             )
@@ -61,24 +63,27 @@ add_custom_target(zqloader_z80
   SOURCES zqloader.z80asm
   )
 
-add_custom_command(
-    OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/zqloader.tap
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/zqloader.z80asm
-    COMMAND  "sjasmplus"
-    ARGS 
-    "--fullpath"
-    "-i${SJASMPLUS_PATH}/examples/BasicLib"             # BasicLib, needed to generate BASIC
-    "--exp=zqloader.exp"                                # export file, has symbols
-    "--lst"                                             # lst file, not really needed
-    "--syntax=abf"
-    "--color=on"
-    "${CMAKE_CURRENT_SOURCE_DIR}/zqloader.z80asm"
-    COMMENT "Assembling ${CMAKE_CURRENT_SOURCE_DIR}/zqloader.z80asm to  ${CMAKE_CURRENT_BINARY_DIR}/zqloader.tap"
-)
+foreach(which "" "128")
+    add_custom_command(
+        OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/zqloader${which}.tap
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/zqloader${which}.z80asm
+        COMMAND  "sjasmplus"
+        ARGS 
+        "--fullpath"
+        "-i${SJASMPLUS_PATH}/examples/BasicLib"             # BasicLib, needed to generate BASIC
+        "--exp=zqloader${which}.exp"                        # export file, has symbols
+        "--lst"                                             # lst file, not really needed
+        "--syntax=abf"
+        "--color=on"
+        "${CMAKE_CURRENT_SOURCE_DIR}/zqloader${which}.z80asm"
+        COMMENT "Assembling ${CMAKE_CURRENT_SOURCE_DIR}/zqloader${which}.z80asm to  ${CMAKE_CURRENT_BINARY_DIR}/zqloader${which}.tap"
+    )
+endforeach()
 
 install(FILES  
         ${CMAKE_CURRENT_BINARY_DIR}/zqloader.exp  
         ${CMAKE_CURRENT_BINARY_DIR}/zqloader.tap  
+        ${CMAKE_CURRENT_BINARY_DIR}/zqloader128.tap
         ${CMAKE_CURRENT_BINARY_DIR}/snapshotregs.bin
         DESTINATION z80
         )

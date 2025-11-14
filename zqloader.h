@@ -91,6 +91,9 @@ public:
     /// Set DeCompression speed (kb/sec)
     ZQLoader& SetDeCompressionSpeed(int p_kb_per_sec);
 
+    ///  Set time to wait after ZQLoader was loaded
+    ZQLoader& SetInitialWait(std::chrono::milliseconds p_initial_wait);
+
     /// Set clock frequency in hz
     ZQLoader& SetSpectrumClock(int p_spectrum_clock);
 
@@ -162,9 +165,6 @@ public:
 
     ///  Get miniadio native device sample rate
     uint32_t GetDeviceSampleRate() const;
-
-    ///  Get path/to/zqloader.tap
-    std::filesystem::path GetZqLoaderFile() const;
 
     // Run Test
     void Test();

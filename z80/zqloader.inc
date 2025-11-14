@@ -3,7 +3,7 @@
 // FILE:            turboblock.i
 // DESCRIPTION:     ZX Spectrum Z80 assember file for turboloader 'zqloader'
 // 
-// Copyright (c) 2023 Daan Scherft [Oxidaan]
+// Copyright (c) 2025 Daan Scherft [Oxidaan]
 // This project uses the MIT license. See LICENSE.txt for details.
 //==============================================================================
 
@@ -23,7 +23,7 @@
 
     DEVICE ZXSPECTRUM48
  IFDEF BANKSWITCH128
-    DEFINE tape_file_name    "zqloader128.tap"         // main output is a TAP file
+    DEFINE tape_file_name    "zqloader128.tap"      // main output is a TAP file
  ELSE
     DEFINE tape_file_name    "zqloader.tap"         // main output is a TAP file
  ENDIF

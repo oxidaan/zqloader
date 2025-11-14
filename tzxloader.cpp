@@ -178,7 +178,7 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
         {
             p_stream.ignore(0x2);
             auto len = LoadBinary<WORD>(p_stream);
-            std::cout << " len = " << len << ' ';
+            std::cout << " length = " << len << std::endl;
             done = HandleTapBlock(p_stream, p_zxfilename, len);
             break;
         }
@@ -189,7 +189,7 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
             auto len2 = LoadBinary<BYTE>(p_stream);
             auto len3 = LoadBinary<BYTE>(p_stream);
             auto len  = 0x10000 * len3 + 0x100 * len2 + len1;
-            std::cout << " len = " << len << ' ' << std::flush;
+            std::cout << " length = " << len << std::endl;
             done = HandleTapBlock(p_stream, p_zxfilename, len);
             break;
         }
@@ -198,13 +198,13 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
             auto len1 = LoadBinary<WORD>(p_stream);
             auto len2 = LoadBinary<WORD>(p_stream);
             (void)len2;
-            std::cout << ' ' << int(len1) << " T states ";
+            std::cout << ' ' << int(len1) << " T states" << std::endl;
             break;
         }
         case TzxBlockType::PulseSequence:
         {
             auto len = LoadBinary<BYTE>(p_stream);
-            std::cout << ' ' << int(len) << " pulses ";
+            std::cout << ' ' << int(len) << " pulses" << std::endl;
             p_stream.ignore(2 * len);
             break;
         }
@@ -215,7 +215,7 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
             int len2 = LoadBinary<BYTE>(p_stream);
             int len3 = LoadBinary<BYTE>(p_stream);
             int len  = 0x10000 * len3 + 0x100 * len2 + len1;
-            std::cout << " len = " << len << ' ';
+            std::cout << " length = " << len << std::endl;
             done = HandleTapBlock(p_stream, p_zxfilename, len);
             break;
         }
@@ -226,7 +226,7 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
             auto len2 = LoadBinary<BYTE>(p_stream);
             auto len3 = LoadBinary<BYTE>(p_stream);
             auto len  = 0x10000 * len3 + 0x100 * len2 + len1;
-            std::cout << " len = " << len;
+            std::cout << " length = " << len << std::endl;;
             p_stream.ignore(len);
             break;
         }
@@ -242,7 +242,7 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
             auto remaining_len                          = generalized_data_block.GetRemainingLength();
             p_stream.ignore(remaining_len);
             int len                                     = int(generalized_data_block.GetDataLength());
-            std::cout << " len = " << len << ' ';
+            std::cout << " length = " << len << std::endl;
             if(len)
             {
                 HandleTapBlock(p_stream, p_zxfilename, len);
@@ -254,11 +254,11 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
             auto dura = LoadBinary<WORD>(p_stream);
             if(dura == 0)
             {
-                std::cout << ": Stop the tape" ;
+                std::cout << ": Stop the tape" << std::endl;
             }
             else
             {
-                std::cout << ": " << dura << "ms";
+                std::cout << ": " << dura << "ms" << std::endl;
             }
             break;
         }
@@ -266,7 +266,7 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
         {
             auto len = LoadBinary<BYTE>(p_stream);
             auto s2  = LoadBinary<std::string>(p_stream, len);
-            std::cout << ": " << s2;
+            std::cout << ": " << s2  << std::endl;
             break;
         }
         case TzxBlockType::GroupEnd:
@@ -314,6 +314,7 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
         case TzxBlockType::Archiveinfo:
         {
             auto len = LoadBinary<WORD>(p_stream);
+            std::cout << " length = " << len << std::endl;
             p_stream.ignore(len);
             break;
         }
@@ -339,8 +340,9 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
             std::cout << "TODO: TZX block: " << id << std::endl;       // TODO!
 
         }
-        std::cout << std::endl;
+        //std::cout << std::endl;
     }
+    std::cout << std::endl;
     return *this;
 }
 

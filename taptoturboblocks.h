@@ -51,12 +51,17 @@ public:
         return m_clear;
     }
 
+    auto GetNumberLoadCode() const
+    {
+        return m_loadcodes.size();
+    }
+
 private:
 
     // Try to find (first) USR start address in given BASIC block
     // eg RANDOMIZE USR XXXXX
     // or RANDOMIZE USR VAL "XXXXX"
-    static uint16_t TryFindUsr(const DataBlock& p_basic_block);
+    static std::vector<uint16_t> TryFindUsr(const DataBlock& p_basic_block);
 
     // Try to find (first) CLEAR XXXXX address in given BASIC block
     // eg CLEAR XXXXX
@@ -78,7 +83,7 @@ private:
     // read a number from basic either as VAL "XXXXX" or a 2 byte int.
     // 0 when failed/not found.
     // (note when it is truly 0 makes no sense like RANDOMIZE USR 0, CLEAR 0, LOAD "" CODE 0)
-    static uint16_t TryReadNumberFromBasic(const DataBlock& p_basic_block, int p_cnt);
+    static uint16_t TryReadNumberFromBasic(const DataBlock& p_basic_block, int p_cnt, int p_max);
 
 private:
 
