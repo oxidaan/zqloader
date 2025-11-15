@@ -51,7 +51,7 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, const std::string &p_zx
     }
     else if (type == TapeBlockType::data)
     {
-        std::cout << "  Data Block with payload length: " << block.size() <<" (" << m_last_header.m_type << ")"; 
+        std::cout << "  Data Block with payload length: " << block.size() <<" (" << m_last_header.m_type << ")" << std::endl; 
         if (m_last_block != TapeBlockType::header && m_headercnt >= 1)
         {
             throw std::runtime_error("Found headerless, can not handle (can't know were it should go to)");
@@ -59,6 +59,10 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, const std::string &p_zx
         if (m_last_header.m_type == TapeHeader::Type::code ||
             m_last_header.m_type == TapeHeader::Type::screen)
         {
+            if (m_codecount == 0 && !m_basic_was_parsed)
+            {
+                ParseBasic(block);
+            }
             auto start_adr = (m_loadcodes.size() > m_codecount &&  m_loadcodes[m_codecount] != 0 ) ?
                              m_loadcodes[m_codecount] : // taking address from last unused LOAD "" CODE XXXXX as found in basic
                              m_last_header.GetStartAddress();
@@ -71,32 +75,7 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, const std::string &p_zx
         {
             if (m_codecount == 0)
             {
-                auto usrs = TryFindUsr(block);
-                for (auto usr: usrs)
-                {
-                    std::cout << "\n  Found USR " << usr << " in BASIC.";
-                }
-                if(usrs.size() != 1)
-                {
-                    std::cout << "\nWarning: Found " << usrs.size() << "x USR xxxx in BASIC. Code is probably protected and will not work!";// << std::endl;
-                }
-                else
-                {
-                    m_usr = *usrs.begin();
-                }
-
-                auto clear = TryFindClear(block);
-                if (clear)
-                {
-                    std::cout << "\n  Found CLEAR " << clear << " in BASIC";
-                    m_clear = clear;
-                }
-
-                m_loadcodes = TryFindLoadCode(block);
-                for (auto code : m_loadcodes)
-                {
-                    std::cout << "\n  Found LOAD \"\" CODE " << (code ? std::to_string(code) : "") << " in BASIC";
-                }
+                ParseBasic(block);
             }
             else
             {
@@ -110,6 +89,36 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, const std::string &p_zx
 }
 
 
+inline void TapToTurboBlocks::ParseBasic(const DataBlock& p_basic_block)
+{
+    m_basic_was_parsed = true;
+    auto usrs = TryFindUsr(p_basic_block);
+    for (auto usr: usrs)
+    {
+        std::cout << "  Found USR " << usr << " in BASIC.\n";
+    }
+    if(usrs.size() != 1)
+    {
+        std::cout << "<b>Warning: Found " << usrs.size() << "x USR xxxx in BASIC. Code is probably protected and will not work!</b>" << std::endl;
+    }
+    else
+    {
+        m_usr = *usrs.begin();
+    }
+
+    auto clear = TryFindClear(p_basic_block);
+    if (clear)
+    {
+        std::cout << "  Found CLEAR " << clear << " in BASIC" << std::endl;
+        m_clear = clear;
+    }
+
+    m_loadcodes = TryFindLoadCode(p_basic_block);
+    for (auto code : m_loadcodes)
+    {
+        std::cout << "  Found LOAD \"\" CODE " << (code ? std::to_string(code) : "") << " in BASIC" << std::endl;
+    }
+}
 
 // read a number from basic either as VAL "XXXXX" or a 2 byte int.
 // 0 when failed/not found.

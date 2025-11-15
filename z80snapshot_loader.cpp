@@ -130,7 +130,7 @@ SnapShotLoader& SnapShotLoader::LoadZ80(std::istream& p_stream)
         MemoryBlock mem48k;
         mem48k.m_datablock.resize(48 * 1024);
         mem48k.m_address = spectrum::RAM_START;
-        std::cout << "Z80 version1 file" << std::endl;
+        std::cout << "Z80 version 1 file" << std::endl;
         p_stream.read(reinterpret_cast<char*>(mem48k.m_datablock.data()), 48 * 1024);       // will normally read less than 48k
         mem48k.m_datablock = DeCompress(mem48k.m_datablock);
         if( mem48k.m_datablock.size() != 48 * 1024)
@@ -146,11 +146,11 @@ SnapShotLoader& SnapShotLoader::LoadZ80(std::istream& p_stream)
         // "The value of the word at position 30 is 23 for version 2 files, and 54 or 55 for version 3"
         if (length_and_version == 23)
         {
-            std::cout << "Z80 version2 file; ";
+            std::cout << "Z80 version 2 file; ";
         }
         else if (length_and_version == 54 || length_and_version == 55)
         {
-            std::cout << "Z80 version3 file; ";
+            std::cout << "Z80 version 3 file; ";
         }
         else
         {
@@ -164,9 +164,15 @@ SnapShotLoader& SnapShotLoader::LoadZ80(std::istream& p_stream)
         header.PC_reg = header2.PC_reg;
 
         m_is_48K = GetIs48K(header2.hardware_mode, length_and_version != 23);
-        std::cout << (m_is_48K ? "48" : "128") << "K snapshot." << std::endl;
         m_current_bank =  m_is_48K ? -1 : int(header2.current_bank);
-        std::cout << "Current bank = " << m_current_bank << std::endl;
+        if(!m_is_48K)
+        {
+            std::cout << "48K snapshot." << std::endl;
+        }
+        else
+        {
+            std::cout << "128K snapshot. Current bank = " << (m_current_bank & 0x07) << std::endl;
+        }
 
         MemoryBlock mem48k;
         mem48k.m_datablock.resize(48 * 1024);
@@ -243,18 +249,20 @@ SnapShotLoader& SnapShotLoader::LoadSna(std::istream& p_stream)
     if(p_stream.peek() && p_stream.good())
     {
         // File is longer so its a 128k sna file.
-        std::cout << "128K SNA snapshot file" << std::endl;
+        m_is_48K = false;
         pc = LoadBinary<uint16_t>(p_stream);
         m_current_bank = int(LoadBinary<uint8_t>(p_stream));       // = port 0x7ffd
-        std::cout << "Current bank = " << m_current_bank << std::endl;
+        auto current_bank = m_current_bank & 0x07;
+        std::cout << "128K SNA snapshot. Current bank = " << current_bank << std::endl;
         uint8_t trdos_rom_paged  = LoadBinary<uint8_t>(p_stream);
         (void)trdos_rom_paged;
         m_ram.push_back(std::move(mem48k));
         int banks[] = {0,1,3,4,6,7};        // all not duplicated banks
         for(int bank : banks)
         {
-            if(bank != m_current_bank)
+            if(bank != current_bank)        // and also skip current bank
             {
+                std::cout << p_stream.tellg() << " Reading bank: " << bank << std::endl;
                 MemoryBlock bank16k;
                 bank16k.m_address = 0xc000;
                 bank16k.m_bank = bank;
@@ -266,7 +274,7 @@ SnapShotLoader& SnapShotLoader::LoadSna(std::istream& p_stream)
     }
     else
     {
-        std::cout << "48K SNA snapshot file" << std::endl;
+        std::cout << "48K SNA snapshot." << std::endl;
         // 'pop pc'
         pc = uint16_t(mem48k.m_datablock[header.SP_reg - spectrum::RAM_START]) + 256 * uint16_t(mem48k.m_datablock[header.SP_reg + 1 - spectrum::RAM_START]);
         header.SP_reg += 2;
@@ -297,12 +305,12 @@ SnapShotLoader& SnapShotLoader::LoadSna(std::istream& p_stream)
 
     if(p_stream.fail())
     {
-        throw std::runtime_error("Some error reading SNA file, file is shorter than expected");
+        throw std::runtime_error("Error reading SNA file, file is shorter than expected");
     }
     p_stream.peek();
     if(p_stream.good())
     {
-        throw std::runtime_error("Some error reading SNA file, file is longer than expected");
+        throw std::runtime_error("Error reading SNA file, file is longer than expected");
     }
     return *this;
 }

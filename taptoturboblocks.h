@@ -57,6 +57,7 @@ public:
     }
 
 private:
+    void ParseBasic(const DataBlock& p_basic_block);
 
     // Try to find (first) USR start address in given BASIC block
     // eg RANDOMIZE USR XXXXX
@@ -91,6 +92,7 @@ private:
     spectrum::TapeBlockType   m_last_block = spectrum::TapeBlockType::unknown;      // not header or data
     int                       m_headercnt  = 0;
     int                       m_codecount  = 0;
+    int                       m_basic_was_parsed = false;
     TurboBlocks&              m_tblocks;
     uint16_t                  m_usr        = 0;      // [RANDOMIZE] USX xxxxx found in BASIC
     uint16_t                  m_clear      = 0xff4a; // CLEAR xxxxx as found in BASIC. Default value here is SP found with debugger

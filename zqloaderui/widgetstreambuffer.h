@@ -34,7 +34,8 @@ public:
                 std::lock_guard	lock(m_mutex);
                 std::swap(buffer, m_buffer);        // get and empty buffer
             }
-            m_output->insertPlainText(buffer);
+            buffer.replace("\n", "<br>");
+            m_output->insertHtml(buffer);
             m_output->moveCursor(QTextCursor::End);
             
         });

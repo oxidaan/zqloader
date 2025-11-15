@@ -200,7 +200,7 @@ public:
         }
         if(m_memory_blocks.size() != p_expected_memorybocks && p_expected_memorybocks)
         {
-            std::cout << "\nWarning: found code blocks (" << m_memory_blocks.size() << ") not equal to LOAD \"\" CODE statements in BASIC (" << p_expected_memorybocks << ") !\n" << std::endl;
+            std::cout << "<b>Warning number of found code blocks (" << m_memory_blocks.size() << ") not equal to LOAD \"\" CODE statements in BASIC (" << p_expected_memorybocks << ")!</b>\n" << std::endl;
         }
 
         // Combine adjacent blocks, combine overlapping blocks; order from high to low.
@@ -251,7 +251,7 @@ public:
             // patch zqloader itself
             if (p_usr_address == 0)
             {
-                std::cout << "Warning: No machine code start address found in BASIC (USR). And loader will be moved, so will stack, but at end returns to BASIC, will almost certainly crash!" << std::endl;
+               // already warned earlier std::cout << "**Warning: No machine code start address found in BASIC (USR). And loader will be moved, so will stack, but at end returns to BASIC, will almost certainly crash!**" << std::endl;
                // TODO @DEBUG throw std::runtime_error("No machine code start address found in BASIC (USR). And loader will be moved, so will stack, but at end returns to BASIC, will almost certainly crash.");
             }
             uint16_t copy_me_target_location = loader_copy_start + m_symbols.GetSymbol("STACK_SIZE");
