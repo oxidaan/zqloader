@@ -555,9 +555,6 @@ li.checked::marker { content: &quot;\2612&quot;; }
              </property>
             </widget>
            </item>
-           <item row="0" column="4" colspan="3">
-            <widget class="QLineEdit" name="lineEditSampleRate"/>
-           </item>
            <item row="11" column="1">
             <widget class="QLabel" name="label_11">
              <property name="text">
@@ -856,6 +853,9 @@ li.checked::marker { content: &quot;\2612&quot;; }
               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;After loading a zqloader itself, the ZX-Spectrum needs some time before it can accept the first block (it needs to run some BASIC). The value here determines that time in ms.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
             </widget>
+           </item>
+           <item row="0" column="3" colspan="4">
+            <widget class="QLineEdit" name="lineEditSampleRate"/>
            </item>
           </layout>
          </widget>
