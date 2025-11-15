@@ -55,7 +55,8 @@ public:
     ///  Is ZqLoader added (with AddZqLoader above)?
     bool IsZqLoaderAdded() const;
 
-    /// Get # turbo blocks added
+
+    /// Get # Memory blocks added
     size_t size() const;
 
 
@@ -73,7 +74,7 @@ public:
     ///     (When 0 return to BASIC)
     /// p_clear_address: when done loading put stack pointer here, which is a bit like CLEAR xxxxx
     /// p_last_bank_to_set last bank to set; when <0: 48K snapshot: then dont do bank setting.
-    TurboBlocks& Finalize(uint16_t p_usr_address, uint16_t p_clear_address = 0, int p_last_bank_to_set = -1, size_t p_expected_memory_blocks = 0);
+    size_t Finalize(uint16_t p_usr_address, uint16_t p_clear_address = 0, int p_last_bank_to_set = -1);
     
 
     /// Move all added turboblocks to SpectrumLoader as given at CTOR.

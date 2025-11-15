@@ -302,7 +302,8 @@ public:
     {
         extern uint16_t Test(TurboBlocks & p_blocks, const fs::path &p_filename);
         auto adr = Test(m_turboblocks, "");
-        m_turboblocks.Finalize(adr).MoveToLoader(m_spectrumloader);
+        m_turboblocks.Finalize(adr);
+        m_turboblocks.MoveToLoader(m_spectrumloader);
     }
 
 private:
@@ -409,8 +410,12 @@ private:
             return tab_to_turbo_blocks.HandleTapBlock(std::move(p_block), p_zxfilename);
         });
         tap_or_tzx_loader.Load(p_filename, "");
-        m_turboblocks.Finalize(tab_to_turbo_blocks.GetUsrAddress(), tab_to_turbo_blocks.GetClearAddress(), -1, tab_to_turbo_blocks.GetNumberLoadCode());
-        if(m_turboblocks.size() == 0)
+        if(m_turboblocks.size() != tab_to_turbo_blocks.GetNumberLoadCode())
+        {
+            std::cout << "<b>Warning: Number of found code blocks (" << m_turboblocks.size() << ") not equal to LOAD \"\" CODE statements in BASIC (" << tab_to_turbo_blocks.GetNumberLoadCode() << ")!</b>\n" << std::endl;
+        }
+        auto size = m_turboblocks.Finalize(tab_to_turbo_blocks.GetUsrAddress(), tab_to_turbo_blocks.GetClearAddress());
+        if(size == 0)
         {
             throw std::runtime_error("No blocks present in file: '" + p_filename.string() + "' that could be turboloaded (note: can only handle code blocks, not BASIC)");
         }
@@ -430,12 +435,6 @@ private:
         snapshot_regs_filename.replace_filename("snapshotregs");
         snapshot_regs_filename.replace_extension("bin");
         DataBlock regblock = LoadFromFile(snapshot_regs_filename);
-        if(!m_turboblocks.IsZqLoaderAdded())      // else already done at AddZqLoader 
-        {
-            fs::path filename_exp = FindZqLoaderTapfile(m_normal_filename);
-            filename_exp.replace_extension("exp");          // zqloader.exp (symbols)
-            m_turboblocks.SetSymbolFilename(filename_exp);      
-        }
         snapshotloader.SetRegBlock(std::move(regblock)).MoveToTurboBlocks(m_turboblocks, m_new_loader_location, m_use_fun_attribs);
         m_turboblocks.Finalize(snapshotloader.GetUsrAddress(), 0, snapshotloader.GetLastBankToSwicthTo());
     }

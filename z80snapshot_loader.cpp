@@ -165,7 +165,7 @@ SnapShotLoader& SnapShotLoader::LoadZ80(std::istream& p_stream)
 
         m_is_48K = GetIs48K(header2.hardware_mode, length_and_version != 23);
         m_current_bank =  m_is_48K ? -1 : int(header2.current_bank);
-        if(!m_is_48K)
+        if(m_is_48K)
         {
             std::cout << "48K snapshot." << std::endl;
         }

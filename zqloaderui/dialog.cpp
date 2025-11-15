@@ -19,8 +19,6 @@
 #include <QTimer>
 #include "./ui_dialog.h"
 #include <datablock.h>
-#include <mutex>
-#include <bitset>
 
 #include "spectrum_consts.h"
 #include "loader_defaults.h"        // consts with default settings for ZQLoader
@@ -77,7 +75,9 @@ Dialog::Dialog(QWidget *parent)
     std::streambuf* oldCoutBuffer = std::cout.rdbuf(buffer);
     (void)oldCoutBuffer;
 
+    std::cout << "<b>";
     ZQLoader::Version();
+    std::cout << "</b>";
     ui->labelAbout->setText(ui->labelAbout->text().replace("%0", GetVersion()));
 
 
@@ -117,12 +117,12 @@ Dialog::Dialog(QWidget *parent)
     ConnectVolume(ui->dialVolumeRight, ui->lineEditVolumeRight);
 
     // common connect code for three browse buttons
-    auto ConnectBrowse  = [this](QPushButton *p_button, QLineEdit *p_edit, QString p_text, QString p_filter, QFileDialog::FileMode p_mode)
+    auto ConnectBrowse  = [this](QPushButton *p_button, QLineEdit *p_edit, QString p_text, QString p_filter, QFileDialog::FileMode p_mode, QString p_setting_name)
     {
         connect(p_button, &QPushButton::pressed, [=]
         {
             QSettings settings("Oxidaan", "ZQLoader");
-            QString dir = settings.value("dialog_directory", "").toString();    // remember last used dir.
+            QString dir = settings.value(p_setting_name, "").toString();    // remember last used dir.
             QFileDialog dialog(this);
             dialog.setDirectory(dir);
             dialog.setNameFilter(p_filter);
@@ -140,7 +140,7 @@ Dialog::Dialog(QWidget *parent)
                 auto filename = QDir::toNativeSeparators(dialog.selectedFiles().first());   // else wrong slashes in Windows
                 p_edit->setText(filename);
                 QFileInfo fileInfo(dialog.selectedFiles().first()); 
-                settings.setValue("dialog_directory", fileInfo.absolutePath());
+                settings.setValue(p_setting_name, fileInfo.absolutePath());
             }
         });
     };
@@ -148,15 +148,18 @@ Dialog::Dialog(QWidget *parent)
     ConnectBrowse(ui->pushButtonBrowseNormalFile, ui->lineEditNormalFile,
         "Give normal speed file to load",
         "Tap/tzx files (*.tap *.tzx);;All files (*.*)",
-        QFileDialog::ExistingFiles);
+        QFileDialog::ExistingFiles,
+        "dialog_path_normal");
     ConnectBrowse(ui->pushButtonBrowseTurboFile, ui->lineEditTurboFile,
         "Give turbo speed file to load",
         "All Spectrum files (*.tap *.tzx *.z80 *.sna);;Tap/tzx files (*.tap *.tzx);;SnapShot files (*.z80 *.sna)';;All files (*.*)",
-        QFileDialog::ExistingFiles);
+        QFileDialog::ExistingFiles,
+        "dialog_path_turbo");
     ConnectBrowse(ui->pushButtonBrowseOutputFile, ui->lineEditOutputFile,
         "Give output file to create",
         "Wav files (*.wav);;Tzx files (*.tzx);;All files (*.*)",
-        QFileDialog::AnyFile);
+        QFileDialog::AnyFile,
+        "dialog_path_output");
 
 
     // make hyperlinks work in about text

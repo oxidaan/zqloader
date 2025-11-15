@@ -192,15 +192,11 @@ public:
     ///     (When 0 return to BASIC)
     /// p_clear_address: when done loading put stack pointer here, which is a bit like CLEAR xxxxx
     /// p_last_bank_to_set last bank to set; when <0: 48K snapshot. Dont do bank setting.
-    void Finalize(uint16_t p_usr_address, uint16_t p_clear_address, int p_last_bank_to_set, size_t p_expected_memorybocks)
+    size_t Finalize(uint16_t p_usr_address, uint16_t p_clear_address, int p_last_bank_to_set)
     {
         if (m_memory_blocks.size() == 0)
         {
             throw std::runtime_error("No Memory block added. Nothing to do!");
-        }
-        if(m_memory_blocks.size() != p_expected_memorybocks && p_expected_memorybocks)
-        {
-            std::cout << "<b>Warning number of found code blocks (" << m_memory_blocks.size() << ") not equal to LOAD \"\" CODE statements in BASIC (" << p_expected_memorybocks << ")!</b>\n" << std::endl;
         }
 
         // Combine adjacent blocks, combine overlapping blocks; order from high to low.
@@ -288,9 +284,7 @@ public:
             std::cout << "\n";
 
         }
-
-
-
+        return m_turbo_blocks.size();
     }
 
     /// Move all added turboblocks to SpectrumLoader as given at CTOR.
@@ -299,6 +293,12 @@ public:
     /// no-op when there are no blocks.
     void MoveToLoader(SpectrumLoader& p_spectrumloader, bool p_is_fun_attribute)
     {
+        // Only! for preloading, else no-op:
+        auto memory_blocks = std::move(m_memory_blocks);
+        for (auto& block : memory_blocks)
+        {
+            AddTurboBlock(std::move(block));
+        }
         std::chrono::milliseconds pause_before = 0ms;
         if (IsZqLoaderAdded())        // else probably already preloaded
         {
@@ -517,6 +517,8 @@ private:
             m_turbo_blocks.back().SetClearAddress(p_clear_address);
         }
     }
+
+
     // Add given MemoryBlock as turbo block.
     // So convert to TurboBlock.
     // Add given datablock as turbo block at given start address
@@ -607,7 +609,7 @@ bool TurboBlocks::IsZqLoaderAdded() const
 
 size_t TurboBlocks::size() const
 {
-    return m_pimpl->m_turbo_blocks.size(); 
+    return m_pimpl->m_memory_blocks.size(); 
 }
 
 TurboBlocks& TurboBlocks::AddMemoryBlock(MemoryBlock p_block)
@@ -616,10 +618,9 @@ TurboBlocks& TurboBlocks::AddMemoryBlock(MemoryBlock p_block)
     return *this;
 }
 
-TurboBlocks &TurboBlocks::Finalize(uint16_t p_usr_address, uint16_t p_clear_address, int p_last_bank_to_set, size_t p_expected_memory_blocks)
+size_t TurboBlocks::Finalize(uint16_t p_usr_address, uint16_t p_clear_address, int p_last_bank_to_set)
 {
-    m_pimpl->Finalize(p_usr_address, p_clear_address, p_last_bank_to_set, p_expected_memory_blocks);
-    return *this;
+    return m_pimpl->Finalize(p_usr_address, p_clear_address, p_last_bank_to_set);
 }
 
 TurboBlocks & TurboBlocks::MoveToLoader(SpectrumLoader& p_spectrumloader, bool p_is_fun_attribute)

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>826</width>
-    <height>680</height>
+    <width>889</width>
+    <height>687</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -94,8 +94,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>800</width>
-            <height>541</height>
+            <width>863</width>
+            <height>548</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_3">
@@ -375,8 +375,8 @@ li.checked::marker { content: &quot;\2612&quot;; }
           <property name="geometry">
            <rect>
             <x>0</x>
-            <y>-44</y>
-            <width>783</width>
+            <y>0</y>
+            <width>846</width>
             <height>585</height>
            </rect>
           </property>
@@ -460,7 +460,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <item row="8" column="2" rowspan="5">
             <widget class="QPushButton" name="pushButtonCalculate">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+              <sizepolicy hsizetype="Maximum" vsizetype="Minimum">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>

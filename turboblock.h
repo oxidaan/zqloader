@@ -190,11 +190,9 @@ public:
         {
             PausePulser(p_loader.GetTstateDuration()).SetLength(p_pause_before).MoveToLoader(p_loader);           // pause before
         }
-        // TODO
-        TonePulser(p_loader.GetTstateDuration()).  SetPattern(500, 500).SetLength(200ms).MoveToLoader(p_loader);      // leader
-//        TonePulser(p_loader.GetTstateDuration()).SetPattern(500).SetLength(200ms).MoveToLoader(p_loader);         // (same) leader
-        TonePulser(p_loader.GetTstateDuration()).  SetPattern(250).SetLength(1).MoveToLoader(p_loader);             // sync
-//        PausePulser(p_loader.GetTstateDuration()).SetLength(250).SetEdge(Edge::toggle).MoveToLoader(p_loader);      // sync (same)
+
+        TonePulser(p_loader.GetTstateDuration()).SetPattern(500).SetLength(200ms).MoveToLoader(p_loader);         // leader
+        PausePulser(p_loader.GetTstateDuration()).SetLength(250).SetEdge(Edge::toggle).MoveToLoader(p_loader);    // sync
 
         DataBlock header(m_data.begin(), m_data.begin() + sizeof(Header));      // split (eg for minisync)
         DataBlock payload(m_data.begin() + sizeof(Header), m_data.end());
