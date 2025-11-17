@@ -130,7 +130,7 @@ int SpectrumLoader::GetDurationInTStates() const
 
 
 /// CallBack; runs in miniaudio thread
-/// Move to next pulse. Return true when (completely) done.
+/// Move to next pulser. Return true when (completely) done.
 bool SpectrumLoader::Next()
 {
     Pulser& current = GetCurrentPulser();

@@ -31,7 +31,7 @@ namespace fs = std::filesystem;
 
 LIB_API const char *GetVersion()
 {
-    return "3.0.0";
+    return "3.0.1 RC1";
 }
 
 
@@ -46,12 +46,12 @@ public:
     Impl & operator = (const Impl &) = delete;
 
     // Set normal filename (eg the top filename in the dialog)
-    void SetNormalFilename(fs::path p_filename)
+    void SetNormalFilename(fs::path p_filename, const std::string &p_zxfilename)
     {
         m_normal_filename = std::move(p_filename);
         if(!FileIsZqLoader(m_normal_filename))
         {
-            AddNormalSpeedFile(m_normal_filename);    // when p_filename emtpy makes it zqloader.tap
+            AddNormalSpeedFile(m_normal_filename, p_zxfilename);    // when p_filename emtpy makes it zqloader.tap
         }
     }
 
@@ -62,12 +62,12 @@ public:
     }
 
     // Set turbo filename eg the 2nd filename in the dialog.
-    void SetTurboFilename(fs::path p_filename )
+    void SetTurboFilename(fs::path p_filename, const std::string &p_zxfilename )
     {
         if(!p_filename.empty())
         {
             m_turbo_filename = std::move(p_filename);
-            AddTurboSpeedFile(m_turbo_filename);
+            AddTurboSpeedFile(m_turbo_filename, p_zxfilename);
         }
     }
 
@@ -146,6 +146,8 @@ public:
     void Run(bool p_threaded)
     {
         Check();
+        m_turboblocks.DebugDump();
+        std::cout << "Estimated duration: " << GetEstimatedDuration().count() << "ms  (" <<  m_spectrumloader.GetDurationInTStates() << " TStates)" << std::endl;
         m_spectrumloader.SetOnDone([this]
         {
             OnDone();
@@ -305,6 +307,15 @@ public:
         m_turboblocks.Finalize(adr);
         m_turboblocks.MoveToLoader(m_spectrumloader);
     }
+   
+    void SetLoaderCopyTarget(uint16_t p_address)
+    {
+        m_new_loader_location = p_address;
+        if(p_address != 0)      // fixed address (not automatic)
+        {
+            m_turboblocks.SetLoaderCopyTarget(p_address);
+        }
+    }
 
 private:
 
@@ -326,7 +337,7 @@ private:
 
 
     // Add given normal speed file (tap/tzx) to m_spectrumloader
-    void AddNormalSpeedFile(const fs::path &p_filename)
+    void AddNormalSpeedFile(const fs::path &p_filename, const std::string &p_zxfilename)
     {
         if(!p_filename.empty())
         {
@@ -334,11 +345,11 @@ private:
             // filename is tap/tzx file to be normal loaded into the ZX Spectrum.
             if (ToLower(p_filename.extension().string()) == ".tap")
             {
-                AddNormalSpeedFile<TapLoader>(p_filename, m_spectrumloader);
+                AddNormalSpeedFile<TapLoader>(p_filename, m_spectrumloader, p_zxfilename);
             }
             else if (ToLower(p_filename.extension().string()) == ".tzx")
             {
-                AddNormalSpeedFile<TzxLoader>(p_filename, m_spectrumloader);
+                AddNormalSpeedFile<TzxLoader>(p_filename, m_spectrumloader, p_zxfilename);
             }
             else
             {
@@ -358,17 +369,17 @@ private:
         }
     }
 
-    void AddTurboSpeedFile(const fs::path &p_filename)
+    void AddTurboSpeedFile(const fs::path &p_filename, const std::string &p_zxfilename)
     {
         if (ToLower(p_filename.extension().string()) == ".tap")
         {
             std::cout << "Processing tap file: " << p_filename << " (turbo speed)" << std::endl;
-            AddFileToTurboBlocks<TapLoader>(p_filename);
+            AddFileToTurboBlocks<TapLoader>(p_filename, p_zxfilename);
         }
         else if (ToLower(p_filename.extension().string()) == ".tzx")
         {
             std::cout << "Processing tzx file: " << p_filename << " (turbo speed)" << std::endl;
-            AddFileToTurboBlocks<TzxLoader>(p_filename);
+            AddFileToTurboBlocks<TzxLoader>(p_filename, p_zxfilename);
         }
         else if (ToLower(p_filename.extension().string()) == ".z80" ||
                  ToLower(p_filename.extension().string()) == ".sna")
@@ -399,7 +410,7 @@ private:
     // TLoader is TapLoader or TzxLoader.
     // Finalize will already be called.
     template<class Tloader>
-    void AddFileToTurboBlocks(const fs::path &p_filename)
+    void AddFileToTurboBlocks(const fs::path &p_filename, const std::string &p_zxfilename)
     {
         m_128_mode = false;
         AddZqLoader(m_normal_filename);
@@ -409,7 +420,7 @@ private:
         {
             return tab_to_turbo_blocks.HandleTapBlock(std::move(p_block), p_zxfilename);
         });
-        tap_or_tzx_loader.Load(p_filename, "");
+        tap_or_tzx_loader.Load(p_filename, p_zxfilename);
         if(m_turboblocks.size() != tab_to_turbo_blocks.GetNumberLoadCode())
         {
             std::cout << "<b>Warning: Number of found code blocks (" << m_turboblocks.size() << ") not equal to LOAD \"\" CODE statements in BASIC (" << tab_to_turbo_blocks.GetNumberLoadCode() << ")!</b>\n" << std::endl;
@@ -436,7 +447,7 @@ private:
         snapshot_regs_filename.replace_extension("bin");
         DataBlock regblock = LoadFromFile(snapshot_regs_filename);
         snapshotloader.SetRegBlock(std::move(regblock)).MoveToTurboBlocks(m_turboblocks, m_new_loader_location, m_use_fun_attribs);
-        m_turboblocks.Finalize(snapshotloader.GetUsrAddress(), 0, snapshotloader.GetLastBankToSwicthTo());
+        m_turboblocks.Finalize(snapshotloader.GetUsrAddress(), 0, snapshotloader.GetLastBankToSwitchTo());
     }
 
 
@@ -444,7 +455,7 @@ private:
     // Add given file (tap/tzx) to given SpectrumLoader so uses normal speed
     // TLoader is TapLoader or TzxLoader
     template<class Tloader>
-    void AddNormalSpeedFile(const fs::path &p_filename, SpectrumLoader &p_spectrum_loader)
+    void AddNormalSpeedFile(const fs::path &p_filename, SpectrumLoader &p_spectrum_loader, const std::string &p_zxfilename)
     {
         Tloader tap_or_tzx_loader;
         tap_or_tzx_loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string)
@@ -453,7 +464,7 @@ private:
                                                   return false;
                                               }
                                               );
-        tap_or_tzx_loader.Load(p_filename, "");
+        tap_or_tzx_loader.Load(p_filename, p_zxfilename);
     }
 
 
@@ -553,17 +564,17 @@ ZQLoader::~ZQLoader()
 
 
 
-ZQLoader& ZQLoader::SetNormalFilename(fs::path p_filename)
+ZQLoader& ZQLoader::SetNormalFilename(fs::path p_filename, const std::string &p_zxfilename )
 {
-    m_pimpl->SetNormalFilename(std::move(p_filename));
+    m_pimpl->SetNormalFilename(std::move(p_filename), p_zxfilename);
     return *this;
 }
 
 
 
-ZQLoader& ZQLoader::SetTurboFilename(fs::path p_filename)
+ZQLoader& ZQLoader::SetTurboFilename(fs::path p_filename, const std::string &p_zxfilename)
 {
-    m_pimpl->SetTurboFilename(std::move(p_filename));
+    m_pimpl->SetTurboFilename(std::move(p_filename), p_zxfilename);
     return *this;
 }
 
@@ -662,21 +673,21 @@ ZQLoader& ZQLoader::SetAction(Action p_what)
 
 
 
-ZQLoader& ZQLoader::SetSnapshotLoaderLocation(uint16_t p_address)
+ZQLoader& ZQLoader::SetLoaderCopyTarget(uint16_t p_address)
 {
-    m_pimpl->m_new_loader_location = p_address;
+    m_pimpl->SetLoaderCopyTarget(p_address);
     return *this;
 }
 
-ZQLoader& ZQLoader::SetSnapshotLoaderLocation(LoaderLocation p_where)
+ZQLoader& ZQLoader::SetLoaderCopyTarget(LoaderLocation p_where)
 {
     if (p_where == LoaderLocation::automatic)
     {
-        SetSnapshotLoaderLocation(0);
+        SetLoaderCopyTarget(0);
     }
     else if (p_where == LoaderLocation::screen)
     {
-        SetSnapshotLoaderLocation(spectrum::SCREEN_23RD);
+        SetLoaderCopyTarget(spectrum::SCREEN_23RD);
     }
     return *this;
 }

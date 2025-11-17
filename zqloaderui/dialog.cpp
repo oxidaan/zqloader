@@ -25,7 +25,53 @@
 #include "widgetstreambuffer.h"
 
 #include <filesystem>
+#include <qevent.h>
 namespace fs = std::filesystem;
+
+constexpr const char *DefaultZxFilename = "[Optional first name eg LOAD \"somename\"]";
+
+
+inline void MakeBlack(QLineEdit *p_line_edit)
+{
+    QFont f = p_line_edit->font();
+    f.setStyle(QFont::StyleNormal);
+    p_line_edit->setFont(f);
+    QPalette p = p_line_edit->palette();
+    p.setColor(QPalette::Text, Qt::black);
+    p_line_edit->setPalette(p);
+};
+
+inline void MakeGray(QLineEdit *p_line_edit)
+{
+    QFont f = p_line_edit->font();
+    f.setStyle(QFont::StyleItalic);
+    p_line_edit->setFont(f);
+    QPalette p = p_line_edit->palette();
+    p.setColor(QPalette::Text, Qt::gray);
+    p_line_edit->setPalette(p);
+};
+
+inline void FocusIn(QLineEdit *p_line_edit)
+{
+    if(p_line_edit->text().isEmpty() || p_line_edit->text()[0] == '[')
+    {
+        p_line_edit->setText("");
+        MakeBlack(p_line_edit);
+    }
+}
+inline void FocusOut(QLineEdit *p_line_edit, const char *p_text)
+{
+    if(p_line_edit->text().isEmpty() || p_line_edit->text()[0] == '[')
+    {
+        p_line_edit->setText(p_text);
+        MakeGray(p_line_edit);
+    }
+    else
+    {
+        MakeBlack(p_line_edit);
+    }
+}
+
 
 
 ///  Yes!
@@ -139,6 +185,7 @@ Dialog::Dialog(QWidget *parent)
             {
                 auto filename = QDir::toNativeSeparators(dialog.selectedFiles().first());   // else wrong slashes in Windows
                 p_edit->setText(filename);
+                MakeBlack(p_edit);
                 QFileInfo fileInfo(dialog.selectedFiles().first()); 
                 settings.setValue(p_setting_name, fileInfo.absolutePath());
             }
@@ -269,7 +316,6 @@ Dialog::Dialog(QWidget *parent)
         m_zqloader.Test();
     });
 
-    Load(); // settings
 
     m_zqloader.SetOnDone([this]
     {
@@ -308,6 +354,29 @@ Dialog::Dialog(QWidget *parent)
         }
     });
 
+
+    auto ConnectLineEditFocus = [](LineEdit *p_line_edit, const char *p_text) 
+    {
+        connect(p_line_edit, &LineEdit::signalFocusIn, [=]
+        {
+            FocusIn(p_line_edit);
+        });
+        connect(p_line_edit, &LineEdit::signalFocusOut, [=]
+        {
+            FocusOut(p_line_edit, p_text);
+        });
+    };
+
+
+
+    ConnectLineEditFocus(ui->lineEditZxFileTurbo, DefaultZxFilename);
+    ConnectLineEditFocus(ui->lineEditZxFileNormal, DefaultZxFilename);
+    ConnectLineEditFocus(ui->lineEditNormalFile, "[zqloader]");
+    ConnectLineEditFocus(ui->lineEditOutputFile, "[To write an output file instead of playing sound enter a .wav or .tzx output file here. Leave empty for normal usage (playing audio)]");
+
+
+
+    Load(); // settings
 
     QTimer *timer = new QTimer(this);
     timer->setInterval(100ms);
@@ -428,7 +497,18 @@ inline void Dialog::RestoreDefaults()
     ui->checkBoxToggleEar->setChecked(bool(loader_defaults::io_xor_value & 0b00010000));
     ui->checkBoxUseStandardClockForRom->setChecked(false);
     ui->horizontalSliderSpeed->setValue(0);
-    ui->lineEditNormalFile->setText("[zqloader]");
+
+    ui->lineEditNormalFile->setText("");
+    ui->lineEditNormalFile->signalFocusOut();       // also gives correct text
+
+    ui->lineEditZxFileNormal->setText("");
+    ui->lineEditZxFileNormal->signalFocusOut();
+
+    ui->lineEditZxFileTurbo->setText("");
+    ui->lineEditZxFileTurbo->signalFocusOut();
+
+    ui->lineEditOutputFile->setText("");
+    ui->lineEditOutputFile->signalFocusOut();
 }
 
 
@@ -450,8 +530,6 @@ inline void Dialog::Go()
         // might break ongoing pre-load: 
         // m_zqloader.Reset();
 
-        fs::path filename1 = ui->lineEditNormalFile->text().toStdString();
-        fs::path filename2 = ui->lineEditTurboFile->text().toStdString();
 
 
         fs::path outputfilename = ui->lineEditOutputFile->text().toStdString();
@@ -483,26 +561,29 @@ inline void Dialog::Go()
 
         if(ui->comboBoxLoaderLocation->currentIndex() == 0)
         {
-            m_zqloader.SetSnapshotLoaderLocation(ZQLoader::LoaderLocation::screen);
+            m_zqloader.SetLoaderCopyTarget(ZQLoader::LoaderLocation::screen);
         }
         else if(ui->comboBoxLoaderLocation->currentIndex() == 1)
         {
-            m_zqloader.SetSnapshotLoaderLocation(ZQLoader::LoaderLocation::automatic);
+            m_zqloader.SetLoaderCopyTarget(ZQLoader::LoaderLocation::automatic);
         }
         else
         {
             uint16_t adr = ui->lineEditLoaderAddress->text().toInt();
-            m_zqloader.SetSnapshotLoaderLocation(adr);
+            m_zqloader.SetLoaderCopyTarget(adr);
         }
         m_zqloader.SetFunAttribs(ui->checkBoxFunAttribs->isChecked());
 
-        m_zqloader.SetNormalFilename(filename1);
-        m_zqloader.SetTurboFilename(filename2);
+        fs::path filename1 = ui->lineEditNormalFile->text().toStdString();
+        std::string zxfilename1 = ui->lineEditZxFileNormal->text().toStdString();
+        m_zqloader.SetNormalFilename(filename1, zxfilename1[0] == '[' ? "" : zxfilename1);
+        fs::path filename2 = ui->lineEditTurboFile->text().toStdString();
+        std::string zxfilename2 = ui->lineEditZxFileTurbo->text().toStdString();
+        m_zqloader.SetTurboFilename(filename2, zxfilename2[0] == '[' ? "" : zxfilename2);
 
         m_zqloader.SetSampleRate(ui->lineEditSampleRate->text().toInt());
         m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());
 
-        std::cout << "Estimated duration: " << m_zqloader.GetEstimatedDuration().count() << "ms  (" <<  m_zqloader.GetDurationInTStates() << " TStates)" << std::endl;
         m_zqloader.Start();
         if(m_zqloader.IsBusy())     // else immidiately done eg writing wav file
         {
@@ -592,6 +673,11 @@ inline void Dialog::Load()
     // sync dials
     ui->dialVolumeLeft->setValue(ui->lineEditVolumeLeft->text().toInt());
     ui->dialVolumeRight->setValue(ui->lineEditVolumeRight->text().toInt());
+
+    ui->lineEditNormalFile->signalFocusOut();
+    ui->lineEditZxFileNormal->signalFocusOut();
+    ui->lineEditZxFileTurbo->signalFocusOut();
+    ui->lineEditOutputFile->signalFocusOut();
 }
 
 /// Read all line edits + dialog position from given settings

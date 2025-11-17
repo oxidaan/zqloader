@@ -58,15 +58,19 @@ else()
     message("sjasmplus examples found at ${SJASMPLUS_PATH}/examples")
 endif()
 
-add_custom_target(zqloader_z80
-  ALL DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/zqloader.tap
-  SOURCES zqloader.z80asm
-  )
+
 
 foreach(which "" "128")
+    add_custom_target(zqloader_z80${which}
+      ALL DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/zqloader${which}.tap
+      SOURCES zqloader${which}.z80asm
+                ${CMAKE_CURRENT_SOURCE_DIR}/zqloader.inc
+      )
+
     add_custom_command(
         OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/zqloader${which}.tap
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/zqloader${which}.z80asm
+                ${CMAKE_CURRENT_SOURCE_DIR}/zqloader.inc
         COMMAND  "sjasmplus"
         ARGS 
         "--fullpath"

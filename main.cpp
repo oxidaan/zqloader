@@ -222,11 +222,11 @@ int main(int argc, char** argv)
 
         if(cmdline.HasParameter("usescreen") || cmdline.HasParameter("s"))
         {
-            zqloader.SetSnapshotLoaderLocation(ZQLoader::LoaderLocation::screen);
+            zqloader.SetLoaderCopyTarget(ZQLoader::LoaderLocation::screen);
         }
         else
         {
-            zqloader.SetSnapshotLoaderLocation(cmdline.GetParameter<uint16_t>("new_loader_location", 0));
+            zqloader.SetLoaderCopyTarget(cmdline.GetParameter<uint16_t>("new_loader_location", 0));
         }
 
         zqloader.SetNormalFilename(filename).SetTurboFilename(filename2);

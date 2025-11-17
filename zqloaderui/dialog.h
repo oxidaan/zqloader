@@ -23,6 +23,7 @@ QT_END_NAMESPACE
 
 class QSettings;
 class Dial;
+class LineEdit;
 
 class Dialog : public QDialog
 {

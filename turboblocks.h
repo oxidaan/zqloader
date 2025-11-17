@@ -118,7 +118,7 @@ public:
     /// Mainly for debugging!
     /// Add just a header with a 'copy to screen' command (no data)
     /// Mainly for debugging!
-    TurboBlocks& CopyLoaderToScreen(uint16_t p_value);
+    TurboBlocks& CopyLoaderTo(uint16_t p_value);
 
     /// Set start of free space to copy loader including space for sp.
     TurboBlocks& SetLoaderCopyTarget(uint16_t p_value );
@@ -135,6 +135,7 @@ public:
     /// Take an export file name that will be used to load symbols.
     TurboBlocks& SetSymbolFilename(const std::filesystem::path& p_symbol_file_name);
 
+    TurboBlocks &DebugDump() const;
 private:
     class Impl;
     std::unique_ptr<Impl> m_pimpl;

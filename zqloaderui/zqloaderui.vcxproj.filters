@@ -14,6 +14,7 @@
     <QtMoc Include="dial.h" />
     <QtMoc Include="dialog.h" />
     <QtMoc Include="widgetstreambuffer.h" />
+    <QtMoc Include="lineedit.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\resource\zqloader.rc" />

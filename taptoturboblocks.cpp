@@ -37,17 +37,20 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, const std::string &p_zx
         {
             throw std::runtime_error("Expecting header length to be " + std::to_string(sizeof(TapeHeader)) + ", but is : " + std::to_string(block.size()));
         }
-        m_last_header = *reinterpret_cast<TapeHeader*>(block.data());
-        std::string name(m_last_header.m_filename, 10);    // zx file name from tap/header
-        if ((name == p_zxfilename || p_zxfilename == "") || m_headercnt >= 1)
-        {
-            m_last_block = type;
-            m_headercnt++;
-        }
+        auto header = *reinterpret_cast<TapeHeader*>(block.data());
+        std::string name(header.m_filename, 10);    // zx file name from tap/header
+
         std::cout << "Spectrum tape header: " << m_last_header.m_type << ": ";
         std::cout << "'" << name << "'";
         std::cout << " Start address: " << m_last_header.GetStartAddress();
         std::cout << " Length: " << m_last_header.m_length << std::endl;
+        
+        if ((name == p_zxfilename || p_zxfilename == "") || m_headercnt >= 1)
+        {
+            m_last_block = type;
+            m_last_header = std::move(header);
+            m_headercnt++;
+        }
     }
     else if (type == TapeBlockType::data)
     {
@@ -56,22 +59,7 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, const std::string &p_zx
         {
             throw std::runtime_error("Found headerless, can not handle (can't know were it should go to)");
         }
-        if (m_last_header.m_type == TapeHeader::Type::code ||
-            m_last_header.m_type == TapeHeader::Type::screen)
-        {
-            if (m_codecount == 0 && !m_basic_was_parsed)
-            {
-                ParseBasic(block);
-            }
-            auto start_adr = (m_loadcodes.size() > m_codecount &&  m_loadcodes[m_codecount] != 0 ) ?
-                             m_loadcodes[m_codecount] : // taking address from last unused LOAD "" CODE XXXXX as found in basic
-                             m_last_header.GetStartAddress();
-
-            m_tblocks.AddMemoryBlock({std::move(block), start_adr});
-            m_codecount++;
-
-        }
-        else if (m_last_header.m_type == TapeHeader::Type::basic_program)
+        if (m_last_header.m_type == TapeHeader::Type::basic_program)
         {
             if (m_codecount == 0)
             {
@@ -82,6 +70,22 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, const std::string &p_zx
                 done = true;        // Found basic after code. We are done.
             }
         }
+        else if (m_last_header.m_type == TapeHeader::Type::code ||
+                 m_last_header.m_type == TapeHeader::Type::screen)
+        {
+            if (m_codecount == 0 && !m_basic_was_parsed)    // try parse BASIC from code block eg meteorstorms (LOAD ""CODE)
+            {
+                ParseBasic(block);
+            }
+            auto start_adr = (m_loadcodes.size() > m_codecount &&  m_loadcodes[m_codecount] != 0 ) ?
+                             m_loadcodes[m_codecount] :         // taking address from matching LOAD "" CODE XXXXX as found in basic
+                             m_last_header.GetStartAddress();
+
+            m_tblocks.AddMemoryBlock({std::move(block), start_adr});
+            m_codecount++;
+
+        }
+
         std::cout << std::endl;
         m_last_block = type;
     }

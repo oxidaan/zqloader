@@ -12,7 +12,6 @@
 #include "pulsers.h"
 
 
-
 /// Set length of pause in T-states.
 PausePulser& PausePulser::SetLength(int p_states)
 {
@@ -54,7 +53,7 @@ TonePulser& TonePulser::SetLength(std::chrono::milliseconds p_duration)
     {
         m_max_pulses = unsigned(p_duration / (m_tstate_dur * pat_dur));
         unsigned pattsize = unsigned(m_pattern.size());
-        m_max_pulses += pattsize - (m_max_pulses % pattsize);    // round up to next multiple of pattsize
+        m_max_pulses = ((m_max_pulses + pattsize - 1) / pattsize) * pattsize;           // round up to next multiple of pattsize
     }
     else
     {

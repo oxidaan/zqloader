@@ -21,7 +21,6 @@ class Dial : public QDial
     Q_OBJECT
 public:
     using QDial::QDial;
-    //virtual ~Dial() {};
 
 protected:
     void sliderChange(QAbstractSlider::SliderChange change) override

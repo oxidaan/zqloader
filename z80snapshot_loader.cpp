@@ -164,14 +164,14 @@ SnapShotLoader& SnapShotLoader::LoadZ80(std::istream& p_stream)
         header.PC_reg = header2.PC_reg;
 
         m_is_48K = GetIs48K(header2.hardware_mode, length_and_version != 23);
-        m_current_bank =  m_is_48K ? -1 : int(header2.current_bank);
+        m_last_out_7ffd =  m_is_48K ? -1 : int(header2.last_out_7ffd);
         if(m_is_48K)
         {
             std::cout << "48K snapshot." << std::endl;
         }
         else
         {
-            std::cout << "128K snapshot. Current bank = " << (m_current_bank & 0x07) << std::endl;
+            std::cout << "128K snapshot. Current bank = " << (m_last_out_7ffd & 0x07) << std::endl;
         }
 
         MemoryBlock mem48k;
@@ -204,7 +204,7 @@ SnapShotLoader& SnapShotLoader::LoadZ80(std::istream& p_stream)
             bank16k.m_address = PageToAddress(data_header.page_num, m_is_48K);
             bank16k.m_bank = PageToBank(data_header.page_num, m_is_48K);
             // std::cout << int(data_header.page_num) << ' ' << bank16k.m_bank << ' ' << bank16k.m_address <<  ' ' << int(header2.current_bank) << std::endl;
-            if(bank16k.m_bank == 2 || bank16k.m_bank == 5 ||  bank16k.m_bank == header2.current_bank)
+            if(bank16k.m_bank == 2 || bank16k.m_bank == 5 ||  bank16k.m_bank == (header2.last_out_7ffd & 0x7))
             {
                 // Copy these banks to the 48K datablock; will be the first.
                 // Same as v1 snapshot. And SNA snapshot.
@@ -251,8 +251,8 @@ SnapShotLoader& SnapShotLoader::LoadSna(std::istream& p_stream)
         // File is longer so its a 128k sna file.
         m_is_48K = false;
         pc = LoadBinary<uint16_t>(p_stream);
-        m_current_bank = int(LoadBinary<uint8_t>(p_stream));       // = port 0x7ffd
-        auto current_bank = m_current_bank & 0x07;
+        m_last_out_7ffd = int(LoadBinary<uint8_t>(p_stream));       // = port 0x7ffd
+        auto current_bank = m_last_out_7ffd & 0x07;
         std::cout << "128K SNA snapshot. Current bank = " << current_bank << std::endl;
         uint8_t trdos_rom_paged  = LoadBinary<uint8_t>(p_stream);
         (void)trdos_rom_paged;
@@ -453,6 +453,7 @@ inline uint16_t GetEmptySpaceLocation(const DataBlock &p_block, uint16_t p_len, 
 
 
 /// Move this snapshot -as read from Z80 file- to given TurboBlocks.
+/// p_new_loader_location: were to copy loader to. 0 is automatic (empty location when found, else screen)
 void SnapShotLoader::MoveToTurboBlocks(TurboBlocks& p_turbo_blocks, uint16_t p_new_loader_location, bool p_write_fun_attribs)
 {
     const auto &symbols = p_turbo_blocks.GetSymbols();              // alias

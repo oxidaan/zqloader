@@ -60,14 +60,17 @@ add_library(${TARGET_LIB} SHARED  ${SOURCE_LIB} ${INCLUDE} ${DOCUMENTATION} )
 # We need c++17
 target_compile_features(${TARGET_LIB} PUBLIC cxx_std_17)
 
+
 # Here lives miniadio.h
 target_include_directories(${TARGET_LIB} PRIVATE miniaudio)
+
 
 target_compile_definitions(${TARGET_LIB} PUBLIC
     "NDEBUG;"
     "_CONSOLE;"
     "UNICODE;"
     "_UNICODE"
+    "LIB_BUILD"
 )
 
 
@@ -121,7 +124,7 @@ set(SOURCE_EXE main.cpp)
 
 if(MSVC)
     set(SOURCE_EXE ${SOURCE_EXE}
-    zqloader.rc)
+    resource/zqloader.rc)
 endif()
 
 # The console application

@@ -50,7 +50,7 @@ The compression is most effective when loading a snapshot. This is because when 
 Limitations/TODO's
 ---
 
-* It is only tested with 48K ZX Spectrum! Because thats all I have to test it with! (if you have it working on a 128K or any other ZX Spectrum let me know!...).
+* It is only tested with 48K ZX Spectrum! (And simulators like Fuse.) Because thats all I have to test it with! (if you have it working on a 128K or any other ZX Spectrum let me know!...). The 128K snapshots were only tested with Fuse.
 
 *When using TAP or TZX files:*
 
@@ -58,7 +58,8 @@ Limitations/TODO's
 It therefore ignores any BASIC when processing a TAP or TZX file, except trying to find the CLEAR and USR adresses in it.
 **Of course with a snapshot it can still load any BASIC program.**
 
-* It cannot load games that have any kind of copy protection. Or does any loading without BASIC. Eg *Horace and the Spiders* does some additional loading after Machine code started. ZXloader cannot possible know where this extra datablock needs to go. Same for headerless: ZQloader does not know where to put these. **Of course these games can be loaded without problem using a Z80 snapshot.**
+* It cannot load games that have any kind of copy protection. Or does any loading without BASIC. Eg *Horace and the Spiders* does some additional loading after Machine code started. ZQloader cannot possible know where this extra datablock needs to go. Same for headerless: ZQloader does not know where to put these. **Of course these games can be loaded without problem using a Z80 snapshot.**
+In general it only works when the BASIC loader has exactly one USR xxxxx statement and the number of LOAD "" CODE matches the actual found number of blocks.
 
 * The file associations when set for Windows is not working very well. In Windows I'd like to have an explorer contect menu entry for TAP/Z80/TZX files `Load with ZQ-Loader`. This sometimes works, sometimes not, not sure. The installer was made with the 'Visual Studio Windows Installer Projects' extension. This tool is really wobbly imho.
 

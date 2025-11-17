@@ -56,6 +56,7 @@ std::ostream& operator << (std::ostream& p_stream, spectrum::TapeHeader::Type p_
         ENUM_TAG(spectrum::TapeHeader::Type, array_text);
         ENUM_TAG(spectrum::TapeHeader::Type, code);
         ENUM_TAG(spectrum::TapeHeader::Type, screen);
+        ENUM_TAG(spectrum::TapeHeader::Type, unknown);
     }
     return p_stream;
 }

@@ -82,8 +82,12 @@ public:
     }
 
 
-    // Check and get m_loader_copy_start when not done so already.
-    // Will be set when any block overlaps loader at basic.
+    // Get location to copy loader to.
+    // If not set before:
+    //  If any block overlaps the loader at basic, set
+    //  return spectrum::SCREEN_23RD as location to copy loader to.
+    //  If no block overlaps return 0.
+    // Else get whatever was set before.
     uint16_t GetLoaderCopyStart(const MemoryBlocks & p_memory_blocks) const
     {
         if (m_loader_copy_start == 0)
@@ -223,7 +227,7 @@ public:
 
 
         // Make space for new loader location
-        // skip when at screen 2/3rd - not need then and is actually slower.
+        // skip when at screen 2/3rd - not need then and is actually slower. Also screen is loaded earlier.
         if (loader_copy_start && loader_copy_start != spectrum::SCREEN_23RD )
         {
             memory_blocks = MakeSpaceForCopiedLoader(std::move(memory_blocks), loader_copy_start);
@@ -263,7 +267,7 @@ public:
                 // when dest address is before source when overlapping
                 //   -> xxxxxxxx ->
                 //  xxxxxxxx         LDIR copy_lddr==false
-                std::cout << "Copy loader backwards (but LDIR working forwards) from " << copy_me_source_location << " to " << copy_me_target_location << " length=" << copy_me_length << " last = " << copy_me_target_location + copy_me_length - 1 << (overlaps ? " (overlaps)" : "") << std::endl;
+                std::cout << "Copy loader backwards (but LDIR working forwards) from " << copy_me_source_location << " to " << copy_me_target_location << " length=" << copy_me_length << " last = " << copy_me_target_location + copy_me_length - 1 << (overlaps ? " (overlaps)" : "") << '\n';
                 SetDataToZqLoaderTap("COPY_ME_DEST", copy_me_target_location);
                 SetDataToZqLoaderTap("COPY_ME_SOURCE_OFFSET", copy_me_source_location);
                 SetDataToZqLoaderTap("COPY_ME_LDDR_OR_LDIR", 0xb0ed); // LDIR! Endianness swapped
@@ -274,14 +278,14 @@ public:
                 // when dest address is after source when overlapping
                 //   <- xxxxxxxx <-
                 //          xxxxxxxx LDDR copy_lddr==true
-                std::cout << "Copy loader forwards (but LDDR working backwards) from " << copy_me_source_location << " to " << copy_me_target_location << " length=" << copy_me_length << " last = " << copy_me_target_location + copy_me_length - 1 << (overlaps ? " (overlaps)" : "") << std::endl;
+                std::cout << "Copy loader forwards (but LDDR working backwards) from " << copy_me_source_location << " to " << copy_me_target_location << " length=" << copy_me_length << " last = " << copy_me_target_location + copy_me_length - 1 << (overlaps ? " (overlaps)" : "") << '\n';
                 SetDataToZqLoaderTap("COPY_ME_DEST", copy_me_target_location + copy_me_length - 1);
                 SetDataToZqLoaderTap("COPY_ME_SOURCE_OFFSET", copy_me_source_location + copy_me_length - 1);
                 SetDataToZqLoaderTap("COPY_ME_LDDR_OR_LDIR", 0xb8ed); // LDDR! Endianness swapped
             }
 
             SetDataToZqLoaderTap("COPY_ME_END_JUMP", copy_me_target_location);
-            std::cout << "\n";
+            std::cout << std::endl;
 
         }
         return m_turbo_blocks.size();
@@ -316,7 +320,7 @@ public:
                 std::cout << "Block #" << cnt++ << std::endl;
                 if (pause_before > 0ms)
                 {
-                    std::cout << "Pause before = " << pause_before.count() << "ms" << std::endl;
+                    std::cout << "Pause before = " << pause_before.count() << "ms\n";
                 }
                 tblock.DebugDump();
             }
@@ -324,8 +328,17 @@ public:
             pause_before = next_pause;
         }
         m_turbo_blocks.clear();
+
     }
 
+    void DebugDump() const
+    {
+        std::cout << "Duration of Zero/One: " << m_zero_duration << '/' << m_one_duration <<
+            "; End of byte: " << m_end_of_byte_delay << 
+            "; Decompr. speed (kb/s): " << m_decompression_speed << 
+            "; Init. wait: " << m_initial_wait.count() << std::endl;
+    }
+    
 
     /// Set durations in T states for zero and one pulses.
     /// When 0 keep defaults.
@@ -353,7 +366,7 @@ public:
 
     /// Add just a header with a 'copy to screen' command (no data)
     /// Mainly for debugging!
-    void CopyLoaderToScreen(uint16_t p_value)
+    void CopyLoaderTo(uint16_t p_value)
     {
         m_loader_copy_start = p_value;
         TurboBlock empty;
@@ -383,7 +396,7 @@ public:
         {
             throw std::runtime_error("TurboBlock::Header length mismatch with zqloader.z80asm");
         }
-        std::cout << "Z80 loader total length = " << m_symbols.GetSymbol("TOTAL_LEN") << "\n";
+        std::cout << "Z80 loader total length = " << m_symbols.GetSymbol("TOTAL_LEN") << std::endl;
 
     }
 private:
@@ -678,9 +691,9 @@ TurboBlocks& TurboBlocks::SetInitialWait(std::chrono::milliseconds p_initial_wai
     return *this;
 }
 
-TurboBlocks& TurboBlocks::CopyLoaderToScreen(uint16_t p_value)
+TurboBlocks& TurboBlocks::CopyLoaderTo(uint16_t p_value)
 {
-    m_pimpl->CopyLoaderToScreen(p_value);
+    m_pimpl->CopyLoaderTo(p_value);
     return *this;
 }
 
@@ -710,7 +723,11 @@ TurboBlocks& TurboBlocks::SetSymbolFilename(const std::filesystem::path& p_symbo
     return *this;
 }
 
-
+TurboBlocks &TurboBlocks::DebugDump() const
+{
+    m_pimpl->DebugDump();
+    return *const_cast<TurboBlocks*>(this);
+}
 
 
 

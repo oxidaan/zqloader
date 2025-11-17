@@ -8,6 +8,7 @@
 //==============================================================================
 
 
+
 // To be assembled with sjasmplus see https://github.com/z00m128/sjasmplus
 // sjasmplus --fullpath     \
 //    -ipath/to/sjasmplus/examples/BasicLib \
@@ -266,12 +267,18 @@ go_go_go:
     // ld B, H                    // @DEBUG show HL in basic
     // ld C, L                    // @DEBUG show HL in basic
     // jr END_TO_BASIC            // @DEBUG   show HL in basic
+    // ld A, 4                    // @DEBUG
+    // OUT 0xfE, A                // @DEBUG GREEN border 
+    // jr go_go_go                // @DEBUG
     jp HL                       // go-go-go! note: this also means HL is PC once there
 
 
 
 // Show error messages, then end to basic
 CHECKSUM_ERROR:
+    // LD A,2                  // @DEBUG
+    // OUT 0xfE, A             // RED border @DEBUG
+    // jr CHECKSUM_ERROR       // @DEBUG
     ld DE, TEXT_CHECKSUM_ERROR
     call PRINT
 

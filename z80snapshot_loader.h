@@ -55,7 +55,7 @@ class SnapShotLoader
         // uint16_t  length_and_version;             // extra header length exluding this value itself (read separately)
         uint16_t PC_reg;
         uint8_t  hardware_mode;
-        uint8_t  current_bank;                      // 'If in 128 mode, contains last OUT to 0x7ffd'
+        uint8_t  last_out_7ffd;                     // 'If in 128 mode, contains last OUT to 0x7ffd' so this value &0x7 is last bank.
         uint8_t  out_mode_intf1;                    // 'Contains 0xff if Interface I rom paged'
         uint8_t  simulator_flags;                   // not needed for real hardware
         uint8_t  soundchip_reg_number;              // 'Last OUT to port 0xfffd (soundchip register number)'
@@ -118,10 +118,7 @@ public:
     ///  Load Z80 or sna snapshot file from given filename.
     SnapShotLoader& Load(const std::filesystem::path &p_filename);
 
-    ///  Load Z80 snapshot file from given stream.
-    SnapShotLoader& LoadZ80(std::istream& p_stream);
-    ///  Load sna snapshot file from given stream.
-    SnapShotLoader& LoadSna(std::istream& p_stream);
+
 
     /// The given datablock should be a sjasmplus generated block with
     /// some Z80 code to set all registers.
@@ -146,12 +143,13 @@ public:
         return m_usr;
     }
 
-    int GetLastBankToSwicthTo() const
+    // Actually entire value for last OUT to 0x7ffd.
+    int GetLastBankToSwitchTo() const
     {
-        return m_current_bank;
+        return m_last_out_7ffd;
     }
 
-    ///  Get entire (48kb) snapshot but excluding registers.
+    ///  Get entire snapshot but excluding registers.
     MemoryBlocks GetRam()
     {
         return std::move(m_ram);
@@ -170,11 +168,16 @@ private:
     // Z80 decompress 
     // see https://worldofspectrum.org/faq/reference/z80format.htm
     DataBlock DeCompress(const DataBlock& p_block);
+
+    //  Load Z80 snapshot file from given stream.
+    SnapShotLoader& LoadZ80(std::istream& p_stream);
+
+    //  Load sna snapshot file from given stream.
+    SnapShotLoader& LoadSna(std::istream& p_stream);
 private:
     Z80SnapShotHeader m_z80_snapshot_header {};
-    int m_current_bank = -1;
-//    DataBlock m_mem48k;         // 48k snapshot data (as read from z80 file)
-    MemoryBlocks m_ram;   // 8*16K banks
+    int m_last_out_7ffd = -1;   // last OUT to 0x7ffd' so this value &0x7 is last bank. -1 at 48K. 
+    MemoryBlocks m_ram;         // All ram banks.
     DataBlock m_reg_block;      // Typically would be snapshotregs.bin as created by sjasmplus.
     uint16_t m_usr = 0;
     std::string m_name;

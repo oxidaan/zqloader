@@ -61,11 +61,11 @@ public:
     /// Set path/to/file to normal speed load (tzx,tap)
     /// When p_filename empty try to find zqloader.tap and use that.
     /// Eg top filename in dialog.
-    ZQLoader &SetNormalFilename(std::filesystem::path p_filename);
+    ZQLoader &SetNormalFilename(std::filesystem::path p_filename, const std::string &p_zxfilename = "");
 
     /// Set path/to/file to turboload (tzx,tap,z80,sna)
     /// Eg 2nd filename in dialog.
-    ZQLoader &SetTurboFilename(std::filesystem::path p_filename);
+    ZQLoader &SetTurboFilename(std::filesystem::path p_filename, const std::string &p_zxfilename = "");
 
     /// Set output file; this makes action write_wav or write_tzx.
     ZQLoader &SetOutputFilename(std::filesystem::path p_filename, bool p_allow_overwrite);
@@ -105,11 +105,12 @@ public:
     /// Play sound/ or write wav file/ or write tzx file.
     ZQLoader& SetAction(Action p_what);
 
-    /// Address where to put loader when loading snapshot.
-    ZQLoader &SetSnapshotLoaderLocation(uint16_t p_address);
+    /// Address where to put loader when loading snapshot or when overwriting BASIC.
+    /// When <>0 always move loader to that location.
+    ZQLoader &SetLoaderCopyTarget(uint16_t p_address);
 
     /// Where to put loader when loading snapshot: automatic or screen.
-    ZQLoader &SetSnapshotLoaderLocation(LoaderLocation p_where);
+    ZQLoader &SetLoaderCopyTarget(LoaderLocation p_where);
 
     /// Overwrite loader when at screen with attributes?
     ZQLoader &SetFunAttribs(bool p_value);

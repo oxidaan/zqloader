@@ -40,7 +40,8 @@ struct TapeHeader
         array_numbers = 1,
         array_text = 2,
         code = 3,
-        screen = 4
+        screen = 4,
+        unknown = 5
     };
 
     uint16_t GetStartAddress() const
@@ -60,7 +61,7 @@ struct TapeHeader
     }
 
 
-    Type m_type;            // type see above
+    Type m_type = Type::unknown;            // type see above
     char m_filename[10];    // seems obvious
     uint16_t m_length;      // total length of block to load (when basic this includes variables)
     union

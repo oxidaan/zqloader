@@ -70,6 +70,8 @@ TurboBlock& TurboBlock::SetData(const DataBlock& p_data, CompressionType p_compr
 
     GetHeader().m_length = uint16_t(data->size());
     GetHeader().m_checksum = CalculateChecksum(*data);
+//    if(data->size() > spectrum::SCREEN_SIZE)        // @DEBUG cause crc error
+//        GetHeader().m_checksum++;
     // GetHeader().m_length = uint16_t(compressed_data.size() + 2);       // @DEBUG should give ERROR
     m_data.insert(m_data.end(), data->begin(), data->end());          // append given data at m_data (after header)
 
@@ -110,13 +112,13 @@ TurboBlock& TurboBlock::DebugDump(int p_max) const
     {
         std::cout << "Screen: ";
     }
-    std::cout << GetHeader() << std::endl;
+    std::cout << GetHeader() << '\n';
     if (dest)
     {
-        std::cout << "Orig. data length = " << m_data_size << "\n";
-        std::cout << "Compr. data length = " << GetHeader().m_length << "\n";
-        std::cout << "First byte written address = " << dest << "\n";
-        std::cout << "Last byte written address = " << (dest + m_data_size - 1) << "\n";
+        std::cout << "Orig. data length = " << m_data_size << '\n';
+        std::cout << "Compr. data length = " << GetHeader().m_length << '\n';
+        std::cout << "First byte written address = " << dest << '\n';
+        std::cout << "Last byte written address = " << (dest + m_data_size - 1) << '\n';
     }
     std::cout << std::endl;
     // optionally dump some data
@@ -126,11 +128,11 @@ TurboBlock& TurboBlock::DebugDump(int p_max) const
         {
             if (n != 0)
             {
-                std::cout << std::endl;
+                std::cout << '\n';
             }
             if (n == sizeof(Header))
             {
-                std::cout << std::endl;
+                std::cout << '\n';
             }
             std::cout << " DB ";
         }
@@ -259,21 +261,21 @@ inline uint8_t TurboBlock::CalculateChecksum(const DataBlock& p_data)
 std::ostream& operator << (std::ostream& p_stream, const TurboBlock::Header& p_header)
 {
     p_stream
-        << "length = " << p_header.m_length << "\n"
-        << "load_address = " << p_header.m_load_address << "\n"
-        << "dest_address = " << p_header.m_dest_address << "\n"
+        << "length = " << p_header.m_length << '\n'
+        << "load_address = " << p_header.m_load_address << '\n'
+        << "dest_address = " << p_header.m_dest_address << '\n'
         << "compression_type = " << p_header.m_compression_type
 #ifdef DO_COMRESS_PAIRS
         << " (compressing pairs)"
 #endif
-        << "\nchecksum = " << int(p_header.m_checksum) << "\n"
+        << "\nchecksum = " << int(p_header.m_checksum) << '\n'
         << "After block do: "
         << ((p_header.m_after_block == TurboBlock::AfterBlock::LoadNext)      ? "LoadNext" :
             (p_header.m_after_block == TurboBlock::AfterBlock::CopyLoader)    ? "CopyLoader" :
             (p_header.m_after_block == TurboBlock::AfterBlock::ReturnToBasic) ? "ReturnToBasic" :
             (p_header.m_after_block == TurboBlock::AfterBlock::BankSwitch)    ? "Switch Bank to: "  + std::to_string(p_header.m_bank_to_switch) :
             "Start MC at: " + std::to_string(p_header.m_usr_start_address) + 
-            "; CLEAR address/SP = " + std::to_string(p_header.m_clear_address)) << "\n"
+            "; CLEAR address/SP = " + std::to_string(p_header.m_clear_address)) << '\n'
         << std::hex << "m_code_for_most = " << int(p_header.m_code_for_most) << ' '
         << "m_decompress_counter = " << p_header.m_decompress_counter << ' '
         << "m_code_for_multiples = " << int(p_header.m_code_for_multiples) << ' '
