@@ -64,7 +64,7 @@ public:
     // Set turbo filename eg the 2nd filename in the dialog.
     void SetTurboFilename(fs::path p_filename, const std::string &p_zxfilename )
     {
-        if(!p_filename.empty())
+        if(!p_filename.empty() && p_filename.string()[0] != '[')
         {
             m_turbo_filename = std::move(p_filename);
             AddTurboSpeedFile(m_turbo_filename, p_zxfilename);
@@ -339,22 +339,19 @@ private:
     // Add given normal speed file (tap/tzx) to m_spectrumloader
     void AddNormalSpeedFile(const fs::path &p_filename, const std::string &p_zxfilename)
     {
-        if(!p_filename.empty())
+        std::cout << "Processing normal speed file: " << p_filename << std::endl;
+        // filename is tap/tzx file to be normal loaded into the ZX Spectrum.
+        if (ToLower(p_filename.extension().string()) == ".tap")
         {
-            std::cout << "Processing normal speed file: " << p_filename << std::endl;
-            // filename is tap/tzx file to be normal loaded into the ZX Spectrum.
-            if (ToLower(p_filename.extension().string()) == ".tap")
-            {
-                AddNormalSpeedFile<TapLoader>(p_filename, m_spectrumloader, p_zxfilename);
-            }
-            else if (ToLower(p_filename.extension().string()) == ".tzx")
-            {
-                AddNormalSpeedFile<TzxLoader>(p_filename, m_spectrumloader, p_zxfilename);
-            }
-            else
-            {
-                throw std::runtime_error("Unknown file type for filename: " + p_filename.string() + " (extension not tap / tzx)");
-            }
+            AddNormalSpeedFile<TapLoader>(p_filename, m_spectrumloader, p_zxfilename);
+        }
+        else if (ToLower(p_filename.extension().string()) == ".tzx")
+        {
+            AddNormalSpeedFile<TzxLoader>(p_filename, m_spectrumloader, p_zxfilename);
+        }
+        else
+        {
+            throw std::runtime_error("Unknown file type for filename: " + p_filename.string() + " (extension not tap / tzx)");
         }
     }
 

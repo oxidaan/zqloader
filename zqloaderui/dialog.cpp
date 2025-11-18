@@ -28,8 +28,10 @@
 #include <qevent.h>
 namespace fs = std::filesystem;
 
-constexpr const char *DefaultZxFilename = "[Optional first name eg LOAD \"somename\"]";
-
+constexpr const char *DefaultNormalFilename = "[Leave emtpy to use a version of zqloader]";
+constexpr const char *DefaultZxFilename = "[Optional first name as in LOAD \"somename\"]";
+constexpr const char *DefaultTurboFilename = "[Select a file to speed load here, a game for example.]";
+constexpr const char *DefaultOutputFilename = "[To write an output file instead of playing sound enter a .wav or .tzx output file here. Leave empty for normal usage (playing audio)]";
 
 inline void MakeBlack(QLineEdit *p_line_edit)
 {
@@ -369,10 +371,10 @@ Dialog::Dialog(QWidget *parent)
 
 
 
-    ConnectLineEditFocus(ui->lineEditZxFileTurbo, DefaultZxFilename);
-    ConnectLineEditFocus(ui->lineEditZxFileNormal, DefaultZxFilename);
-    ConnectLineEditFocus(ui->lineEditNormalFile, "[zqloader]");
-    ConnectLineEditFocus(ui->lineEditOutputFile, "[To write an output file instead of playing sound enter a .wav or .tzx output file here. Leave empty for normal usage (playing audio)]");
+    ConnectLineEditFocus(ui->lineEditNormalFile, DefaultNormalFilename);
+    ConnectLineEditFocus(ui->lineEditTurboFile,  DefaultTurboFilename);
+    ConnectLineEditFocus(ui->lineEditZxFilename, DefaultZxFilename);
+    ConnectLineEditFocus(ui->lineEditOutputFile, DefaultOutputFilename);
 
 
 
@@ -501,14 +503,14 @@ inline void Dialog::RestoreDefaults()
     ui->lineEditNormalFile->setText("");
     ui->lineEditNormalFile->signalFocusOut();       // also gives correct text
 
-    ui->lineEditZxFileNormal->setText("");
-    ui->lineEditZxFileNormal->signalFocusOut();
+    //ui->lineEditTurboFile->setText("");
+    //ui->lineEditTurboFile->signalFocusOut();       // no leave even when pressed restore defaults
 
-    ui->lineEditZxFileTurbo->setText("");
-    ui->lineEditZxFileTurbo->signalFocusOut();
+    ui->lineEditZxFilename->setText("");
+    ui->lineEditZxFilename->signalFocusOut();
 
-    ui->lineEditOutputFile->setText("");
-    ui->lineEditOutputFile->signalFocusOut();
+    // ui->lineEditOutputFile->setText("");      // no leave even when pressed restore defaults
+    // ui->lineEditOutputFile->signalFocusOut();    
 }
 
 
@@ -575,11 +577,10 @@ inline void Dialog::Go()
         m_zqloader.SetFunAttribs(ui->checkBoxFunAttribs->isChecked());
 
         fs::path filename1 = ui->lineEditNormalFile->text().toStdString();
-        std::string zxfilename1 = ui->lineEditZxFileNormal->text().toStdString();
-        m_zqloader.SetNormalFilename(filename1, zxfilename1[0] == '[' ? "" : zxfilename1);
+        std::string zxfilename = ui->lineEditZxFilename->text().toStdString();
+        m_zqloader.SetNormalFilename(filename1, zxfilename[0] == '[' ? "" : zxfilename);
         fs::path filename2 = ui->lineEditTurboFile->text().toStdString();
-        std::string zxfilename2 = ui->lineEditZxFileTurbo->text().toStdString();
-        m_zqloader.SetTurboFilename(filename2, zxfilename2[0] == '[' ? "" : zxfilename2);
+        m_zqloader.SetTurboFilename(filename2, zxfilename[0] == '[' ? "" : zxfilename);
 
         m_zqloader.SetSampleRate(ui->lineEditSampleRate->text().toInt());
         m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());
@@ -675,8 +676,8 @@ inline void Dialog::Load()
     ui->dialVolumeRight->setValue(ui->lineEditVolumeRight->text().toInt());
 
     ui->lineEditNormalFile->signalFocusOut();
-    ui->lineEditZxFileNormal->signalFocusOut();
-    ui->lineEditZxFileTurbo->signalFocusOut();
+    ui->lineEditTurboFile->signalFocusOut();
+    ui->lineEditZxFilename->signalFocusOut();
     ui->lineEditOutputFile->signalFocusOut();
 }
 

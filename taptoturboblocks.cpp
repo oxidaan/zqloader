@@ -39,15 +39,18 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, const std::string &p_zx
         }
         auto header = *reinterpret_cast<TapeHeader*>(block.data());
         std::string name(header.m_filename, 10);    // zx file name from tap/header
-
-        std::cout << "Spectrum tape header: " << m_last_header.m_type << ": ";
+        while (!name.empty() && name.back() == ' ')
+        {
+            name.pop_back();        // right trim spaces.
+        }
+        std::cout << "Spectrum tape header: " << header.m_type << ": ";
         std::cout << "'" << name << "'";
-        std::cout << " Start address: " << m_last_header.GetStartAddress();
-        std::cout << " Length: " << m_last_header.m_length << std::endl;
+        std::cout << " Start address: " << header.GetStartAddress();
+        std::cout << " Length: " << header.m_length << std::endl;
         
+        // matching; earlier or now
         if ((name == p_zxfilename || p_zxfilename == "") || m_headercnt >= 1)
         {
-            m_last_block = type;
             m_last_header = std::move(header);
             m_headercnt++;
         }
@@ -55,40 +58,43 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, const std::string &p_zx
     else if (type == TapeBlockType::data)
     {
         std::cout << "  Data Block with payload length: " << block.size() <<" (" << m_last_header.m_type << ")" << std::endl; 
-        if (m_last_block != TapeBlockType::header && m_headercnt >= 1)
+        if( m_headercnt >= 1)
         {
-            throw std::runtime_error("Found headerless, can not handle (can't know were it should go to)");
-        }
-        if (m_last_header.m_type == TapeHeader::Type::basic_program)
-        {
-            if (m_codecount == 0)
+            // Else we didn't see a valid header yet. 
+            if (m_last_block_type != TapeBlockType::header)
             {
-                ParseBasic(block);
+                throw std::runtime_error("Found headerless, can not handle (can't know were it should go to)");
             }
-            else
+            if (m_last_header.m_type == TapeHeader::Type::basic_program)
             {
-                done = true;        // Found basic after code. We are done.
+                if (m_codecount == 0)
+                {
+                    ParseBasic(block);
+                }
+                else
+                {
+                    done = true;        // Found basic after code. We are done.
+                }
+            }
+            else if (m_last_header.m_type == TapeHeader::Type::code ||
+                     m_last_header.m_type == TapeHeader::Type::screen)
+            {
+                if (m_codecount == 0 && !m_basic_was_parsed)    // try parse BASIC from code block eg meteorstorms (LOAD ""CODE)
+                {
+                    ParseBasic(block);
+                }
+                auto start_adr = (m_loadcodes.size() > m_codecount &&  m_loadcodes[m_codecount] != 0 ) ?
+                                 m_loadcodes[m_codecount] :         // taking address from matching LOAD "" CODE XXXXX as found in basic
+                                 m_last_header.GetStartAddress();
+
+                m_tblocks.AddMemoryBlock({std::move(block), start_adr});
+                m_codecount++;
+
             }
         }
-        else if (m_last_header.m_type == TapeHeader::Type::code ||
-                 m_last_header.m_type == TapeHeader::Type::screen)
-        {
-            if (m_codecount == 0 && !m_basic_was_parsed)    // try parse BASIC from code block eg meteorstorms (LOAD ""CODE)
-            {
-                ParseBasic(block);
-            }
-            auto start_adr = (m_loadcodes.size() > m_codecount &&  m_loadcodes[m_codecount] != 0 ) ?
-                             m_loadcodes[m_codecount] :         // taking address from matching LOAD "" CODE XXXXX as found in basic
-                             m_last_header.GetStartAddress();
-
-            m_tblocks.AddMemoryBlock({std::move(block), start_adr});
-            m_codecount++;
-
-        }
-
         std::cout << std::endl;
-        m_last_block = type;
     }
+    m_last_block_type = type;
     return done;
 }
 

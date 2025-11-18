@@ -436,9 +436,9 @@ void TonePulser::WriteAsTzxBlock(std::ostream &p_stream) const
         generalized_data_block.block_length = DWORD(generalized_data_block.GetBlockLength(0));
         std::cout << "TonePulser::WriteAsTzxBlock:GeneralizedDataBlock pattern-size=" << m_pattern.size() << " #pulses=" << m_max_pulses << " block_length=" << generalized_data_block.block_length << std::endl;
         WriteBinary<TzxBlockType>(p_stream, TzxBlockType::GeneralizedDataBlock);
-        std::cout << "  ";
+        std::cout << " | ";
         WriteBinary(p_stream, generalized_data_block);
-        std::cout << "  ";
+        std::cout << " | SymDef: ";
         // Symbol definitions 
         // for(int n = 0; n < generalized_data_block.asp; n++)      // there is one only
         {
@@ -450,7 +450,7 @@ void TonePulser::WriteAsTzxBlock(std::ostream &p_stream) const
                 WriteBinary(p_stream, WORD(m_pattern[i]));
             }
         }
-        std::cout << "  ";
+        std::cout << " | Prle: ";
         // Symbol sequence (which symbol + count)
         // for (int n = 0; n < generalized_data_block.totp; n++)     // there is one only
         {
@@ -460,8 +460,15 @@ void TonePulser::WriteAsTzxBlock(std::ostream &p_stream) const
             WriteBinary(p_stream, prle);
         }
         // no data so no SYMDEF[ASD]/PRLE[TOTD]
+        // Write a dummy symdef [asd] because asd can not be 0.
+        // for(int n = 0; n < generalized_data_block.asd; n++)      // there is one only
+       // {
+         //   GeneralizedDataBlock::SymDef symdef{};
+         //   symdef.m_edge = Edge::no_change;
+         //   WriteBinary(p_stream, symdef);
+      //  }
     }
-    std::cout << std::endl;
+    std::cout << "[end TonePulser]" << std::endl;
 }
 
 
@@ -487,36 +494,43 @@ void PausePulser::WriteAsTzxBlock(std::ostream& p_stream) const
 
         generalized_data_block.totd         = 0;
         generalized_data_block.npd          = 0;
-        generalized_data_block.asd          = 0;
+        generalized_data_block.asd          = 0;        // 0 - 256
         generalized_data_block.block_length = DWORD(generalized_data_block.GetBlockLength(0));
         std::cout << "PausePulser::WriteAsTzxBlock:GeneralizedDataBlock TStates=" << m_duration_in_tstates << " Egde= " << m_edge << std::endl;
         WriteBinary<TzxBlockType>(p_stream, TzxBlockType::GeneralizedDataBlock);
-        std::cout << "  ";
+        std::cout << " | ";
         WriteBinary(p_stream, generalized_data_block);
-        std::cout << "  ";
 
-
+        std::cout << " | Symdef#1: ";
         // first symdef for pause (need to wait first)
         GeneralizedDataBlock::SymDef symdef{};
         symdef.m_edge = Edge::no_change;
         WriteBinary(p_stream, symdef);
         WriteBinary(p_stream, WORD(m_duration_in_tstates));
-        std::cout << "  ";
 
+        std::cout << " | Symdef#2: ";
         // 2nd symdef for edge
         symdef.m_edge = m_edge;
         WriteBinary(p_stream, symdef);
-        WriteBinary(p_stream, WORD(0));
-        std::cout << "  ";
+        WriteBinary(p_stream, WORD(0)); // # is npp
 
+        std::cout << " | Prle#1: ";
         GeneralizedDataBlock::Prle prle{};
         prle.m_symbol      = 0; // first symbol
         prle.m_repetitions = 1;
         WriteBinary(p_stream, prle);
 
+        std::cout << " | Prle#2: ";
         prle.m_symbol      = 1; // 2nd symbol
         prle.m_repetitions = 1;
         WriteBinary(p_stream, prle);
+        // no data so no SYMDEF[ASD]/PRLE[TOTD]
+        // Write a dummy symdef [asd] because asd can not be 0.
+        // for(int n = 0; n < generalized_data_block.asd; n++)      // there is one only
+        //{
+        //    symdef.m_edge = Edge::no_change;
+        //    WriteBinary(p_stream, symdef);
+        //}
     }
     std::cout << std::endl;
 }
@@ -539,12 +553,12 @@ void DataPulser::WriteAsTzxBlock(std::ostream& p_stream) const
     generalized_data_block.block_length = DWORD(generalized_data_block.GetBlockLength(GetTotalSize()));
     std::cout << "DataPulser::WriteAsTzxBlock:GeneralizedDataBlock blocklen=" << generalized_data_block.GetBlockLength(GetTotalSize()) << " #bytes=" << GetTotalSize() << " totd=" << generalized_data_block.totd << " m_max_pulses=" << " block_length=" << generalized_data_block.block_length << std::endl;
     WriteBinary<TzxBlockType>(p_stream, TzxBlockType::GeneralizedDataBlock);
-    std::cout << "  ";
+    std::cout << " | ";
     WriteBinary(p_stream, generalized_data_block);
-    std::cout << "  ";
     // no pulses, so no SYMDEF[ASP]/PRLE[TOTP]
     for(int n = 0; n < generalized_data_block.asd; n++)
     {
+        std::cout << " | SymDef: ";
         GeneralizedDataBlock::SymDef symdef{};
         symdef.m_edge = Edge::toggle;      // toggle
         WriteBinary(p_stream, symdef);
@@ -556,7 +570,7 @@ void DataPulser::WriteAsTzxBlock(std::ostream& p_stream) const
         std::cout << "  ";
     }
 
-    std::cout << "   ";
+    std::cout << " | Data: ";
     for(int i = 0; i < GetTotalSize(); i++)
     {
         WriteBinary(p_stream, GetByte(i));

@@ -35,24 +35,24 @@ TData LoadBinary(std::istream& p_stream, size_t p_len)
 template <class TData>
 void WriteBinary(std::ostream& p_stream, const TData &p_data)
 {
-#if 0
+#if 1
     const char *ptr = reinterpret_cast<const char *>(&p_data);
     for(int n = 0; n < sizeof(TData); n++)
     {
         std::cout << std::hex << int(*ptr & 0xff) << ' ';
-        if constexpr(std::is_same_v<TData, uint8_t>)
-        {
-            std::cout << std::dec << '(' << p_data << ')' << ' ';
-        }
-        else if constexpr(std::is_same_v<TData, uint16_t>)
-        {
-            std::cout << std::dec << '(' << p_data << ')' << ' ';
-        }
-        else if constexpr(std::is_same_v<TData, uint32_t>)
-        {
-            std::cout << std::dec << '(' << p_data << ')' << ' ';
-        }
         ptr++;
+    }
+    if constexpr(std::is_same_v<TData, uint8_t>)
+    {
+        std::cout << std::dec << '(' << p_data << ')' << ' ';
+    }
+    else if constexpr(std::is_same_v<TData, uint16_t>)
+    {
+        std::cout << std::dec << '(' << p_data << ')' << ' ';
+    }
+    else if constexpr(std::is_same_v<TData, uint32_t>)
+    {
+        std::cout << std::dec << '(' << p_data << ')' << ' ';
     }
     std::cout << std::dec;
 #endif
