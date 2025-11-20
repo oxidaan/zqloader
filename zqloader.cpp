@@ -256,7 +256,7 @@ public:
     /// Try to find the path/to/zqloader.tap 
     /// (when p_filename has no path yet)
     /// Throws when file not found.
-    fs::path FindZqLoaderTapfile(const fs::path &p_filename) const
+    fs::path FindZqLoaderTapfile(const fs::path &p_filename = "") const
     {
         fs::path filename = p_filename;
         if(filename.empty() || filename.string()[0] == '[')
@@ -304,8 +304,10 @@ public:
     {
         extern uint16_t Test(TurboBlocks & p_blocks, const fs::path &p_filename);
         auto adr = Test(m_turboblocks, "");
+        m_turboblocks.AddZqLoader(FindZqLoaderTapfile());
         m_turboblocks.Finalize(adr);
         m_turboblocks.MoveToLoader(m_spectrumloader);
+        Run(true);
     }
    
     void SetLoaderCopyTarget(uint16_t p_address)
@@ -390,6 +392,7 @@ private:
             // reserved for Test
             extern uint16_t Test(TurboBlocks & p_blocks, const fs::path &p_filename);
             auto adr = Test(m_turboblocks, p_filename);
+            AddZqLoader(m_normal_filename);
             m_turboblocks.Finalize(adr);
         }
         else if(!p_filename.empty())

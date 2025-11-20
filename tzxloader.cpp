@@ -7,6 +7,8 @@
 // This project uses the MIT license. See LICENSE.txt for details.
 // ==============================================================================
 
+//#define DEBUG_TZX
+
 #include "tzxloader.h"
 #include "taploader.h"
 #include "loadbinary.h"
@@ -14,8 +16,18 @@
 #include "pulsers.h"
 #include <fstream>
 #include <filesystem>
+#include <sstream>
 namespace fs = std::filesystem;
 
+
+
+inline void DebugLog(const char *p_str)
+{
+    (void)p_str;
+#ifdef DEBUG_TZX
+    std::cout << p_str;
+#endif
+}
 using BYTE   = uint8_t;
 using WORD   = uint16_t;
 using DWORD  = uint32_t;
@@ -68,6 +80,7 @@ struct GeneralizedDataBlock
     DWORD   totd;           // Total number of symbols in data stream (can be 0)    (when asd==2 this is # bits in data)
     BYTE    npd;            // Maximum number of pulses per data symbol             (= #pulse_lengths at data-symdef)
     BYTE    asd;            // Number of data symbols in the alphabet table (0=256) (= #data-symdef-s) typical 2 when data is bits
+                            // almost always 2. Must be a power of 2.
 
     struct SymDef           // Pilot / sync / data symbols ('alphabet') definition table #=asp
     {
@@ -102,23 +115,29 @@ struct GeneralizedDataBlock
 
 
     size_t GetRemainingLength(size_t p_size_of_data = 0) const
-    {
-        return (sizeof(SymDef) + npp * sizeof(WORD)) * asp +
-               sizeof(Prle) * totp +
-               (sizeof(SymDef) + npd * sizeof(WORD)) * asd +
-               p_size_of_data;
+    {   
+        
+        auto sizeof_leader =  totp > 0 ? (asp == 0 ? 256 : int(asp)) * (sizeof(SymDef) + sizeof(WORD) * npp) +
+                                    totp *(sizeof(BYTE) + sizeof(WORD)) 
+                                    :0;
+        auto sizeof_data   =  totd > 0 ? (asd == 0 ? 256 : int(asd)) * (sizeof(BYTE) + sizeof(WORD) * npd) +
+                                    p_size_of_data 
+                                    :0;
+        return sizeof_leader + sizeof_data;
+
+
     }
     std::ostream &operator << (std::ostream &p_stream) const
     {
         p_stream << "block_length = " << block_length
                  << "pause = " << pause 
-                 << "totp = " << totp 
-                 << "npp = " << npp 
-                 << "asp = " << asp 
-                 << "totd = " << totd 
-                 << "npd = " << npd 
-                 << "asd = " << asd << std::endl;
-        return p_stream;
+                 << "totp = "  << totp 
+                 << "npp = "   << npp 
+                 << "asp = "   << asp 
+                 << "totd = "  << totd 
+                 << "npd = "   << npd 
+                 << "asd = "   << asd << std::endl;
+        return p_stream; 
     }
 
 };
@@ -407,68 +426,81 @@ void TonePulser::WriteAsTzxBlock(std::ostream &p_stream) const
 {
     if(m_pattern.size() == 1)
     {
-        std::cout << "TonePulser::WriteAsTzxBlock:Puretone patt=" << m_pattern[0] << " #pulses=" << m_max_pulses << " Dur=" << ((m_max_pulses * m_pattern[0]) * m_tstate_dur).count() << "sec" << std::endl;
+        std::cout << "Tone: Puretone patt=" << m_pattern[0] << " #pulses=" << m_max_pulses << " Dur=" << ((m_max_pulses * m_pattern[0]) * m_tstate_dur).count() << "sec" << std::endl;
         WriteBinary<TzxBlockType>(p_stream, TzxBlockType::Puretone);
         std::cout << "  ";
         WriteBinary<WORD>(p_stream, WORD(m_pattern[0]));
         WriteBinary<WORD>(p_stream, WORD(m_max_pulses));
+        DebugLog(" [End Tone: Puretone]\n");
     }
     else if(m_pattern.size() == 2 && m_pattern[0] == m_pattern[1])
     {
-        std::cout << "TonePulser::WriteAsTzxBlock:Puretone patt=" << m_pattern[0] << " #pulses=" << 2 * m_max_pulses << " Dur=" << ((2 * m_max_pulses * m_pattern[0]) * m_tstate_dur).count() << "sec" << std::endl;
+        std::cout << "Tone: Puretone patt=" << m_pattern[0] << " #pulses=" << 2 * m_max_pulses << " Dur=" << ((2 * m_max_pulses * m_pattern[0]) * m_tstate_dur).count() << "sec" << std::endl;
         WriteBinary<TzxBlockType>(p_stream, TzxBlockType::Puretone);
         std::cout << "  ";
         WriteBinary<WORD>(p_stream, WORD(m_pattern[0]));
         WriteBinary<WORD>(p_stream, WORD(2 * m_max_pulses ));
+        DebugLog(" [End Tone: Puretone]\n");
     }
     else
     {
         // need to write as GeneralizedDataBlock (instead of Puretone) because pulses have different length
+        WriteBinary<TzxBlockType>(p_stream, TzxBlockType::GeneralizedDataBlock);
         GeneralizedDataBlock generalized_data_block{};
         generalized_data_block.pause        = 0;
-        generalized_data_block.totp         = 1;
+        generalized_data_block.totp         = 1;        // one tone
         generalized_data_block.npp          = BYTE(m_pattern.size());
-        generalized_data_block.asp          = 1;
+        generalized_data_block.asp          = 1;        // one symbol
 
         generalized_data_block.totd         = 0;        // no data
-        generalized_data_block.npd          = 0;
-        generalized_data_block.asd          = 0;        // 0 = 256?
+        generalized_data_block.npd          = 0;        // should not be used when totd is 0
+        generalized_data_block.asd          = 2;        // should not be used when totd is 0 But 0 = 256. Must be power of 2.
         generalized_data_block.block_length = DWORD(generalized_data_block.GetBlockLength(0));
-        std::cout << "TonePulser::WriteAsTzxBlock:GeneralizedDataBlock pattern-size=" << m_pattern.size() << " #pulses=" << m_max_pulses << " block_length=" << generalized_data_block.block_length << std::endl;
-        WriteBinary<TzxBlockType>(p_stream, TzxBlockType::GeneralizedDataBlock);
-        std::cout << " | ";
+        std::cout << "Tone: GeneralizedDataBlock pattern-size=" << m_pattern.size() << " #pulses=" << m_max_pulses << " block_length=" << generalized_data_block.block_length << std::endl;
+#ifdef DEBUG_TZX
+        auto pos_start = p_stream.tellp();
+#endif
         WriteBinary(p_stream, generalized_data_block);
-        std::cout << " | SymDef: ";
+        DebugLog(" | SymDef: ");
         // Symbol definitions 
-        // for(int n = 0; n < generalized_data_block.asp; n++)      // there is one only
+        if( generalized_data_block.totp > 0)        // Note: is 1! This defines the one and only tone.
         {
-            GeneralizedDataBlock::SymDef symdef{};
-            symdef.m_edge = Edge::toggle;
-            WriteBinary(p_stream, symdef);
-            for (int i = 0; i < generalized_data_block.npp; i++)
+            for(int n = 0; n < generalized_data_block.asp; n++)      // Note: there is one only!
             {
-                WriteBinary(p_stream, WORD(m_pattern[i]));
+                GeneralizedDataBlock::SymDef symdef{};
+                symdef.m_edge = Edge::toggle;
+                WriteBinary(p_stream, symdef);
+                for (int i = 0; i < generalized_data_block.npp; i++)
+                {
+                    WriteBinary(p_stream, WORD(m_pattern[i]));
+                }
+            }
+            DebugLog(" | Prle: ");
+            // Symbol sequence (which symbol + count)
+            for (unsigned n = 0u; n < generalized_data_block.totp; n++)     // Note: there is one only!
+            {
+                GeneralizedDataBlock::Prle prle{};
+                prle.m_symbol      = 0; // the one and only symbol
+                prle.m_repetitions = WORD(m_max_pulses / generalized_data_block.npp);
+                WriteBinary(p_stream, prle);
             }
         }
-        std::cout << " | Prle: ";
-        // Symbol sequence (which symbol + count)
-        // for (int n = 0; n < generalized_data_block.totp; n++)     // there is one only
+
+        if(generalized_data_block.totd > 0)     // Note: is 0. (no data)
         {
-            GeneralizedDataBlock::Prle prle{};
-            prle.m_symbol      = 0; // the one and only symbol
-            prle.m_repetitions = WORD(m_max_pulses / generalized_data_block.npp);
-            WriteBinary(p_stream, prle);
+            // no data so no SYMDEF[ASD]/PRLE[TOTD]
         }
-        // no data so no SYMDEF[ASD]/PRLE[TOTD]
-        // Write a dummy symdef [asd] because asd can not be 0.
-        // for(int n = 0; n < generalized_data_block.asd; n++)      // there is one only
-       // {
-         //   GeneralizedDataBlock::SymDef symdef{};
-         //   symdef.m_edge = Edge::no_change;
-         //   WriteBinary(p_stream, symdef);
-      //  }
+#ifdef DEBUG_TZX
+        auto pos_end = p_stream.tellp();
+        if(unsigned(pos_end - pos_start) != generalized_data_block.GetBlockLength(0) +  sizeof(generalized_data_block.block_length))
+        {
+            std::stringstream ss;
+            ss << "TZX issues detected:" << pos_end << ' ' << pos_start << ' ' << pos_end - pos_start << ' ' << generalized_data_block.GetBlockLength(0) << ' ' << sizeof(generalized_data_block.block_length) << std::endl;
+            throw std::runtime_error(ss.str());
+        }
+#endif
+        DebugLog(" [End Tone: GeneralizedDataBlock]\n");
     }
-    std::cout << "[end TonePulser]" << std::endl;
 }
 
 
@@ -478,14 +510,16 @@ void PausePulser::WriteAsTzxBlock(std::ostream& p_stream) const
     if(m_duration_in_tstates > 0xffff && m_edge == Edge::no_change)
     {
         auto len_in_ms = WORD((1000 * m_duration_in_tstates * m_tstate_dur).count());
-        std::cout << "PausePulser::WriteAsTzxBlock:Pause " << len_in_ms << "ms; (TStates=" << m_duration_in_tstates << ")" << std::endl;
+        std::cout << "Pause: PauseOrStopthetapecommand " << len_in_ms << "ms; (TStates=" << m_duration_in_tstates << ")" << std::endl;
         WriteBinary<TzxBlockType>(p_stream, TzxBlockType::PauseOrStopthetapecommand);
         WriteBinary(p_stream, len_in_ms);
+        DebugLog(" [End Pause: PauseOrStopthetapecommand]\n");
     }
     else
     {
         // need to write as GeneralizedDataBlock because PauseOrStopthetapecommand is not accurate
         // enough and might need edge at end of pause
+        WriteBinary<TzxBlockType>(p_stream, TzxBlockType::GeneralizedDataBlock);
         GeneralizedDataBlock generalized_data_block{};
         generalized_data_block.pause        = 0;
         generalized_data_block.totp         = 2;    // pause, then the edge
@@ -493,88 +527,116 @@ void PausePulser::WriteAsTzxBlock(std::ostream& p_stream) const
         generalized_data_block.asp          = 2;    // two symbols one for pause one for edge
 
         generalized_data_block.totd         = 0;
-        generalized_data_block.npd          = 0;
-        generalized_data_block.asd          = 0;        // 0 - 256
+        generalized_data_block.npd          = 0;        // should not be used when totd is 0
+        generalized_data_block.asd          = 2;        // should not be used when totd is 0 But 0 = 256. Must be power of 2.
         generalized_data_block.block_length = DWORD(generalized_data_block.GetBlockLength(0));
-        std::cout << "PausePulser::WriteAsTzxBlock:GeneralizedDataBlock TStates=" << m_duration_in_tstates << " Egde= " << m_edge << std::endl;
-        WriteBinary<TzxBlockType>(p_stream, TzxBlockType::GeneralizedDataBlock);
-        std::cout << " | ";
+        std::cout << "Pause: GeneralizedDataBlock TStates=" << m_duration_in_tstates << " Egde= " << m_edge << std::endl;
+#ifdef DEBUG_TZX
+        auto pos_start = p_stream.tellp();
+#endif
         WriteBinary(p_stream, generalized_data_block);
 
-        std::cout << " | Symdef#1: ";
-        // first symdef for pause (need to wait first)
-        GeneralizedDataBlock::SymDef symdef{};
-        symdef.m_edge = Edge::no_change;
-        WriteBinary(p_stream, symdef);
-        WriteBinary(p_stream, WORD(m_duration_in_tstates));
+        if( generalized_data_block.totp > 0)        // Note: is 2! This defines the two symbols
+        {
+            DebugLog(" | Symdef#1: ");
+            // first symdef for pause (need to wait first)
+            GeneralizedDataBlock::SymDef symdef{};
+            symdef.m_edge = Edge::no_change;
+            WriteBinary(p_stream, symdef);
+            WriteBinary(p_stream, WORD(m_duration_in_tstates));
 
-        std::cout << " | Symdef#2: ";
-        // 2nd symdef for edge
-        symdef.m_edge = m_edge;
-        WriteBinary(p_stream, symdef);
-        WriteBinary(p_stream, WORD(0)); // # is npp
+            DebugLog(" | Symdef#2: ");
+            // 2nd symdef for edge
+            symdef.m_edge = m_edge;
+            WriteBinary(p_stream, symdef);
+            WriteBinary(p_stream, WORD(0)); // # is npp
 
-        std::cout << " | Prle#1: ";
-        GeneralizedDataBlock::Prle prle{};
-        prle.m_symbol      = 0; // first symbol
-        prle.m_repetitions = 1;
-        WriteBinary(p_stream, prle);
+            DebugLog(" | Prle#1: ");
+            GeneralizedDataBlock::Prle prle{};
+            prle.m_symbol      = 0; // first symbol
+            prle.m_repetitions = 1;
+            WriteBinary(p_stream, prle);
 
-        std::cout << " | Prle#2: ";
-        prle.m_symbol      = 1; // 2nd symbol
-        prle.m_repetitions = 1;
-        WriteBinary(p_stream, prle);
-        // no data so no SYMDEF[ASD]/PRLE[TOTD]
-        // Write a dummy symdef [asd] because asd can not be 0.
-        // for(int n = 0; n < generalized_data_block.asd; n++)      // there is one only
-        //{
-        //    symdef.m_edge = Edge::no_change;
-        //    WriteBinary(p_stream, symdef);
-        //}
+            DebugLog(" | Prle#2: ");
+            prle.m_symbol      = 1; // 2nd symbol
+            prle.m_repetitions = 1;
+            WriteBinary(p_stream, prle);
+        }
+    
+        if(generalized_data_block.totd > 0)     // Note: is 0. (no data)
+        {
+            // no data so no SYMDEF[ASD]/PRLE[TOTD]
+        }
+#ifdef DEBUG_TZX
+        auto pos_end = p_stream.tellp();
+        if(unsigned(pos_end - pos_start) != generalized_data_block.GetBlockLength(0) +  sizeof(generalized_data_block.block_length))
+        {
+            std::stringstream ss;
+            ss << "TZX issues detected:" << pos_end << ' ' << pos_start << ' ' << pos_end - pos_start << ' ' << generalized_data_block.GetBlockLength(0) << ' ' << sizeof(generalized_data_block.block_length) << std::endl;
+            throw std::runtime_error(ss.str());
+        }
+#endif
     }
-    std::cout << std::endl;
+    DebugLog(" [End Pause: GeneralizedDataBlock]\n");
+
 }
 
 
 
 void DataPulser::WriteAsTzxBlock(std::ostream& p_stream) const
 {
+    WriteBinary<TzxBlockType>(p_stream, TzxBlockType::GeneralizedDataBlock);
+
     GeneralizedDataBlock generalized_data_block{};
     generalized_data_block.pause        = 0;
 
     generalized_data_block.totp         = 0;        // no pilot/sync block here
-    generalized_data_block.npp          = 0;
-    generalized_data_block.asp          = 0;
+    generalized_data_block.npp          = 0;        // not used when totp is 0
+    generalized_data_block.asp          = 1;        // not used when totp is 0, but 0 is 256.
 
     generalized_data_block.totd         = DWORD(GetTotalSize() * 8);        // so # bits
     generalized_data_block.npd          = BYTE(std::max(m_zero_pattern.size(), m_one_pattern.size()));  // eg 2 for standard, 1 for turbo
-    generalized_data_block.asd          = 2; // we have a pattern for 1 and for 0
+    generalized_data_block.asd          = 2; // we have a pattern for 0 and for 1
 
     generalized_data_block.block_length = DWORD(generalized_data_block.GetBlockLength(GetTotalSize()));
-    std::cout << "DataPulser::WriteAsTzxBlock:GeneralizedDataBlock blocklen=" << generalized_data_block.GetBlockLength(GetTotalSize()) << " #bytes=" << GetTotalSize() << " totd=" << generalized_data_block.totd << " m_max_pulses=" << " block_length=" << generalized_data_block.block_length << std::endl;
-    WriteBinary<TzxBlockType>(p_stream, TzxBlockType::GeneralizedDataBlock);
-    std::cout << " | ";
+    std::cout << "Data: GeneralizedDataBlock blocklen=" << generalized_data_block.GetBlockLength(GetTotalSize()) << " #bytes=" << GetTotalSize() << " totd=" << generalized_data_block.totd << " m_max_pulses=" << " block_length=" << generalized_data_block.block_length << std::endl;
+#ifdef DEBUG_TZX
+    auto pos_start = p_stream.tellp();
+#endif
     WriteBinary(p_stream, generalized_data_block);
-    // no pulses, so no SYMDEF[ASP]/PRLE[TOTP]
-    for(int n = 0; n < generalized_data_block.asd; n++)
+        
+    if(generalized_data_block.totp > 0)      // Note: is 0. (no leader/sync))
     {
-        std::cout << " | SymDef: ";
+        // no pulses, so no SYMDEF[ASP]/PRLE[TOTP]
+    }
+
+    for(int n = 0; n < generalized_data_block.asd; n++)     // should be 2. Pattern for 0 and 1
+    {
+        DebugLog(" | SymDef: ");
         GeneralizedDataBlock::SymDef symdef{};
         symdef.m_edge = Edge::toggle;      // toggle
         WriteBinary(p_stream, symdef);
         const auto & pattern = (n == 0) ? m_zero_pattern : m_one_pattern;
-        for (int i = 0; i < generalized_data_block.npd; i++)
+        for (int i = 0; i < generalized_data_block.npd; i++)        // should be 1 for turbo blocks; 2 for standard speed.
         {
             WriteBinary(p_stream, (i < pattern.size()) ? WORD(pattern[i]) : WORD(0));
         }
-        std::cout << "  ";
     }
 
-    std::cout << " | Data: ";
+    DebugLog(" | Data: ");
     for(int i = 0; i < GetTotalSize(); i++)
     {
         WriteBinary(p_stream, GetByte(i));
     }
-    std::cout << std::endl;
+#ifdef DEBUG_TZX
+    auto pos_end = p_stream.tellp();
+    if(unsigned(pos_end - pos_start) != generalized_data_block.GetBlockLength(GetTotalSize()) +  sizeof(generalized_data_block.block_length))
+    {
+        std::stringstream ss;
+        ss << "TZX issues detected:" << pos_end << ' ' << pos_start << ' ' << pos_end - pos_start << ' ' << generalized_data_block.GetBlockLength(0) << ' ' << sizeof(generalized_data_block.block_length) << std::endl;
+        throw std::runtime_error(ss.str());
+    }
+#endif
+    DebugLog(" [End Data: GeneralizedDataBlock]\n");
     
 }

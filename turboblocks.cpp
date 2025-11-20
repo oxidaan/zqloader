@@ -65,7 +65,7 @@ public:
 
         fs::path filename_exp = p_filename;
         filename_exp.replace_extension("exp");          // zqloader.exp (symbols)
-        SetSymbolFilename(filename_exp);
+        LoadSymbolFilename(filename_exp);
 
         TapLoader loader;
         loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string)
@@ -388,8 +388,9 @@ public:
             (p_with_registers ? m_symbols.GetSymbol("REGISTER_CODE_LEN") : 0u); // only needed when loading z80 snapshot
     }
    
-    /// Take an export file name that will be used to load symbols.
-    void SetSymbolFilename(const std::filesystem::path& p_symbol_file_name)
+    /// Load symbols from given filename
+    /// Eg zqloader.exp
+    void LoadSymbolFilename(const std::filesystem::path& p_symbol_file_name)
     {
         m_symbols.ReadSymbols(p_symbol_file_name);
         if (m_symbols.GetSymbol("HEADER_LEN") != TurboBlock::GetHeaderSize())
@@ -717,11 +718,7 @@ uint16_t TurboBlocks::GetLoaderCodeLength(bool p_with_registers ) const
     return m_pimpl->GetLoaderCodeLength(p_with_registers);
 }
 
-TurboBlocks& TurboBlocks::SetSymbolFilename(const std::filesystem::path& p_symbol_file_name)
-{
-    m_pimpl->SetSymbolFilename(p_symbol_file_name);
-    return *this;
-}
+
 
 TurboBlocks &TurboBlocks::DebugDump() const
 {

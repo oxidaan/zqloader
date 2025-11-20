@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <ios>
 #include <vector>
+#include "zqloader.h"
 #include "memoryblock.h"
 
 template <class TIterator>
@@ -305,20 +306,24 @@ uint16_t Test(TurboBlocks& p_blocks, const fs::path &p_filename)
     p_blocks.SetCompressionType(CompressionType::none);
     // screen pattern
     DataBlock block;
-    for (int n = 0; block.size() < 6 * 1024; n++)
+    while (block.size() < 6 * 1024)
     {
         //  block.push_back(0_byte);
         //  block.push_back(0_byte);
-        for (int i = 0; i < 32; i++)
+        for (int i = 0; i < 64; i++)
             block.push_back(255_byte);
-        for (int i = 0; i < 32; i++)
+        for (int i = 0; i < 64; i++)
             block.push_back(0_byte);
-        for (int i = 0; i < 32; i++)
+        for (int i = 0; i < 64; i++)
             block.push_back(0b11001010_byte);
-        for (int i = 0; i < 32; i++)
+        for (int i = 0; i < 64; i++)
             block.push_back(0b01010101_byte);
         //  block.push_back(0b11001100_byte);
     }
+    //DataBlock attr;
+    //attr.resize(768);
+    //ZQLoader::WriteTextToAttr(attr, "Test", 0x01_byte, false, 0);
+    //block.insert(block.end(), attr.begin(), attr.end());
     std::cout << "Size = " << block.size() << std::endl;
     //  TurboBlocks tblocks(p_loader_length, CompressionType::none);
     p_blocks.AddMemoryBlock({std::move(block), uint16_t(16384)});

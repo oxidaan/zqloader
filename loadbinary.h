@@ -35,7 +35,7 @@ TData LoadBinary(std::istream& p_stream, size_t p_len)
 template <class TData>
 void WriteBinary(std::ostream& p_stream, const TData &p_data)
 {
-#if 1
+#ifdef DEBUG_TZX
     const char *ptr = reinterpret_cast<const char *>(&p_data);
     for(int n = 0; n < sizeof(TData); n++)
     {

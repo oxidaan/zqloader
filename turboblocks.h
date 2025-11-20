@@ -132,8 +132,6 @@ public:
     // Length needed when loader code needs to be moved away from BASIC location
     uint16_t GetLoaderCodeLength(bool p_with_registers) const;
    
-    /// Take an export file name that will be used to load symbols.
-    TurboBlocks& SetSymbolFilename(const std::filesystem::path& p_symbol_file_name);
 
     TurboBlocks &DebugDump() const;
 private:
