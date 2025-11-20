@@ -37,6 +37,7 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, const std::string &p_zx
         {
             throw std::runtime_error("Expecting header length to be " + std::to_string(sizeof(TapeHeader)) + ", but is : " + std::to_string(block.size()));
         }
+
         auto header = *reinterpret_cast<TapeHeader*>(block.data());
         std::string name(header.m_filename, 10);    // zx file name from tap/header
         while (!name.empty() && name.back() == ' ')
@@ -47,6 +48,12 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, const std::string &p_zx
         std::cout << "'" << name << "'";
         std::cout << " Start address: " << header.GetStartAddress();
         std::cout << " Length: " << header.m_length << std::endl;
+
+        if (m_last_block_type == TapeBlockType::header && m_headercnt >= 1)
+        {
+            std::cout << "<b>Warning found stray header (tap or tzx file possibly not correct)<\b>" << std::endl;
+            m_headercnt = 0;
+        }
         
         // matching; earlier or now
         if ((name == p_zxfilename || p_zxfilename == "") || m_headercnt >= 1)
@@ -63,9 +70,10 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, const std::string &p_zx
             // Else we didn't see a valid header yet. 
             if (m_last_block_type != TapeBlockType::header)
             {
-                throw std::runtime_error("Found headerless, can not handle (can't know were it should go to)");
+                std::cout << "<b>Found headerless, can not handle (can't know were it should go to)</b>" << std::endl;
+                m_headercnt++;
             }
-            if (m_last_header.m_type == TapeHeader::Type::basic_program)
+            else if (m_last_header.m_type == TapeHeader::Type::basic_program)
             {
                 if (m_codecount == 0)
                 {
@@ -223,6 +231,7 @@ inline std::vector<uint16_t> TapToTurboBlocks::TryFindUsr(const DataBlock& p_bas
             p_basic_block[cnt] == 0xC0_byte && (  // USR
                 p_basic_block[cnt - 1] == 0xf9_byte ||     // RANDOMIZE USR
                 p_basic_block[cnt - 1] == 0xf5_byte ||     // PRINT USR
+                p_basic_block[cnt - 1] == 0xfa_byte ||     // IF USR        // scuba dive has this
                 p_basic_block[cnt - 1] == std::byte('=')); // (LET x ) = USR
         return int(b);
     });
