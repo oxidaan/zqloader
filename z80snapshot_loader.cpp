@@ -319,6 +319,10 @@ SnapShotLoader& SnapShotLoader::LoadSna(std::istream& p_stream)
 
 /// Write given text to given attribute block
 /// For fun write a attribute block -> out_attr
+/// out_attr must be >= 256 bytes.
+/// p_color: color (attribute)/ When 0: use random colors.
+/// p_col: left column.
+/// p_center: center text, p_col not used then.
 bool WriteTextToAttr(DataBlock &out_attr, const std::string &p_text, std::byte p_color, bool p_center, int p_col)
 {
     static const std::string font = 1 + &*R"(

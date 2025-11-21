@@ -75,7 +75,6 @@ inline void FocusOut(QLineEdit *p_line_edit, const char *p_text)
 }
 
 
-
 ///  Yes!
 void WriteFunText(ZQLoader &p_zq_loader, bool p_first)
 {
@@ -123,9 +122,7 @@ Dialog::Dialog(QWidget *parent)
     std::streambuf* oldCoutBuffer = std::cout.rdbuf(buffer);
     (void)oldCoutBuffer;
 
-    std::cout << "<b>";
-    ZQLoader::Version();
-    std::cout << "</b>";
+    ZQLoader::Version(true);
     ui->labelAbout->setText(ui->labelAbout->text().replace("%0", GetVersion()));
 
 
@@ -523,15 +520,12 @@ inline void Dialog::Go()
         CheckLoaderParameters();        // might throw
         ui->pushButtonClean->setEnabled(true);
         std::cout << "\n" << std::endl;
-        if(m_state == State::PreloadingFunAttribs)
-        {
-            // update ui
-            SetState(State::Idle);
-        }
 
         // might break ongoing pre-load: 
         // m_zqloader.Reset();
 
+
+        SetState(State::Playing);
 
 
         fs::path outputfilename = ui->lineEditOutputFile->text().toStdString();
@@ -585,10 +579,12 @@ inline void Dialog::Go()
         m_zqloader.SetSampleRate(ui->lineEditSampleRate->text().toInt());
         m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());
 
+
+        
         m_zqloader.Start();
-        if(m_zqloader.IsBusy())     // else immidiately done eg writing wav file
+        if(!m_zqloader.IsBusy())     // else immidiately done eg writing wav file
         {
-            SetState(State::Playing);
+            SetState(State::Idle);
         }
     }
     catch(...)

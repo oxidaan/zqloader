@@ -98,12 +98,19 @@ public:
     PausePulser(PausePulser&&) = default;
 
     /// Set length of pause in milliseconds.
-    PausePulser& SetLength(std::chrono::milliseconds p_duration);
+    PausePulser& SetLength(std::chrono::milliseconds p_duration)
+    {
+        m_duration_in_tstates = int(p_duration / m_tstate_dur);
+        return *this;
+    }
 
 
     /// Set length of pause in T-states.
-    PausePulser& SetLength(int p_states);
-
+    PausePulser& SetLength(int p_states)
+    {
+        m_duration_in_tstates = p_states;
+        return *this;
+    }
 
     /// Set edge value (so sound wave on/off) after pause.
     /// Can be used to force it to a predefined value for blocks to follow.
@@ -248,7 +255,7 @@ public:
 
     int GetDurationInTStates() const override
     {
-        return m_max_pulses * GetPatternDuration();
+        return  int(m_pattern.size() ? ((m_max_pulses * GetPatternDuration()) /  m_pattern.size()) : 0);
     }
 
 protected:
@@ -283,13 +290,6 @@ private:
 
 
 
-    int GetFirstPattern() const
-    {
-        return m_pattern.size() ? m_pattern[0] : 0;
-    }
-
-
-
     bool AtEnd() const
     {
         return m_forever == false && m_pulsnum >= m_max_pulses;
@@ -298,7 +298,8 @@ private:
 private:
 
     std::vector<int>   m_pattern;
-    unsigned           m_max_pulses = 0;
+    unsigned           m_max_pulses = 0;        // max. pulses that is total of edges.
+                                                // Note m_max_pulses % m_pattern.size() should be 0 else ends halfway a pattern.
     bool               m_forever    = false;
 
 }; // class TonePulser

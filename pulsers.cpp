@@ -12,21 +12,8 @@
 #include "pulsers.h"
 
 
-/// Set length of pause in T-states.
-PausePulser& PausePulser::SetLength(int p_states)
-{
-  //  std::cout << "Pause = " << p_states << " T-states" << std::endl;
-    m_duration_in_tstates = p_states;
-    return *this;
-}
 
-/// Set length of pause in milliseconds.
-PausePulser& PausePulser::SetLength(std::chrono::milliseconds p_duration)
-{
-   // std::cout << "Pause = " << p_duration.count() << "ms" << std::endl;
-    m_duration_in_tstates = int(p_duration / m_tstate_dur);
-    return *this;
-}
+
 
 /// Set length in # of pulses that is # complete patterns.
 TonePulser& TonePulser::SetLength(unsigned p_max_pulses)
@@ -44,16 +31,16 @@ TonePulser& TonePulser::SetLength(unsigned p_max_pulses)
     return *this;
 }
 
-/// Set length in milliseconds, rounds up to complete patterns.
+/// Set length in milliseconds
 TonePulser& TonePulser::SetLength(std::chrono::milliseconds p_duration)
 {
     m_forever = false;
     auto pat_dur = GetPatternDuration();
     if (pat_dur)
     {
-        m_max_pulses = unsigned(p_duration / (m_tstate_dur * pat_dur));
         unsigned pattsize = unsigned(m_pattern.size());
-        m_max_pulses = ((m_max_pulses + pattsize - 1) / pattsize) * pattsize;           // round up to next multiple of pattsize
+        m_max_pulses = pattsize * unsigned(p_duration / (m_tstate_dur * pat_dur));
+        // no might cause problems when pattsize is eg 3: m_max_pulses += m_max_pulses % 2;       // round up to next even number.
     }
     else
     {

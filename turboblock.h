@@ -191,8 +191,10 @@ public:
             PausePulser(p_loader.GetTstateDuration()).SetLength(p_pause_before).MoveToLoader(p_loader);           // pause before
         }
 
-        TonePulser(p_loader.GetTstateDuration()).SetPattern(500).SetLength(200ms).MoveToLoader(p_loader);         // leader
-        PausePulser(p_loader.GetTstateDuration()).SetLength(250).SetEdge(Edge::toggle).MoveToLoader(p_loader);    // sync
+        TonePulser(p_loader.GetTstateDuration()).SetPattern(500, 500).SetLength(200ms).MoveToLoader(p_loader);    // leader; best to have even number of egdges
+        TonePulser(p_loader.GetTstateDuration()).SetPattern(250).SetLength(1).MoveToLoader(p_loader);             // sync
+
+
 
         DataBlock header(m_data.begin(), m_data.begin() + sizeof(Header));      // split (eg for minisync)
         DataBlock payload(m_data.begin() + sizeof(Header), m_data.end());

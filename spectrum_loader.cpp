@@ -34,7 +34,7 @@ inline void SpectrumLoader::StandbyToActive()
 SpectrumLoader& SpectrumLoader::AddLeader(std::chrono::milliseconds p_duration)
 {
     TonePulser(m_use_standard_clock_for_rom ? spectrum::tstate_dur : GetTstateDuration()).
-        SetPattern(spectrum::tstate_leader).
+        SetPattern(spectrum::tstate_leader, spectrum::tstate_leader).       // best to have even number of edges
         SetLength(p_duration).
         MoveToLoader(*this);
     return *this;
@@ -46,7 +46,7 @@ SpectrumLoader& SpectrumLoader::AddLeader(std::chrono::milliseconds p_duration)
 SpectrumLoader& SpectrumLoader::AddEndlessLeader()
 {
     TonePulser(m_use_standard_clock_for_rom ? spectrum::tstate_dur : GetTstateDuration()).
-        SetPattern(spectrum::tstate_leader).
+        SetPattern(spectrum::tstate_leader, spectrum::tstate_leader).        // best to have even number of edges
         SetInfiniteLength().
         MoveToLoader(*this);
     return *this;

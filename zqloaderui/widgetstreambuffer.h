@@ -26,6 +26,7 @@ class TextEditStreamBuffer : public QObject,
 public:
     TextEditStreamBuffer(QTextEdit* p_output) : m_output(p_output) 
     {
+        p_output->setWordWrapMode(QTextOption::NoWrap);     // speeds up
         connect(this, &TextEditStreamBuffer::signalBufferFull, this, [this] 
         {
             // This runs in QT's ui thread
@@ -38,7 +39,7 @@ public:
             m_output->insertHtml(buffer);
             m_output->moveCursor(QTextCursor::End);
             
-        });
+        }, Qt::QueuedConnection);               // QueuedConnection makes this *much* faster
     }
 
 protected:
@@ -49,7 +50,7 @@ protected:
             std::lock_guard	lock(m_mutex);
             m_buffer += (char)c;
         }
-        if(char(c) == '\n' || c == EOF)
+        if(/* char(c) == '\n' || */ c == EOF)
         {
             emit signalBufferFull();     // Swap to QT's ui thread
         }

@@ -840,9 +840,17 @@ bool ZQLoader::WriteTextToAttr(DataBlock& out_attr, const std::string& p_text, s
 
 
 // static
-void ZQLoader::Version()
+void ZQLoader::Version(bool p_with_markup /* = false */)
 {
-    std::cout << "ZQLoader version " << GetVersion() << "\n";
+    if(p_with_markup)
+    {
+        std::cout << "<b>";
+    }
+    std::cout << "ZQLoader version " << GetVersion() << std::endl;
+    if(p_with_markup)
+    {
+        std::cout << "</b>";
+    }
     std::cout << 1 + &*R"(
 Copyright (c) 2025 Daan Scherft [Oxidaan].
 https://github.com/oxidaan/zqloader

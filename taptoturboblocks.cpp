@@ -261,14 +261,14 @@ inline std::vector<uint16_t> TapToTurboBlocks::TryFindLoadCode(const DataBlock& 
     {
         if( cnt > 0 &&
             p_basic_block[cnt] == 0xAF_byte &&        // CODE
-            p_basic_block[cnt - 1] == std::byte('"')) // [LOAD "] " CODE
+            p_basic_block[cnt - 1] == std::byte('"')) // (LOAD ")" CODE
         {
-            // 2 signals LOAD "" CODE. Only then a number is not mandatory
-            return 1;// + int(p_basic_block[cnt - 2] == std::byte('"'));
+            // LOAD "xxx" CODE or (LOAD ")" CODE xxxxx
+            return 1;
         }
         if(p_basic_block[cnt] == 0xEF_byte)     // LOAD
         {
-            return 16;
+            return 16;      // -> first_marker_found (must find " CODE within 16 bytes)
         }
         if(cnt > 0 &&
             p_basic_block[cnt] == 0xAA_byte && // SCREEN$
