@@ -506,6 +506,7 @@ inline void Dialog::RestoreDefaults()
     ui->lineEditZxFilename->setText("");
     ui->lineEditZxFilename->signalFocusOut();
 
+    ui->checkBoxNoUSR->setChecked(false);
     // ui->lineEditOutputFile->setText("");      // no leave even when pressed restore defaults
     // ui->lineEditOutputFile->signalFocusOut();    
 }
@@ -554,6 +555,7 @@ inline void Dialog::Go()
         m_zqloader.SetCompressionType(CompressionType(ui->comboBoxCompressionType->currentIndex()));                                    
         m_zqloader.SetDeCompressionSpeed(ui->lineEditDeCompressionSpeed->text().toInt());
         m_zqloader.SetInitialWait(std::chrono::milliseconds(ui->lineEditInitialWait->text().toInt()));
+        m_zqloader.SetDontCallUser(ui->checkBoxNoUSR->isChecked());
 
         if(ui->comboBoxLoaderLocation->currentIndex() == 0)
         {
@@ -578,7 +580,6 @@ inline void Dialog::Go()
 
         m_zqloader.SetSampleRate(ui->lineEditSampleRate->text().toInt());
         m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());
-
 
         
         m_zqloader.Start();

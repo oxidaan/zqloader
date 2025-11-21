@@ -31,7 +31,7 @@ namespace fs = std::filesystem;
 
 LIB_API const char *GetVersion()
 {
-    return "3.0.1 RC1";
+    return "3.0.1";
 }
 
 
@@ -425,7 +425,7 @@ private:
         {
             std::cout << "<b>Warning: Number of found code blocks (" << m_turboblocks.size() << ") not equal to LOAD \"\" CODE statements in BASIC (" << tab_to_turbo_blocks.GetNumberLoadCode() << ")!</b>\n" << std::endl;
         }
-        auto size = m_turboblocks.Finalize(tab_to_turbo_blocks.GetUsrAddress(), tab_to_turbo_blocks.GetClearAddress());
+        auto size = m_turboblocks.Finalize(m_dont_call_USR ? 0 : tab_to_turbo_blocks.GetUsrAddress(), tab_to_turbo_blocks.GetClearAddress());
         if(size == 0)
         {
             throw std::runtime_error("No blocks present in file: '" + p_filename.string() + "' that could be turboloaded (note: can only handle code blocks, not BASIC)");
@@ -541,6 +541,7 @@ public:
     fs::path                                m_output_filename;             // writing wav or tzx
     fs::path                                m_exe_path;                    // s/a argv[0]
     Action                                  m_action = Action::play_audio;
+    bool                                    m_dont_call_USR       = false;
 
     bool                                    m_is_busy = false;
     bool                                    m_128_mode = false;
@@ -702,6 +703,11 @@ ZQLoader& ZQLoader::SetFunAttribs(bool p_value)
     return *this;
 }
 
+ZQLoader& ZQLoader::SetDontCallUser(bool p_value)
+{
+    m_pimpl->m_dont_call_USR = p_value;
+    return *this;
+}
 
 
 ZQLoader& ZQLoader::Reset()

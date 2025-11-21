@@ -87,7 +87,7 @@ public:
     //  If any block overlaps the loader at basic, set
     //  return spectrum::SCREEN_23RD as location to copy loader to.
     //  If no block overlaps return 0.
-    // Else get whatever was set before.
+    // Else get whatever was set before (snapshots do this)
     uint16_t GetLoaderCopyStart(const MemoryBlocks & p_memory_blocks) const
     {
         if (m_loader_copy_start == 0)
@@ -251,8 +251,8 @@ public:
             // patch zqloader itself
             if (p_usr_address == 0)
             {
-               // already warned earlier std::cout << "**Warning: No machine code start address found in BASIC (USR). And loader will be moved, so will stack, but at end returns to BASIC, will almost certainly crash!**" << std::endl;
-               // TODO @DEBUG throw std::runtime_error("No machine code start address found in BASIC (USR). And loader will be moved, so will stack, but at end returns to BASIC, will almost certainly crash.");
+               // already warned earlier at BASIC parser 
+               std::cout << "<b>Warning: No machine code start address found in BASIC (USR). And loader will be moved, so will stack, but at end returns to BASIC, will almost certainly crash!</b>" << std::endl;
             }
             uint16_t copy_me_target_location = loader_copy_start + m_symbols.GetSymbol("STACK_SIZE");
 

@@ -115,6 +115,9 @@ public:
     /// Overwrite loader when at screen with attributes?
     ZQLoader &SetFunAttribs(bool p_value);
 
+    /// Dont call machine code (USR) at end of loading, return to BASIC instead
+    ZQLoader& SetDontCallUser(bool p_value);
+
     ///  Reset, stop, wipe all added data (files)
     ZQLoader& Reset();
 
