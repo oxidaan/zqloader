@@ -19,6 +19,7 @@
 #include <QTimer>
 #include "./ui_dialog.h"
 #include <datablock.h>
+#include <QMessageBox>
 
 #include "spectrum_consts.h"
 #include "loader_defaults.h"        // consts with default settings for ZQLoader
@@ -173,6 +174,7 @@ Dialog::Dialog(QWidget *parent)
             dialog.setNameFilter(p_filter);
             dialog.setWindowTitle(p_text);
             dialog.setFileMode(p_mode);
+            dialog.setOption(QFileDialog::DontConfirmOverwrite, true);  // Now done later
             // Else hangs when (??)
             // preload->cancel preload, open this dialog -> cancel ->  preload->cancel preload -> open this dialog:
             // https://stackoverflow.com/questions/31983412/code-freezes-on-trying-to-open-qdialog
@@ -518,18 +520,30 @@ inline void Dialog::Go()
 {
     try
     {
+        QString outputfilename_str = ui->lineEditOutputFile->text();
+        fs::path outputfilename = outputfilename_str.toStdString();
+
+        if (!outputfilename_str.isEmpty() && std::filesystem::exists(outputfilename))
+        {
+            QString q("File to write (" + outputfilename_str + ") already exists. Overwrite?");
+            auto reply = QMessageBox::question(
+                nullptr,                               // Parent widget (nullptr = no parent)
+                "Confirm Action",                      // Title
+                q,             // Message text
+                QMessageBox::Yes | QMessageBox::No     // Buttons
+            ); 
+            if (reply != QMessageBox::Yes) 
+            {
+                return;
+            }
+        }
+
         CheckLoaderParameters();        // might throw
         ui->pushButtonClean->setEnabled(true);
         std::cout << "\n" << std::endl;
 
-        // might break ongoing pre-load: 
-        // m_zqloader.Reset();
-
 
         SetState(State::Playing);
-
-
-        fs::path outputfilename = ui->lineEditOutputFile->text().toStdString();
 
         // When outputfile="path/to/filename" or -w or -wav given: 
         // Convert to wav file instead of outputting sound

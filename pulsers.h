@@ -46,8 +46,6 @@ public:
 
     virtual void WriteAsTzxBlock(std::ostream& p_stream) const = 0;
 
-    // Get total duration in TStates (to show only)
-    virtual int GetDurationInTStates() const = 0;
 
 
     // Get duration to wait now as Doublesec (used at miniaudio thread)
@@ -57,6 +55,8 @@ public:
     }
 
 
+    // Get total duration in TStates (to show only)
+    virtual int GetDurationInTStates() const = 0;
 
     // get total duration as Doublesec (to show only)
     virtual Doublesec GetDuration() const final
@@ -82,7 +82,7 @@ protected:
 
 /// A pulser that when inserted causes a silence of given duration.
 /// Does not need data.
-/// Does not pulse, although can change pulse output at first call (after wait).
+/// Does not pulse, although can change pulse/edge output at first call (after wait).
 class PausePulser : public Pulser
 {
     PausePulser(const PausePulser&) = delete;

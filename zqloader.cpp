@@ -31,7 +31,7 @@ namespace fs = std::filesystem;
 
 LIB_API const char *GetVersion()
 {
-    return "3.0.1";
+    return "3.0.2 RC 1";
 }
 
 

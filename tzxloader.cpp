@@ -454,7 +454,7 @@ void TonePulser::WriteAsTzxBlock(std::ostream &p_stream) const
 
         generalized_data_block.totd         = 0;        // no data
         generalized_data_block.npd          = 0;        // should not be used when totd is 0
-        generalized_data_block.asd          = 2;        // should not be used when totd is 0 But 0 = 256. Must be power of 2.
+        generalized_data_block.asd          = 2;        // should not be used when totd is 0 But '0 = 256'. Must be power of 2.
         generalized_data_block.block_length = DWORD(generalized_data_block.GetBlockLength(0));
         std::cout << "Tone: GeneralizedDataBlock pattern-size=" << m_pattern.size() << " #pulses=" << m_max_pulses << " block_length=" << generalized_data_block.block_length << std::endl;
 #ifdef DEBUG_TZX
@@ -526,9 +526,9 @@ void PausePulser::WriteAsTzxBlock(std::ostream& p_stream) const
         generalized_data_block.npp          = 1;
         generalized_data_block.asp          = 2;    // two symbols one for pause one for edge
 
-        generalized_data_block.totd         = 0;
-        generalized_data_block.npd          = 0;        // should not be used when totd is 0
-        generalized_data_block.asd          = 2;        // should not be used when totd is 0 But 0 = 256. Must be power of 2.
+        generalized_data_block.totd         = 0;    // no data
+        generalized_data_block.npd          = 0;    // should not be used when totd is 0
+        generalized_data_block.asd          = 2;    // should not be used when totd is 0 But '0 = 256'. Must be power of 2.
         generalized_data_block.block_length = DWORD(generalized_data_block.GetBlockLength(0));
         std::cout << "Pause: GeneralizedDataBlock TStates=" << m_duration_in_tstates << " Egde= " << m_edge << std::endl;
 #ifdef DEBUG_TZX
@@ -539,7 +539,7 @@ void PausePulser::WriteAsTzxBlock(std::ostream& p_stream) const
         if( generalized_data_block.totp > 0)        // Note: is 2! This defines the two symbols
         {
             DebugLog(" | Symdef#1: ");
-            // first symdef for pause (need to wait first)
+            // first symdef for pause (need to wait first) (this is the actual pause)
             GeneralizedDataBlock::SymDef symdef{};
             symdef.m_edge = Edge::no_change;
             WriteBinary(p_stream, symdef);
@@ -549,7 +549,7 @@ void PausePulser::WriteAsTzxBlock(std::ostream& p_stream) const
             // 2nd symdef for edge
             symdef.m_edge = m_edge;
             WriteBinary(p_stream, symdef);
-            WriteBinary(p_stream, WORD(0)); // # is npp
+            WriteBinary(p_stream, WORD(0));
 
             DebugLog(" | Prle#1: ");
             GeneralizedDataBlock::Prle prle{};
@@ -590,7 +590,7 @@ void DataPulser::WriteAsTzxBlock(std::ostream& p_stream) const
     GeneralizedDataBlock generalized_data_block{};
     generalized_data_block.pause        = 0;
 
-    generalized_data_block.totp         = 0;        // no pilot/sync block here
+    generalized_data_block.totp         = 0;        // no pilot/sync block here (just data)
     generalized_data_block.npp          = 0;        // not used when totp is 0
     generalized_data_block.asp          = 1;        // not used when totp is 0, but 0 is 256.
 
