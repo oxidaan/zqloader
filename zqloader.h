@@ -141,7 +141,7 @@ public:
     // Was zqloader.tap added to be preloaded?
     bool IsPreLoaded() const;
     
-    /// Play a infinite leader tone for tuning.
+    /// Play an infinite leader tone for tuning.
     ZQLoader &PlayleaderTone();
 
     /// Only used for fun attributes

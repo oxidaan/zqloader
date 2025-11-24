@@ -39,13 +39,14 @@ class ZQLoader::Impl
 {
 public:
 
-    Impl()  = default;
     Impl(const Impl &) = delete;
     Impl(Impl &&) noexcept = default;
     Impl & operator = (Impl &&) = default;
     Impl & operator = (const Impl &) = delete;
+    Impl()  = default;
 
-    // Set normal filename (eg the top filename in the dialog)
+
+    /// Set normal filename (eg the top filename in the dialog)
     void SetNormalFilename(fs::path p_filename, const std::string &p_zxfilename)
     {
         m_normal_filename = std::move(p_filename);
@@ -55,13 +56,8 @@ public:
         }
     }
 
-    // File is a zqloader.tap file?
-    bool FileIsZqLoader(fs::path p_filename) const
-    {
-        return ToLower(p_filename.stem().string()).find("zqloader") == 0 || p_filename.empty() || p_filename.string()[0] == '[';
-    }
 
-    // Set turbo filename eg the 2nd filename in the dialog.
+    /// Set turbo filename eg the 2nd filename in the dialog.
     void SetTurboFilename(fs::path p_filename, const std::string &p_zxfilename )
     {
         if(!p_filename.empty() && p_filename.string()[0] != '[')
@@ -71,7 +67,7 @@ public:
         }
     }
 
-
+    /// Set output file to write (tzx or tap) - when empty play audio.
     void SetOutputFilename(fs::path p_outputfilename, bool p_allow_overwrite)
     {
         if (ToLower(p_outputfilename.extension().string()) == ".tzx")
@@ -86,7 +82,8 @@ public:
         m_output_filename = std::move(p_outputfilename);
     }
 
-    // Set volume left + right (-100, 100)
+
+    /// Set volume left + right (-100, 100)
     void SetVolume(int p_volume_left, int p_volume_right)
     {
         m_volume_left  = p_volume_left;
@@ -95,46 +92,43 @@ public:
     }
 
 
-
-
-
+    /// Set spectrum clock frequency.
     void SetSpectrumClock(int p_spectrum_clock)
     {
         m_spectrumloader.SetTstateDuration(1s / double(p_spectrum_clock));
     }
 
-
-
-
-
-    // runs in miniaudio / samplesender thread
-    void OnDone()
-    {
-        if(m_is_busy)
-        {
-            m_time_needed = GetCurrentTime();
-            std::cout << "Took: " << std::dec << m_time_needed.count() << " ms" << std::endl;
-            m_is_busy = false;
-        }
-        if(m_OnDone)
-        {
-            m_OnDone();
-        }
-        
-    }
-
-    
-    // Estimated duration
-    // Not 100% accurate because discrepancy between miniaudio sample rate and time we actually need.
-    // See remark at  SampleSender::GetNextSample
+    /// Get estimated duration
+    /// Not 100% accurate because discrepancy between miniaudio sample rate and time we actually need.
+    /// See remark at  SampleSender::GetNextSample
     std::chrono::milliseconds GetEstimatedDuration() const
     {
         return std::chrono::duration_cast<std::chrono::milliseconds>(m_spectrumloader.GetEstimatedDuration());
     }
 
-
+    /// Play an infinite leader tone for tuning.
     void PlayleaderTone()
     {
+        std::cout << 1 + &*R"(
+<b>Playing an endless leader tone for sound tuning...</b>
+- Connect the audio cable from host computer to the ZX Spectrum <b>EAR</b> input.
+- Set volume to max, both at the operating system as well as at the dials above.
+- Make sure no other sound is playing.
+- Sometimes a stereo cable is better, sometimes mono:
+  When the ZX-Spectrum and the host computer are sharing a common (electrical) ground, a stereo cable is probably best.
+  In that case (when using stereo) it is best to invert one sound output (left or right), you can use volume buttons for that.
+  (just turn one of the dials to complete left)
+  In some other situations a mono cable gives better results.
+  (See also for example here: https://retrocomputing.stackexchange.com/questions/773/loading-zx-spectrum-tape-audio-in-a-post-cassette-world))";
+#ifdef _WIN32
+        std::cout << 1 + &*R"(
+- At Windows make sure <b>Audio Enhancements</b> are switched off.
+  Eg at `Settings -> System -> Sound -> Speakers -> Advanced`
+  Switch off `Audio Enhancements` there.
+        )";
+#endif
+    std::cout << "When all is good you get the familiar red/cyan stripes slowly moving up." << std::endl;
+
         m_spectrumloader.AddEndlessLeader();
         m_spectrumloader.Attach(m_sample_sender);
         m_sample_sender.SetVolume(m_volume_left, m_volume_right).SetSampleRate(m_sample_rate);
@@ -143,6 +137,7 @@ public:
     }
 
 
+    /// Run it (go pressed)
     void Run(bool p_threaded)
     {
         Check();
@@ -200,7 +195,6 @@ public:
         m_turboblocks.MoveToLoader(m_spectrumloader, true);
     }
 
-
     /// Stop/cancel playing immidiately
     /// Keeps preloaded state
     /// Can cause tape loading error when not calling WaitUntilDone first.
@@ -227,6 +221,7 @@ public:
     }
 
 
+    /// Prepare for preloading.
     void SetPreload()
     {
         m_128_mode = true;
@@ -248,6 +243,58 @@ public:
 
 
 
+    void Test()
+    {
+        extern uint16_t Test(TurboBlocks & p_blocks, const fs::path &p_filename);
+        auto adr = Test(m_turboblocks, "");
+        m_turboblocks.AddZqLoader(FindZqLoaderTapfile());
+        m_turboblocks.Finalize(adr);
+        m_turboblocks.MoveToLoader(m_spectrumloader);
+        Run(true);
+    }
+
+    void SetLoaderCopyTarget(uint16_t p_address)
+    {
+        m_new_loader_location = p_address;
+        if(p_address != 0)      // fixed address (not automatic)
+        {
+            m_turboblocks.SetLoaderCopyTarget(p_address);
+        }
+    }
+
+
+
+private:
+
+
+    // File is a zqloader.tap file?
+    bool FileIsZqLoader(fs::path p_filename) const
+    {
+        return ToLower(p_filename.stem().string()).find("zqloader") == 0 || p_filename.empty() || p_filename.string()[0] == '[';
+    }
+
+
+
+
+
+
+    // runs in miniaudio / samplesender thread
+    void OnDone()
+    {
+        if(m_is_busy)
+        {
+            m_time_needed = GetCurrentTime();
+            std::cout << "Took: " << std::dec << m_time_needed.count() << " ms" << std::endl;
+            m_is_busy = false;
+        }
+        if(m_OnDone)
+        {
+            m_OnDone();
+        }
+        
+    }
+
+    
 
 
     
@@ -300,26 +347,6 @@ public:
         }
         return filename;
     }
-    void Test()
-    {
-        extern uint16_t Test(TurboBlocks & p_blocks, const fs::path &p_filename);
-        auto adr = Test(m_turboblocks, "");
-        m_turboblocks.AddZqLoader(FindZqLoaderTapfile());
-        m_turboblocks.Finalize(adr);
-        m_turboblocks.MoveToLoader(m_spectrumloader);
-        Run(true);
-    }
-   
-    void SetLoaderCopyTarget(uint16_t p_address)
-    {
-        m_new_loader_location = p_address;
-        if(p_address != 0)      // fixed address (not automatic)
-        {
-            m_turboblocks.SetLoaderCopyTarget(p_address);
-        }
-    }
-
-private:
 
 
 
@@ -523,33 +550,33 @@ Please add a normal and or turbo speed file.
     }
 
 
-
-
 public:
     SpectrumLoader                          m_spectrumloader;
     TurboBlocks                             m_turboblocks;
     SampleSender                            m_sample_sender;
+    bool                                    m_use_fun_attribs     = false;
+    uint32_t                                m_sample_rate         = loader_defaults::sample_rate;
+    fs::path                                m_exe_path;                    // s/a argv[0]
+    Action                                  m_action = Action::play_audio;
+    bool                                    m_dont_call_USR       = false;
+    bool                                    m_is_busy = false;
+    bool                                    m_is_preloaded = false;
+    DoneFun                                 m_OnDone;
+    std::chrono::milliseconds               m_time_needed{};
+
+private:
 
     uint16_t                                m_new_loader_location = 0; // 0 = auto
-    bool                                    m_use_fun_attribs     = false;
     int                                     m_volume_left         = loader_defaults::volume_left;
     int                                     m_volume_right        = loader_defaults::volume_right;
-    uint32_t                                m_sample_rate         = loader_defaults::sample_rate;
     bool                                    m_allow_overwrite     = false; // see OpenFileToWrite
     fs::path                                m_normal_filename;             // usually zqloader.tap
     fs::path                                m_turbo_filename;
     fs::path                                m_output_filename;             // writing wav or tzx
-    fs::path                                m_exe_path;                    // s/a argv[0]
-    Action                                  m_action = Action::play_audio;
-    bool                                    m_dont_call_USR       = false;
 
-    bool                                    m_is_busy = false;
     bool                                    m_128_mode = false;
-    bool                                    m_is_preloaded = false;
-    DoneFun                                 m_OnDone;
 
     std::chrono::steady_clock::time_point   m_start_time{};
-    std::chrono::milliseconds               m_time_needed{};
 }; // class ZQLoader::Impl
 
 
