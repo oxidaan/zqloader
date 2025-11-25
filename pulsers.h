@@ -44,7 +44,6 @@ public:
     virtual bool Next()          = 0;       // move to next pulse/edge, return true when done.
 
 
-    virtual void WriteAsTzxBlock(std::ostream& p_stream) const = 0;
 
 
 
@@ -85,6 +84,8 @@ protected:
 /// Does not pulse, although can change pulse/edge output at first call (after wait).
 class PausePulser : public Pulser
 {
+    friend class TzxWriter;
+
     PausePulser(const PausePulser&) = delete;
     using Clock = std::chrono::system_clock;
 
@@ -151,9 +152,6 @@ public:
 
 
 
-    void WriteAsTzxBlock(std::ostream& p_stream) const override;
-
-
     int GetDurationInTStates() const override
     {
         return m_duration_in_tstates;
@@ -187,6 +185,7 @@ private:
 /// Does not need data.
 class TonePulser : public Pulser
 {
+    friend class TzxWriter;
     TonePulser(const TonePulser&) = delete;
     using Clock = std::chrono::system_clock;
 
@@ -209,7 +208,6 @@ public:
         SetPattern(p_rest ...);
         return *this;
     }
-
 
 
     /// Set length in # of pulses that is # complete patterns.
@@ -248,10 +246,6 @@ public:
         m_pulsnum++;
         return AtEnd();
     }
-
-
-
-    void WriteAsTzxBlock(std::ostream& p_stream) const override;
 
     int GetDurationInTStates() const override
     {
@@ -311,6 +305,7 @@ private:
 /// Can optionally use 'pulse mode' having fixed length pulses like RS-232.
 class DataPulser : public Pulser
 {
+    friend class TzxWriter;
     DataPulser(const DataPulser&) = delete;
 
 public:
@@ -437,7 +432,6 @@ public:
 
 
 
-    void WriteAsTzxBlock(std::ostream& p_stream) const override;
     int GetDurationInTStates() const override;
 
 protected:
@@ -644,10 +638,6 @@ public:
     }
 
 
-
-    void WriteAsTzxBlock(std::ostream&) const override
-    {
-    }
 
 
 

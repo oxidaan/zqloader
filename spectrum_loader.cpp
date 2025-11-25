@@ -10,7 +10,8 @@
 #include "spectrum_loader.h"
 #include "loadbinary.h"
 #include "pulsers.h"
-
+//#include "tzxloader.h"
+#include "tzxwriter.h"
 
 
 
@@ -94,14 +95,8 @@ SpectrumLoader& SpectrumLoader::AddPause(std::chrono::milliseconds p_duration)
 ///  Write as tzx file to given stream
 SpectrumLoader& SpectrumLoader::WriteTzxFile(std::ostream& p_filewrite)
 {
-    p_filewrite << "ZXTape!";
-    WriteBinary(p_filewrite, std::byte{ 0x1A });
-    WriteBinary(p_filewrite, std::byte{ 1 });
-    WriteBinary(p_filewrite, std::byte{ 20 });
-    for(const auto &p : m_standby_pulsers)
-    {
-        p->WriteAsTzxBlock(p_filewrite);
-    }
+    TzxWriter writer;
+    writer.WriteTzxFile(m_standby_pulsers, p_filewrite);
     return *this;
 }
 
@@ -158,7 +153,7 @@ Doublesec SpectrumLoader::GetDurationWait() const
 
 
 /// CallBack; runs in miniaudio thread
-/// Get edge
+/// Get edge (at spectrum almost always Edge::toggle)
 /// Get edge depending on what is to be sent: (1/0/sync/leader).
 /// Eg a datapulser will return Edge::one when a 1 needs to be send etc.
 Edge SpectrumLoader::GetEdge() const
@@ -179,7 +174,7 @@ bool SpectrumLoader::CheckDone()
         if(IsDone() && m_OnDone)
         {
             m_OnDone();
-            StandbyToActive();  // maybe 'm_OnDone' added more
+            StandbyToActive();  // maybe 'm_OnDone' added more pulsers
         }
         return IsDone();
     }

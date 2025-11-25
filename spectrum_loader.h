@@ -47,8 +47,8 @@ struct MovableMutex
 /// program) to the ZX spectrum.
 /// Has some ZX spectrum convenience functions.
 /// Combines/owns:
-/// - A list of Pulser classes to create audio streams.
-/// - SampleSender to connect to miniadio.
+/// - A list of Pulser classes to create audio streams. (both standby as now active)
+/// Attaches to a SampleSender(=miniaudio) through call backs.
 class SpectrumLoader
 {
 private:
@@ -193,7 +193,7 @@ private:
     // runs in miniaudio thread
     bool CheckDone();
 
-    /// Return true done.
+    /// Return true when done (that is no more pulsers)
     bool IsDone() const
     {
         return m_current_pulser >= m_active_pulsers.size();

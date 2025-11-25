@@ -210,6 +210,7 @@
     <ClCompile Include="turboblock.cpp" />
     <ClCompile Include="turboblocks.cpp" />
     <ClCompile Include="tzxloader.cpp" />
+    <ClCompile Include="tzxwriter.cpp" />
     <ClCompile Include="z80snapshot_loader.cpp" />
     <ClCompile Include="zqloader.cpp" />
   </ItemGroup>
@@ -287,6 +288,7 @@
     <ClInclude Include="turboblocks.h" />
     <ClInclude Include="types.h" />
     <ClInclude Include="tzxloader.h" />
+    <ClInclude Include="tzxwriter.h" />
     <ClInclude Include="z80snapshot_loader.h" />
     <ClInclude Include="zqloader.h" />
   </ItemGroup>

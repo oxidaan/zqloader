@@ -21,6 +21,8 @@ TData LoadBinary(std::istream& p_stream)
     p_stream.read(reinterpret_cast<char*>(&data), sizeof(TData));
     return data;
 }
+
+
 /// Load a std::string binary from given stream.
 template <class TData>
 TData LoadBinary(std::istream& p_stream, size_t p_len)
@@ -31,6 +33,8 @@ TData LoadBinary(std::istream& p_stream, size_t p_len)
     buf[p_len] = 0;
     return buf.data();
 }
+
+
 /// Write data binary to given stream.
 template <class TData>
 void WriteBinary(std::ostream& p_stream, const TData &p_data)

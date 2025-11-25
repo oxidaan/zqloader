@@ -177,6 +177,9 @@ public:
 
     static bool WriteTextToAttr(DataBlock &out_attr, const std::string &p_text, std::byte p_color, bool p_center, int p_col);
 
+    // File is a zqloader.tap file?
+    static bool FileIsZqLoader(std::filesystem::path p_filename);
+
 private:
     class Impl;
     std::unique_ptr<Impl> m_pimpl;

@@ -520,8 +520,13 @@ inline void Dialog::Go()
 {
     try
     {
+        Check();        // might throw
+
         QString outputfilename_str = ui->lineEditOutputFile->text();
         fs::path outputfilename = outputfilename_str.toStdString();
+
+
+
 
         if (!outputfilename_str.isEmpty() && std::filesystem::exists(outputfilename))
         {
@@ -538,7 +543,6 @@ inline void Dialog::Go()
             }
         }
 
-        CheckLoaderParameters();        // might throw
         ui->pushButtonClean->setEnabled(true);
         std::cout << "\n" << std::endl;
 
@@ -878,7 +882,8 @@ void Dialog::closeEvent(QCloseEvent* event)
 
 // Check if zero_max/one_tstates/zero_tstates loader parameters, as given in dialog, are valid.
 // Throws when not valid.
-inline void Dialog::CheckLoaderParameters() const
+// Also check filenames and existence.
+inline void Dialog::Check() const
 {
     auto zero_tstates = ui->lineEditZeroTStates->text().toInt();
     auto one_tstates = ui->lineEditOneTStates->text().toInt();
@@ -903,6 +908,20 @@ inline void Dialog::CheckLoaderParameters() const
         throw std::runtime_error("'one_tstates' to small, minimum is " + std::to_string(zero_tstates + loader_tstates::wait_for_edge_loop_duration));
     }
 
+    fs::path filename1 = ui->lineEditNormalFile->text().toStdString();
+    fs::path filename2 = ui->lineEditTurboFile->text().toStdString();
+    if(ZQLoader::FileIsZqLoader(filename1) && (filename2.empty() || filename2.string()[0] == '['))
+    {
+        throw std::runtime_error("Please give a file to turbo load");
+    }
+    if(!ZQLoader::FileIsZqLoader(filename1) && !std::filesystem::exists(filename1))
+    {
+        throw std::runtime_error("File " + filename1.string() + " not found");
+    }
+    if(ZQLoader::FileIsZqLoader(filename1) && !std::filesystem::exists(filename2))
+    {
+        throw std::runtime_error("File " + filename2.string() + " not found");
+    }
 
 }
 

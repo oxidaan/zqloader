@@ -52,3 +52,4 @@ private:
 
     HandleTapBlockFun   m_OnHandleTapBlock;
 };
+

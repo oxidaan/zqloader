@@ -43,7 +43,7 @@ public:
     Impl(Impl &&) noexcept = default;
     Impl & operator = (Impl &&) = default;
     Impl & operator = (const Impl &) = delete;
-    Impl()  = default;
+    Impl() = default;
 
 
     /// Set normal filename (eg the top filename in the dialog)
@@ -111,23 +111,24 @@ public:
     {
         std::cout << 1 + &*R"(
 <b>Playing an endless leader tone for sound tuning...</b>
-- Connect the audio cable from host computer to the ZX Spectrum <b>EAR</b> input.
-- Set volume to max, both at the operating system as well as at the dials above.
-- Make sure no other sound is playing.
+- Connect the audio cable from the host computer to the ZX Spectrum <b>EAR</b> input
+- Set <b>volume to max</b>, both in the operating system as well as the dials above.
+- Make <b>sure no other sound</b> is playing.
 - Sometimes a stereo cable is better, sometimes mono:
-  When the ZX-Spectrum and the host computer are sharing a common (electrical) ground, a stereo cable is probably best.
-  In that case (when using stereo) it is best to invert one sound output (left or right), you can use volume buttons for that.
-  (just turn one of the dials to complete left)
-  In some other situations a mono cable gives better results.
-  (See also for example here: https://retrocomputing.stackexchange.com/questions/773/loading-zx-spectrum-tape-audio-in-a-post-cassette-world))";
+&nbsp;&nbsp;When the ZX-Spectrum and the host computer are sharing a common (electrical) ground, a stereo cable is probably best.
+&nbsp;&nbsp;When using a stereo cable, it is best to invert one sound output (left or right); you can use the volume dials for that.
+&nbsp;&nbsp;(Just turn one dial fully to the left.)
+&nbsp;&nbsp;In other cases, a mono cable may give better results.
+&nbsp;&nbsp;(See also, for example <a href="https://retrocomputing.stackexchange.com/questions/773/loading-zx-spectrum-tape-audio-in-a-post-cassette-world">here...</a>.)
+)";
 #ifdef _WIN32
         std::cout << 1 + &*R"(
 - At Windows make sure <b>Audio Enhancements</b> are switched off.
-  Eg at `Settings -> System -> Sound -> Speakers -> Advanced`
-  Switch off `Audio Enhancements` there.
+  Eg at <i>Settings -> System -> Sound -> Speakers -> Advanced</i>
+  Switch off <i>Audio Enhancements</i> there.
         )";
 #endif
-    std::cout << "When all is good you get the familiar red/cyan stripes slowly moving up." << std::endl;
+    std::cout << "When all is good you get the familiar red/cyan stripes slowly moving up.\n" << std::endl;
 
         m_spectrumloader.AddEndlessLeader();
         m_spectrumloader.Attach(m_sample_sender);
@@ -267,11 +268,7 @@ public:
 private:
 
 
-    // File is a zqloader.tap file?
-    bool FileIsZqLoader(fs::path p_filename) const
-    {
-        return ToLower(p_filename.stem().string()).find("zqloader") == 0 || p_filename.empty() || p_filename.string()[0] == '[';
-    }
+
 
 
 
@@ -508,7 +505,7 @@ When using zqloader.tap a 2nd filename is needed as runtime argument,
 with the program to be turboloaded. A game for example. 
 Else the ZX Spectrum will not do anything after loading the turbo loader,
 except waiting.
-)");
+    )");
         }
 
         if(m_spectrumloader.GetEstimatedDuration() == 0ms)
@@ -869,6 +866,13 @@ ZQLoader& ZQLoader::AddDataBlock(DataBlock p_block, uint16_t p_start_address)
 bool ZQLoader::WriteTextToAttr(DataBlock& out_attr, const std::string& p_text, std::byte p_color, bool p_center, int p_col)
 {
     return ::WriteTextToAttr(out_attr, p_text, p_color, p_center, p_col);
+}
+
+// File is a zqloader.tap file?
+// static
+bool ZQLoader::FileIsZqLoader(fs::path p_filename)
+{
+    return ToLower(p_filename.stem().string()).find("zqloader") == 0 || p_filename.empty() || p_filename.string()[0] == '[';
 }
 
 
