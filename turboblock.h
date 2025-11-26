@@ -202,7 +202,8 @@ public:
         MoveToLoader(p_loader, std::move(header), p_zero_duration, p_one_duration, p_end_of_byte_delay);     // header
         if (payload.size() != 0)
         {
-            PausePulser(p_loader.GetTstateDuration()).SetLength(500).SetEdge(Edge::toggle).MoveToLoader(p_loader); //  minisync!
+            TonePulser(p_loader.GetTstateDuration()).SetPattern(500).SetLength(1).MoveToLoader(p_loader);       //  minisync!
+           // PausePulser(p_loader.GetTstateDuration()).SetLength(500).SetEdge(Edge::toggle).MoveToLoader(p_loader); //  minisync!
             MoveToLoader(p_loader, std::move(payload), p_zero_duration, p_one_duration, p_end_of_byte_delay);     // data
         }
     }

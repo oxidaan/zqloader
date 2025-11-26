@@ -66,6 +66,18 @@ struct TurboSpeedDataBlock
     BYTE used_bits_last_byte;
     WORD pause;
     BYTE length[3];
+    friend std::ostream &operator << (std::ostream &p_stream, const TurboSpeedDataBlock &p_block) 
+    {
+        p_stream << "Data length = " << p_block.length[0] + 256 * p_block.length[1] + 65536 * p_block.length[2] 
+                // << " pause = " << p_block.pause
+                 << " length_of_pilot_pulse = "  << p_block.length_of_pilot_pulse 
+                 << " length_of_sync_first_pulse = "   << p_block.length_of_sync_first_pulse 
+                 << " length_of_sync_second_pulse = "   << p_block.length_of_sync_second_pulse 
+                 << " length_of_zero_bit_pulse = "  << p_block.length_of_zero_bit_pulse 
+                 << " length_of_one_bit_pulse = "   << p_block.length_of_one_bit_pulse 
+                 << " length_of_pilot_tone = "   << p_block.length_of_pilot_tone;
+        return p_stream; 
+    }
 };
 static_assert(sizeof (TurboSpeedDataBlock) == 0x12);
 #pragma pack(pop)
@@ -134,16 +146,16 @@ struct GeneralizedDataBlock
 
 
     }
-    std::ostream &operator << (std::ostream &p_stream) const
+    friend std::ostream &operator << (std::ostream &p_stream, const GeneralizedDataBlock &p_block) 
     {
-        p_stream << "block_length = " << block_length
-                 << "pause = " << pause
-                 << "totp = "  << totp 
-                 << "npp = "   << npp 
-                 << "asp = "   << asp 
-                 << "totd = "  << totd 
-                 << "npd = "   << npd 
-                 << "asd = "   << asd << std::endl;
+        p_stream << "block_length = " << p_block.block_length
+               //  << " pause = " << p_block.pause
+                 << " totp = "  << p_block.totp 
+                 << " npp = "   << int(p_block.npp)
+                 << " asp = "   << int(p_block.asp)
+                 << " totd = "  << p_block.totd 
+                 << " npd = "   << int(p_block.npd)
+                 << " asd = "   << int(p_block.asd);
         return p_stream; 
     }
 
