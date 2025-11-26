@@ -32,6 +32,7 @@ set(PROJECT_SOURCES
         main.cpp
         dialog.cpp
         dial.h
+        lineedit.h
         dialog.h
         widgetstreambuffer.h
         dialog.ui

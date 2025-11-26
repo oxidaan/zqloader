@@ -18,6 +18,7 @@
 #include "spectrum_consts.h"
 #include <mutex>
 
+
 class Pulser;
 class SampleSender;
 
@@ -70,8 +71,7 @@ public:
     ~SpectrumLoader();   // = default;
 
 
-
-    /// Add any pulser.
+    /// Add any pulser (to standby list)
     template <class TPulser, typename std::enable_if<std::is_base_of<Pulser, TPulser>::value, int>::type = 0>
     SpectrumLoader& AddPulser(TPulser p_pulser)
     {
@@ -81,7 +81,6 @@ public:
         m_duration_in_tstates = 0;     // force recalc
         return *this;
     }
-
 
     /// Convenience: add ZX Spectrum standard leader with given duration.
     SpectrumLoader& AddLeader(std::chrono::milliseconds p_duration);

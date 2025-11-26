@@ -15,18 +15,18 @@
 
 
 
-/// Set length in # of pulses that is # complete patterns.
-TonePulser& TonePulser::SetLength(unsigned p_max_pulses)
+/// Set duration in # of pulses that is # complete patterns.
+TonePulser& TonePulser::SetLength(unsigned p_num_patterns)
 {
     m_forever = false;
     unsigned pattsize = unsigned(m_pattern.size());
     if (pattsize)
     {
-        m_max_pulses = pattsize * p_max_pulses;
+        m_max_pulses = pattsize * p_num_patterns;
     }
     else
     {
-        m_max_pulses = p_max_pulses;
+        m_max_pulses = p_num_patterns;
     }
     return *this;
 }
@@ -69,3 +69,4 @@ int DataPulser::GetDurationInTStates() const
     me->m_pulsnum = pulsnumb4;
     return tstates;
 }
+

@@ -19,7 +19,7 @@ class LineEdit : public QLineEdit
     Q_OBJECT
     using base = QLineEdit;
 public:
-    using LineEdit::LineEdit;
+    using QLineEdit::QLineEdit;
     void focusInEvent(QFocusEvent *e) override
     {
         emit signalFocusIn();

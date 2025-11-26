@@ -96,7 +96,7 @@ SpectrumLoader& SpectrumLoader::AddPause(std::chrono::milliseconds p_duration)
 SpectrumLoader& SpectrumLoader::WriteTzxFile(std::ostream& p_filewrite)
 {
     TzxWriter writer;
-    writer.WriteTzxFile(m_standby_pulsers, p_filewrite);
+    writer.WriteTzxFile(m_standby_pulsers, p_filewrite, m_tstate_dur);
     return *this;
 }
 

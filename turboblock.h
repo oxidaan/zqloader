@@ -192,7 +192,7 @@ public:
         }
 
         TonePulser(p_loader.GetTstateDuration()).SetPattern(500, 500).SetLength(200ms).MoveToLoader(p_loader);    // leader; best to have even number of edges
-        TonePulser(p_loader.GetTstateDuration()).SetPattern(250).SetLength(1).MoveToLoader(p_loader);             // sync
+        TonePulser(p_loader.GetTstateDuration()).SetPattern(250, 500).SetLength(1).MoveToLoader(p_loader);        // sync + minisync!
 
 
 
@@ -202,7 +202,8 @@ public:
         MoveToLoader(p_loader, std::move(header), p_zero_duration, p_one_duration, p_end_of_byte_delay);     // header
         if (payload.size() != 0)
         {
-            MoveToLoader(p_loader, std::move(payload), p_zero_duration, p_one_duration, p_end_of_byte_delay);    // data
+            PausePulser(p_loader.GetTstateDuration()).SetLength(500).SetEdge(Edge::toggle).MoveToLoader(p_loader); //  minisync!
+            MoveToLoader(p_loader, std::move(payload), p_zero_duration, p_one_duration, p_end_of_byte_delay);     // data
         }
     }
 
@@ -239,7 +240,7 @@ private:
     template<class TLoader>
     void MoveToLoader(TLoader& p_loader, DataBlock p_block, int p_zero_duration, int p_one_duration, int p_end_of_byte_delay)
     {
-        PausePulser(p_loader.GetTstateDuration()).SetLength(500).SetEdge(Edge::toggle).MoveToLoader(p_loader); // extra mini sync before
+        // already done! PausePulser(p_loader.GetTstateDuration()).SetLength(500).SetEdge(Edge::toggle).MoveToLoader(p_loader); // extra minisync before
 
         DataPulser(p_loader.GetTstateDuration())                      // data
             .SetZeroPattern(p_zero_duration)                              // works with ONE_MAX 12 ZERO_MAX 4

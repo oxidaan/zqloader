@@ -16,6 +16,24 @@
 #include <ostream>                  // std::ostream
 
 
+class PausePulser;
+class TonePulser;
+class DataPulser;
+
+// Visitor Interface
+// (used for tzx writing)
+class PulserVisitor
+{
+public:
+    PulserVisitor() = default;
+    virtual ~PulserVisitor() = default;
+    virtual void Visit(const PausePulser& p_pulser) const = 0;
+    virtual void Visit(const TonePulser& p_pulser) const  = 0;
+    virtual void Visit(const DataPulser& p_pulser) const  = 0;
+
+};
+
+
 /// A pulser is used by miniaudio te create an audio stream.
 /// Encodes binary data to a series of (audio) pulses that can be loaded by
 /// ancient computers like the ZX spectrum.
@@ -39,6 +57,10 @@ public:
     Pulser(Pulser&&) = default;
     virtual ~Pulser() 
     {}
+
+
+    // Visitor pattern
+    virtual void Accept(const PulserVisitor& p_visitor) const = 0;
 
     virtual Edge GetEdge() const = 0;       // What to do after wait
     virtual bool Next()          = 0;       // move to next pulse/edge, return true when done.
@@ -84,8 +106,6 @@ protected:
 /// Does not pulse, although can change pulse/edge output at first call (after wait).
 class PausePulser : public Pulser
 {
-    friend class TzxWriter;
-
     PausePulser(const PausePulser&) = delete;
     using Clock = std::chrono::system_clock;
 
@@ -97,6 +117,13 @@ public:
 
 
     PausePulser(PausePulser&&) = default;
+
+
+    void Accept(const PulserVisitor& p_visitor) const override
+    {
+        p_visitor.Visit(*this);
+    }
+
 
     /// Set length of pause in milliseconds.
     PausePulser& SetLength(std::chrono::milliseconds p_duration)
@@ -143,7 +170,10 @@ public:
         return edge;
     }
 
-
+    Edge GetEdgeAfterWait() const
+    {
+        return m_edge;
+    }
 
     bool Next() override
     {
@@ -185,7 +215,6 @@ private:
 /// Does not need data.
 class TonePulser : public Pulser
 {
-    friend class TzxWriter;
     TonePulser(const TonePulser&) = delete;
     using Clock = std::chrono::system_clock;
 
@@ -198,6 +227,12 @@ public:
 
     TonePulser(TonePulser&&) = default;
 
+    void Accept(const PulserVisitor& p_visitor) const override
+    {
+        p_visitor.Visit(*this);
+    }
+
+
     /// Set tone pattern using one ore more given T-state durations.
     /// These form one pattern.
     /// Audio output edge well be toggled after each here given T state.
@@ -209,11 +244,16 @@ public:
         return *this;
     }
 
+    auto GetPattern() const
+    {
+        return m_pattern;
+    }
 
-    /// Set length in # of pulses that is # complete patterns.
-    TonePulser& SetLength(unsigned p_max_pulses);
 
-    /// Set length in milliseconds, rounds up to complete patterns.
+    /// Set duration in # complete patterns.
+    TonePulser& SetLength(unsigned p_num_patterns);
+
+    /// Set duration in milliseconds, rounds up to complete patterns.
     TonePulser& SetLength(std::chrono::milliseconds p_duration);
 
     /// Set length infinite
@@ -251,7 +291,10 @@ public:
     {
         return  int(m_pattern.size() ? ((m_max_pulses * GetPatternDuration()) /  m_pattern.size()) : 0);
     }
-
+    int GetMaxPulses() const
+    {
+        return m_max_pulses;
+    }
 protected:
 
     int GetTstate() const override
@@ -305,7 +348,6 @@ private:
 /// Can optionally use 'pulse mode' having fixed length pulses like RS-232.
 class DataPulser : public Pulser
 {
-    friend class TzxWriter;
     DataPulser(const DataPulser&) = delete;
 
 public:
@@ -317,6 +359,11 @@ public:
 
     DataPulser(DataPulser&&) = default;
 
+
+    void Accept(const PulserVisitor& p_visitor) const override
+    {
+        p_visitor.Visit(*this);
+    }
 
     /// Set Pattern (TStates) used to send a "1"
     template<typename ... TParams>
@@ -338,6 +385,14 @@ public:
         return *this;
     }
 
+    auto GetOnePattern() const
+    {
+        return m_one_pattern;
+    }
+    auto GetZeroPattern() const
+    {
+        return m_zero_pattern;
+    }
 
 
     /// When != 0 switches to 'pulse mode' having fixed length pulses (given here) being
@@ -434,6 +489,15 @@ public:
 
     int GetDurationInTStates() const override;
 
+    // Data size in bytes
+    size_t GetTotalSize() const
+    {
+        return m_data.size();
+    }
+    std::byte GetByte(unsigned p_index) const
+    {
+        return m_data[p_index];
+    }
 protected:
 
     /// Get # TStates to wait now
@@ -465,6 +529,8 @@ protected:
             return m_puls_duration;
         }
     }
+
+
 
 private:
 
@@ -505,10 +571,7 @@ private:
 
 
 
-    std::byte GetByte(unsigned p_index) const
-    {
-        return m_data[p_index];
-    }
+
 
 
 
@@ -519,11 +582,7 @@ private:
 
 
 
-    // Data size in bytes
-    size_t GetTotalSize() const
-    {
-        return m_data.size();
-    }
+
 
 
 
@@ -669,3 +728,4 @@ protected:
 
 private:
 };
+

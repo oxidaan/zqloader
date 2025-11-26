@@ -1,7 +1,9 @@
 //==============================================================================
 // PROJECT:         zqloader
-// FILE:            types.h
-// DESCRIPTION:     Some generic types.
+// FILE:            tzx_types.h
+// DESCRIPTION:     Types for tzx.
+//                  http://k1.spdns.de/Develop/Projects/zasm/Info/TZX%20format.html
+//                  https://worldofspectrum.net/TZXformat.html
 // 
 // Copyright (c) 2023 Daan Scherft [Oxidaan]
 // This project uses the MIT license. See LICENSE.txt for details.
@@ -11,6 +13,8 @@
 
 
 #include "types.h"      // Edge
+
+
 
 using BYTE   = uint8_t;
 using WORD   = uint16_t;
@@ -47,6 +51,25 @@ enum class TzxBlockType : BYTE
 };
 
 std::ostream& operator << (std::ostream& p_stream, TzxBlockType p_enum);
+
+
+
+#pragma pack(push, 1)
+struct TurboSpeedDataBlock
+{
+    WORD length_of_pilot_pulse;
+    WORD length_of_sync_first_pulse;
+    WORD length_of_sync_second_pulse;
+    WORD length_of_zero_bit_pulse;
+    WORD length_of_one_bit_pulse;
+    WORD length_of_pilot_tone;
+    BYTE used_bits_last_byte;
+    WORD pause;
+    BYTE length[3];
+};
+static_assert(sizeof (TurboSpeedDataBlock) == 0x12);
+#pragma pack(pop)
+
 
 
 // http://k1.spdns.de/Develop/Projects/zasm/Info/TZX%20format.html
@@ -114,7 +137,7 @@ struct GeneralizedDataBlock
     std::ostream &operator << (std::ostream &p_stream) const
     {
         p_stream << "block_length = " << block_length
-                 << "pause = " << pause 
+                 << "pause = " << pause
                  << "totp = "  << totp 
                  << "npp = "   << npp 
                  << "asp = "   << asp 
@@ -125,6 +148,5 @@ struct GeneralizedDataBlock
     }
 
 };
-
 #pragma pack(pop)
 

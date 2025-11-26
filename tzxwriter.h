@@ -20,21 +20,45 @@ public:
     using Pulsers   = std::vector<PulserPtr>;
 
 public:
+    TzxWriter() = default;
     ///  Writer
-    void WriteTzxFile(const Pulsers &p_pulsers, std::ostream& p_stream );
-private:
-    template <class T>
-    void TryWriteAsTzxBlock(const Pulser *p, std::ostream& p_stream)
+    void WriteTzxFile(const Pulsers &p_pulsers, std::ostream& p_stream , Doublesec p_tstate_dur);
+    struct TzxBlockWriter : public PulserVisitor
     {
-        if(dynamic_cast<const T *>(p))
+        TzxBlockWriter(std::ostream &p_stream, Doublesec p_tstate_dur) :
+            m_stream(p_stream),
+            m_tstate_dur(p_tstate_dur)
+        {}
+        void Visit(const TonePulser &p_pulser)  const  override
         {
-            WriteAsTzxBlock(*dynamic_cast<const T *>(p), p_stream);
+            WriteAsTzxBlock(p_pulser, m_stream);
         }
-    }
+        void Visit(const PausePulser &p_pulser)  const override
+        {
+            WriteAsTzxBlock(p_pulser, m_stream);
+        }
+        void Visit(const DataPulser &p_pulser)  const override
+        {
+            WriteAsTzxBlock(p_pulser, m_stream);
+        }
+    private:
+        void WriteAsTzxBlock(const TonePulser &p_pluser, std::ostream &p_stream) const;
+        void WriteAsTzxBlock(const PausePulser &p_pluser, std::ostream &p_stream) const;
+        void WriteAsTzxBlock(const DataPulser &p_pluser, std::ostream &p_stream) const;
+        std::ostream &m_stream;
+        Doublesec m_tstate_dur;
+    };
+private:
 
-    void WriteAsTzxBlock(const TonePulser &p_pluser, std::ostream &p_stream) const;
-    void WriteAsTzxBlock(const PausePulser &p_pluser, std::ostream &p_stream) const;
-    void WriteAsTzxBlock(const DataPulser &p_pluser, std::ostream &p_stream) const;
-    static bool PulserIsLeader(const Pulser &p_pulser);
-    static bool PulserIsSync(const Pulser &p_pulser);
+
+
+    static bool IsPulserLeader(const Pulser &p_pulser);
+    static bool IsPulserSync(const Pulser &p_pulser);
+    static bool IsPulserSpectrumData(const Pulser &p_pulser);
+    static bool IsPulserTurboData(const Pulser &p_pulser);
+    static bool IsZqLoaderTurboData(const Pulser &p_pulser);
+    void WriteAsStandardSpectrum(std::ostream& p_stream, const TonePulser &p_leader, const TonePulser &p_sync, const DataPulser &p_data);
+    void WriteAsTurboData(std::ostream &p_stream, const TonePulser &p_leader, const TonePulser &p_sync, const DataPulser &p_data);
+    void WriteAsZqLoaderTurboData(std::ostream &p_stream, const TonePulser *p_leader, const TonePulser &p_sync, const DataPulser &p_data);
+private:
 };
