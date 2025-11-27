@@ -7,7 +7,7 @@
 // This project uses the MIT license. See LICENSE.txt for details.
 // ==============================================================================
 
-//#define DEBUG_TZX
+#define DEBUG_TZX
 #include "tzxwriter.h"
 #include "tzx_types.h"
 #include "loadbinary.h"     // WriteBinary
@@ -68,7 +68,7 @@ inline bool TzxWriter::IsPulserSpectrumData(const Pulser &p_pulser)
 }
 
 
-// Is given Pulser a zqloader turbo data block? With 2 same edges for each zero/one.
+// Is given Pulser a 'normal' turbo data block? With 2 same edges for each zero/one.
 // (Can write as ID 11 - Turbo Speed Data Block)
 inline bool TzxWriter::IsPulserTurboData(const Pulser &p_pulser)
 {
@@ -250,6 +250,8 @@ void TzxWriter::TzxBlockWriter::WriteAsTzxBlock(const TonePulser &p_pulser, std:
 
 
 /// Write a pause
+/// Long pauses are written as PauseOrStopthetapecommand
+/// Short ones as (empty) GeneralizedDataBlock, can also have edge at end.
 void TzxWriter::TzxBlockWriter::WriteAsTzxBlock(const PausePulser &p_pulser, std::ostream& p_stream) const
 {
     auto edge = p_pulser.GetEdgeAfterWait();
@@ -293,13 +295,14 @@ void TzxWriter::TzxBlockWriter::WriteAsTzxBlock(const PausePulser &p_pulser, std
             WriteBinary(p_stream, WORD(duration_in_tstates));
 
             DebugLog(" | Symdef#2: ");
-            // 2nd symdef for edge
+            // 2nd symdef for just an edge
             symdef.m_edge = edge;
             WriteBinary(p_stream, symdef);
-            WriteBinary(p_stream, WORD(0));
+            WriteBinary(p_stream, WORD(0));     // no waits here
 
 
-            for (unsigned totp = 0; totp < generalized_data_block.totp; totp++)
+            // write pause (1x) - sync(1x) sequence.
+            for (unsigned totp = 0; totp < generalized_data_block.totp; totp++)     // is 2
             {
                 DebugLog((" | Prle#" + std::to_string(totp) + ": ").c_str());
                 GeneralizedDataBlock::Prle prle {};
@@ -329,6 +332,7 @@ void TzxWriter::TzxBlockWriter::WriteAsTzxBlock(const PausePulser &p_pulser, std
 
 
 /// Write a generalizedDataBlock with *just* data.
+/// No pilot/sync.
 void TzxWriter::TzxBlockWriter::WriteAsTzxBlock(const DataPulser &p_pulser, std::ostream& p_stream) const
 {
     const auto &one_pattern = p_pulser.GetOnePattern();
@@ -374,6 +378,7 @@ void TzxWriter::TzxBlockWriter::WriteAsTzxBlock(const DataPulser &p_pulser, std:
     }
 
     DebugLog(" | Data: ");
+    // The actual data follows here
     for(int i = 0; i < total_size; i++)
     {
         WriteBinary(p_stream, p_pulser.GetByte(i));
@@ -391,6 +396,8 @@ void TzxWriter::TzxBlockWriter::WriteAsTzxBlock(const DataPulser &p_pulser, std:
     
 }
 
+// Write as ID 0x10 - StandardSpeedDataBlock.
+// Has predefined pilot and sync so these parametersare not used.
 void TzxWriter::WriteAsStandardSpectrum(std::ostream& p_stream, const TonePulser &p_pilot, const TonePulser &p_sync, const DataPulser &p_data)
 {
     (void)p_pilot;
@@ -408,7 +415,7 @@ void TzxWriter::WriteAsStandardSpectrum(std::ostream& p_stream, const TonePulser
 
 }
 
-// Write as ID 11 - Turbo Speed Data Block
+// Write as ID 0x11 - Turbo Speed Data Block
 void TzxWriter::WriteAsTurboData(std::ostream& p_stream, const TonePulser &p_pilot, const TonePulser &p_sync, const DataPulser &p_data)
 {
     auto len = p_data.GetTotalSize();
@@ -435,12 +442,17 @@ void TzxWriter::WriteAsTurboData(std::ostream& p_stream, const TonePulser &p_pil
 }
 
 
-
+/// Write as ID 0x19 - GeneralizedDataBlock
+/// A ZQ Loader turbo block has:
+/// *optionally* a pilot tone;
+/// a sync; (can also be minisync)
+/// then data with one edge per bit.
+/// p_leader can be nullptr when there is no pilot tone.
 void TzxWriter::WriteAsZqLoaderTurboData(std::ostream &p_stream, const TonePulser *p_leader, const TonePulser &p_sync, const DataPulser &p_data)
 {
     const auto &one_pattern = p_data.GetOnePattern();
     const auto &zero_pattern = p_data.GetZeroPattern();
-    const auto total_size = p_data.GetTotalSize();        // # bytes
+    const auto len = p_data.GetTotalSize();        // # bytes
 
     const TonePulser *leader = p_leader ? IsPulserLeader(*p_leader) ? p_leader : nullptr : nullptr;
 
@@ -453,20 +465,20 @@ void TzxWriter::WriteAsZqLoaderTurboData(std::ostream &p_stream, const TonePulse
     generalized_data_block.npp          = BYTE(std::max(leader ? leader->GetPattern().size() : 0, p_sync.GetPattern().size()));
     generalized_data_block.asp          = leader ? 2 : 1;
 
-    generalized_data_block.totd         = DWORD(total_size * 8);        // so # bits
+    generalized_data_block.totd         = DWORD(len * 8);        // so # bits
     generalized_data_block.npd          = BYTE(std::max(zero_pattern.size(), one_pattern.size()));  // should be 1 for zqloader turbo blocks
     generalized_data_block.asd          = 2; // we have a pattern for 0 and for 1
 
-    generalized_data_block.block_length = DWORD(generalized_data_block.GetBlockLength(total_size));
-    std::cout << "GeneralizedDataBlock: #bytes: " << total_size << "  " << generalized_data_block << std::endl;
+    generalized_data_block.block_length = DWORD(generalized_data_block.GetBlockLength(len));
+    std::cout << "GeneralizedDataBlock: #bytes: " << len << "  " << generalized_data_block << std::endl;
 #ifdef DEBUG_TZX
     auto pos_start = p_stream.tellp();
 #endif
     WriteBinary(p_stream, generalized_data_block);
 
-   if(generalized_data_block.totp > 0)
+   if(generalized_data_block.totp > 0)      // 2  or 1
    {
-        for(int asp = 0; asp < generalized_data_block.asp; asp++)
+        for(int asp = 0; asp < generalized_data_block.asp; asp++)       // also 2 or 1
         {
             DebugLog(" | Symdef: ");
             GeneralizedDataBlock::SymDef symdef{};
@@ -478,7 +490,7 @@ void TzxWriter::WriteAsZqLoaderTurboData(std::ostream &p_stream, const TonePulse
                 WriteBinary(p_stream, (npp < pattern.size()) ? WORD(pattern[npp]) : WORD(0));
             }
         }
-        for (unsigned totp = 0; totp < generalized_data_block.totp; totp++)
+        for (unsigned totp = 0; totp < generalized_data_block.totp; totp++)     // 2 or 1
         {
             GeneralizedDataBlock::Prle prle {};
             prle.m_symbol = BYTE(totp);
@@ -504,13 +516,13 @@ void TzxWriter::WriteAsZqLoaderTurboData(std::ostream &p_stream, const TonePulse
     }
 
     DebugLog(" | Data: ");
-    for(int i = 0; i < total_size; i++)
+    for(int i = 0; i < len; i++)
     {
         WriteBinary(p_stream, p_data.GetByte(i));
     }
 #ifdef DEBUG_TZX
     auto pos_end = p_stream.tellp();
-    if(unsigned(pos_end - pos_start) != generalized_data_block.GetBlockLength(total_size) +  sizeof(generalized_data_block.block_length))
+    if(unsigned(pos_end - pos_start) != generalized_data_block.GetBlockLength(len) +  sizeof(generalized_data_block.block_length))
     {
         std::stringstream ss;
         ss << "TZX issues detected:" << pos_end << ' ' << pos_start << ' ' << pos_end - pos_start << ' ' << generalized_data_block.GetBlockLength(0) << ' ' << sizeof(generalized_data_block.block_length) << std::endl;
