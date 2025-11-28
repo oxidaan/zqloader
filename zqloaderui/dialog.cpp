@@ -918,7 +918,7 @@ inline void Dialog::Check() const
     {
         throw std::runtime_error("File " + filename1.string() + " not found");
     }
-    if(ZQLoader::FileIsZqLoader(filename1) && !std::filesystem::exists(filename2))
+    if(ZQLoader::FileIsZqLoader(filename1) && !std::filesystem::exists(filename2) && filename2 != "testdata")
     {
         throw std::runtime_error("File " + filename2.string() + " not found");
     }

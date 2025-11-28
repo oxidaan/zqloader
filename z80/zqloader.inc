@@ -19,7 +19,7 @@
 // Must match value at compressor.h:
 //    DEFINE DO_COMRESS_PAIRS
 
-
+//    DEFINE DEBUG
   
 
     DEVICE ZXSPECTRUM48
@@ -122,8 +122,7 @@ BASIC_LEN EQU BASIC_END - BASIC_START
 ASM_START:
     // clear screen & print a message
     call ROM_CLS                 // cls; also opens channel #2 so rst 10 goes to screen
-//    ld DE, TEXT_LOADING
-//    call PRINT                  // print "Loading..." 
+
 
     // move loader to upper regions. (to avoid contended memory)
     // this can be overwritten when loading last block.
@@ -132,6 +131,10 @@ ASM_START:
     ld BC, ASM_UPPER_LEN            
     ldir
 
+ IFDEF DEBUG
+    ld DE, TEXT_LOADING
+    call PRINT                  // print "Loading..." 
+ ENDIF
     
     // initialize
     di                          // #di1          
@@ -292,6 +295,9 @@ END_TO_BASIC:
         pop HL                  // #PP2
         pop DE                  // #PP1
     exx  
+ IFDEF DEBUG
+    ld BC, (m_load_address)     // @DEBUG show at basic
+ ENDIF
     ei                          // #di1
     ret    
 
@@ -426,13 +432,22 @@ PRINT:
 
 //----------------------------------------------------------------------------
 
-//TEXT_LOADING:
-//    DC " Loading...\r"        
+ IFDEF DEBUG
+TEXT_LOADING:
+    DC " Loading...\r"        
+ ENDIF
 TEXT_CHECKSUM_ERROR :
     DC "CRC "
 TEXT_ERROR :
     DC "ERROR\r"                // \r is a newline
 
+ IFDEF DEBUG
+TEXT_DEBUG :
+    DC "DEBUG\r"                // \r is a newline
+PRINT_DEBUG:
+    ld DE, TEXT_DEBUG
+    jp PRINT
+ ENDIF
 
 //============================================================================
 
@@ -533,7 +548,7 @@ wait_for_first_edge:
 
     // --- We now saw a sync (eg B=8,7,6,5) ---
     // When fails from now on do not try again.
-    // call PRINT_DEBUG
+    // call PRINT_DEBUG            // @DEBUG
 
     ld    A, C
     xor   0b00000011            //  Toggle border 001 blue <-> 110 yellow from now on
@@ -543,8 +558,8 @@ wait_for_first_edge:
     //  ld HL', HEADER            // already done
     //  ld DE', HEADER_LEN        // already done
     call LOAD_BYTES             // load header
-    ret z                       // loading error
-
+    ret z                       // loading error (timeout)
+    // jp PRINT_DEBUG            //  @DEBUG
   
     // -- We now have read a header --
 
@@ -580,7 +595,8 @@ wait_for_first_edge:
 // HL': (increases)
 // BC': (walks to zero) 
 // E': Checksum             
-// D': not used             
+// D': not used       
+// H: the C xor value, see above
 // L: Now/Last loaded byte
 // B: timer count down at WAIT_FOR_EDGE
 // C: to check changes at last IN ; border color. Will be xored with H. 0E001001 <-> 0e001110
@@ -596,9 +612,9 @@ LOAD_BYTES:
 
 BIT_LOOP_MAX+*:     ld D, ONE_MAX               // eg 12 can also be set from C++ code
 
-    ld B, 200                   // @Opt Mini sync
-    call WAIT_FOR_EDGE          // @Opt Mini sync 62T states since last in
-    ret z                       // @Opt Mini sync 5 T states
+    ld B, 200                   // Minisync
+    call WAIT_FOR_EDGE          // Minisync 62T states since last in
+    ret z                       // Minisync 5 T states
     nop                         // makes it bit cycle time exactly (78T). 4 T states -> 71 T
 
 // wait_for_edge_loop2: 43T

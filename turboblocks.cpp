@@ -303,12 +303,12 @@ public:
         {
             AddTurboBlock(std::move(block));
         }
-        std::chrono::milliseconds pause_before = 0ms;
+        std::chrono::milliseconds pause_before = m_initial_wait;
         if (IsZqLoaderAdded())        // else probably already preloaded
         {
             p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_header), spectrum::tstate_quick_zero, 1750ms);
             p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_code), spectrum::tstate_quick_zero, 1500ms);
-            p_spectrumloader.AddPause(m_initial_wait); // time needed to start our loader after loading itself (basic!)
+           // p_spectrumloader.AddPause(m_initial_wait); // time needed to start our loader after loading itself (basic!)
         }
 
         int cnt = 1;
@@ -334,6 +334,7 @@ public:
     void DebugDump() const
     {
         std::cout << "Duration of Zero/One: " << m_zero_duration << '/' << m_one_duration <<
+            "; Max zero: " << m_zero_max <<
             "; End of byte: " << m_end_of_byte_delay << 
             "; Decompr. speed (kb/s): " << m_decompression_speed << 
             "; Init. wait: " << m_initial_wait.count() << std::endl;
