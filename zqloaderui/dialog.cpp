@@ -547,8 +547,7 @@ inline void Dialog::Go()
         std::cout << "\n" << std::endl;
 
 
-        SetState(State::Playing);
-
+        
         // When outputfile="path/to/filename" or -w or -wav given: 
         // Convert to wav file instead of outputting sound
         m_zqloader.SetOutputFilename(outputfilename, true);     // allow overwrite for now
@@ -599,7 +598,7 @@ inline void Dialog::Go()
         m_zqloader.SetSampleRate(ui->lineEditSampleRate->text().toInt());
         m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());
 
-        
+        SetState(State::Playing);
         m_zqloader.Start();
         if(!m_zqloader.IsBusy())     // else immidiately done eg writing wav file
         {

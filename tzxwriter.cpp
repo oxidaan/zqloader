@@ -432,7 +432,7 @@ void TzxWriter::WriteAsTurboData(std::ostream& p_stream, const TonePulser &p_pil
     block.length[0] = len & 0xff;           // bit of weird 24 bit length
     block.length[1] = BYTE((len & 0xff00) >> 8);
     block.length[2] = BYTE((len & 0xff0000) >> 16);
-    std::cout << "TurboSpeedDataBlock: Pilot Length = " << (1000.0 * block.length_of_pilot_tone * block.length_of_pilot_pulse * spectrum::tstate_dur.count()) << "ms #bytes: " << len << "  " <<  block << std::endl;
+    std::cout << "TurboSpeedDataBlock: Pilot Length = " << (1000.0 * block.length_of_pilot_tone * block.length_of_pilot_pulse * spectrum::tstate_dur.count()) << "  " <<  block << std::endl;
     WriteBinary(p_stream, block);
     for(int i = 0; i < len; i++)
     {
@@ -453,6 +453,7 @@ void TzxWriter::WriteAsZqLoaderTurboData(std::ostream &p_stream, const TonePulse
     const auto &one_pattern = p_data.GetOnePattern();
     const auto &zero_pattern = p_data.GetZeroPattern();
     const auto len = p_data.GetTotalSize();        // # bytes
+    auto delay_after_byte = p_data.GetExtraDelayAfterByte();
 
     const TonePulser *leader = p_leader ? IsPulserLeader(*p_leader) ? p_leader : nullptr : nullptr;
 
@@ -465,16 +466,18 @@ void TzxWriter::WriteAsZqLoaderTurboData(std::ostream &p_stream, const TonePulse
     generalized_data_block.npp          = BYTE(std::max(leader ? leader->GetPattern().size() : 0, p_sync.GetPattern().size()));
     generalized_data_block.asp          = leader ? 2 : 1;
 
-#if 1
-    generalized_data_block.totd         = DWORD(len * 8);        // so # bits
-    generalized_data_block.npd          = BYTE(std::max(zero_pattern.size(), one_pattern.size()));  // should be 1 for zqloader turbo blocks
-    generalized_data_block.asd          = 2; // we have a pattern for 0 and for 1
-#else
-    generalized_data_block.totd         = DWORD(len * 4);        // so # bits
-    generalized_data_block.npd          = BYTE(std::max(2 * zero_pattern.size(), 2 * one_pattern.size()));  // should be 1 for zqloader turbo blocks
-    generalized_data_block.asd          = 4; // we have a pattern for 00 01 10 and 11
-#endif
-
+    if(!delay_after_byte)
+    {
+        generalized_data_block.totd         = DWORD(len * 8);        // so # bits
+        generalized_data_block.npd          = BYTE(std::max(zero_pattern.size(), one_pattern.size()));  // should be 1 for zqloader turbo blocks
+        generalized_data_block.asd          = 2; // we have a pattern for 0 and for 1
+    }
+    else
+    {
+        generalized_data_block.totd         = DWORD(len);        // so # bytes
+        generalized_data_block.npd          = BYTE(std::max(8* zero_pattern.size(), 8* one_pattern.size()));  // should be 8
+        generalized_data_block.asd          = 0; // 0=256! we have a pattern for 256 byte values
+    }
     generalized_data_block.block_length = DWORD(generalized_data_block.GetBlockLength(len));
     std::cout << "GeneralizedDataBlock: #bytes: " << len << "  " << generalized_data_block << std::endl;
 #ifdef DEBUG_TZX
@@ -506,51 +509,38 @@ void TzxWriter::WriteAsZqLoaderTurboData(std::ostream &p_stream, const TonePulse
             WriteBinary(p_stream, prle);
         }
     }
-
-#if 1
-    for(int asd = 0; asd < generalized_data_block.asd; asd++)     // should be 2. Pattern for '0' and '1' 
+    // "0=256"
+    auto maxasd = generalized_data_block.asd == 0 ? 256 : generalized_data_block.asd;
+    for(int asd = 0; asd < maxasd; asd++)  // should be 2. Pattern for '0' and '1' 
     {
         DebugLog(" | SymDef: ");
         GeneralizedDataBlock::SymDef symdef{};
         symdef.m_edge = Edge::toggle;      // toggle
         WriteBinary(p_stream, symdef);
-        const auto & pattern = (asd == 0) ? zero_pattern : one_pattern;
-        for (int npd = 0; npd < generalized_data_block.npd; npd++)        // should be 1 for turbo blocks; 2 for standard speed.
+        if(!delay_after_byte)
         {
-            WriteBinary(p_stream, (npd < pattern.size()) ? WORD(pattern[npd]) : WORD(0));
+            const auto & pattern = (asd == 0) ? zero_pattern : one_pattern;
+            for (int npd = 0; npd < generalized_data_block.npd; npd++)        // should be 1 for our turbo blocks
+            {
+                WriteBinary(p_stream, (npd < pattern.size()) ? WORD(pattern[npd]) : WORD(0));
+            }
+        }
+        else
+        {
+            for (int npd = 0; npd < generalized_data_block.npd ; npd++)        // should be = 8
+            {
+                bool bit = (asd >> (7 - npd)) & 0x1;
+                if(bit)
+                {
+                    WriteBinary(p_stream, WORD(one_pattern[0] +  (npd == 7 ? delay_after_byte : 0)) );
+                }
+                else
+                {
+                    WriteBinary(p_stream, WORD(zero_pattern[0] + (npd == 7 ? delay_after_byte : 0)) );
+                }
+            }
         }
     }
-#else 
-    for(int asd = 0; asd < generalized_data_block.asd; asd++)     // should be 4: 00 01 10 11
-    {
-        DebugLog(" | SymDef: ");
-        GeneralizedDataBlock::SymDef symdef{};
-        symdef.m_edge = Edge::toggle;      // toggle
-        WriteBinary(p_stream, symdef);
-        if(asd == 0)
-        {
-            WriteBinary(p_stream,  WORD(zero_pattern[0]) );
-            WriteBinary(p_stream,  WORD(zero_pattern[0]) );
-        }
-        else if(asd == 1)
-        {
-            WriteBinary(p_stream,  WORD(zero_pattern[0]) );
-            WriteBinary(p_stream,  WORD(one_pattern[0]) );
-
-        }
-        else if(asd == 2)
-        {
-            WriteBinary(p_stream,  WORD(one_pattern[0]) );
-            WriteBinary(p_stream,  WORD(zero_pattern[0]) );
-        }
-        else if(asd == 3)
-        {
-            WriteBinary(p_stream,  WORD(one_pattern[0]) );
-            WriteBinary(p_stream,  WORD(one_pattern[0]) );
-        }
-    }
-#endif
-
     DebugLog(" | Data: ");
     for(int i = 0; i < len; i++)
     {

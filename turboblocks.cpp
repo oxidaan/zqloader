@@ -355,10 +355,7 @@ public:
         {
             m_one_duration = p_one_duration;
         }
-        if (p_end_of_byte_delay != 0)
-        {
-            m_end_of_byte_delay = p_end_of_byte_delay;
-        }
+        m_end_of_byte_delay = p_end_of_byte_delay;      // can be zero as well
         std::cout << "Around " << (1000ms / spectrum::tstate_dur) / ((m_zero_duration + m_one_duration) / 2) << " bps" << std::endl;
     }
 

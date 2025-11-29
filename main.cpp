@@ -214,7 +214,7 @@ int main(int argc, char** argv)
                     SetZeroMax(cmdline.GetParameter<int>("zero_max", 0)).
                   SetDurations(cmdline.GetParameter("zero_tstates", 0),
                                cmdline.GetParameter("one_tstates", 0),
-                               cmdline.GetParameter("end_of_byte_delay", 0));
+                               cmdline.GetParameter("end_of_byte_delay", loader_defaults::end_of_byte_delay));
 
         zqloader.SetVolume(cmdline.GetParameter("volume_left",  loader_defaults::volume_left),
                            cmdline.GetParameter("volume_right", loader_defaults::volume_right));

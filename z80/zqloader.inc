@@ -269,7 +269,7 @@ go_go_go:
     // ld (16385), A              // @DEBUG have some visible feedback
     // ld B, H                    // @DEBUG show HL in basic
     // ld C, L                    // @DEBUG show HL in basic
-    // jr END_TO_BASIC            // @DEBUG   show HL in basic
+    // jr END_TO_BASIC            // @DEBUG show HL in basic
     // ld A, 4                    // @DEBUG
     // OUT 0xfE, A                // @DEBUG GREEN border 
     // jr go_go_go                // @DEBUG

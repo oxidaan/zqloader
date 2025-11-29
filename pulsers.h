@@ -170,10 +170,12 @@ public:
         return edge;
     }
 
+    // Get edge as set (tzx writer needs this)
     Edge GetEdgeAfterWait() const
     {
         return m_edge;
     }
+
 
     bool Next() override
     {
@@ -393,7 +395,12 @@ public:
     {
         return m_zero_pattern;
     }
-
+    
+    // Get extra delay after byte (as set) (tzx writer needs this)
+    int GetExtraDelayAfterByte() const
+    {
+        return m_delay_duration;
+    }
 
     /// When != 0 switches to 'pulse mode' having fixed length pulses (given here) being
     /// high or low for 1 or zero as RS-232.

@@ -17,7 +17,7 @@ namespace loader_tstates
 constexpr int wait_for_edge_loop_duration  = 40;    // Polling loop duration
 constexpr int bit_loop_duration            = 91;    // Bit loop duration
 constexpr int byte_loop_loop_duration      = 155;   // Byte loop duration
-constexpr int end_of_byte_delay            = byte_loop_loop_duration - bit_loop_duration ;   // Byte loop duration
+constexpr int end_of_byte_delay            = byte_loop_loop_duration - bit_loop_duration ;   // Extra delay at end of byte (store/crc etc)
 #ifndef DO_COMRESS_PAIRS
 constexpr int decompression_loop           = 72;    // min 65; realistic 72; decompresion loop speed tstates/byte
 #else
