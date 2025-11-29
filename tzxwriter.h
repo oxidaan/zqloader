@@ -50,15 +50,15 @@ public:
     };
 private:
 
-
+    void WriteInfo(std::ostream& p_stream);
 
     static bool IsPulserLeader(const Pulser &p_pulser);
     static bool IsPulserSync(const Pulser &p_pulser);
     static bool IsPulserSpectrumData(const Pulser &p_pulser);
     static bool IsPulserTurboData(const Pulser &p_pulser);
     static bool IsZqLoaderTurboData(const Pulser &p_pulser);
-    void WriteAsStandardSpectrum(std::ostream& p_stream, const TonePulser &p_leader, const TonePulser &p_sync, const DataPulser &p_data);
-    void WriteAsTurboData(std::ostream &p_stream, const TonePulser &p_leader, const TonePulser &p_sync, const DataPulser &p_data);
+    void WriteAsStandardSpectrum (std::ostream& p_stream, const TonePulser &p_leader, const TonePulser &p_sync, const DataPulser &p_data);
+    void WriteAsTurboData        (std::ostream &p_stream, const TonePulser &p_leader, const TonePulser &p_sync, const DataPulser &p_data);
     void WriteAsZqLoaderTurboData(std::ostream &p_stream, const TonePulser *p_leader, const TonePulser &p_sync, const DataPulser &p_data);
 private:
 };

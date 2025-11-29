@@ -303,11 +303,12 @@ public:
         {
             AddTurboBlock(std::move(block));
         }
-        std::chrono::milliseconds pause_before = m_initial_wait;
+        std::chrono::milliseconds pause_before = 0ms;
         if (IsZqLoaderAdded())        // else probably already preloaded
         {
             p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_header), spectrum::tstate_quick_zero, 1750ms);
             p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_code), spectrum::tstate_quick_zero, 1500ms);
+            std::chrono::milliseconds pause_before = m_initial_wait;
            // p_spectrumloader.AddPause(m_initial_wait); // time needed to start our loader after loading itself (basic!)
         }
 

@@ -7,17 +7,15 @@
 // This project uses the MIT license. See LICENSE.txt for details.
 // ==============================================================================
 
-//#define DEBUG_TZX
 
 #include "tzxloader.h"
 #include "tzx_types.h"
 #include "taploader.h"
 #include "loadbinary.h"
 #include "datablock.h"
-#include "pulsers.h"
 #include <fstream>
 #include <filesystem>
-#include <sstream>
+
 
 
 namespace fs = std::filesystem;
@@ -123,13 +121,14 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
             auto len2 = LoadBinary<BYTE>(p_stream);
             auto len3 = LoadBinary<BYTE>(p_stream);
             auto len  = 0x10000 * len3 + 0x100 * len2 + len1;
-            std::cout << " length = " << len << std::endl;;
+            std::cout << " length = " << len << "; ignored/can not handle this block." << std::endl;
             p_stream.ignore(len);
             break;
         }
         case TzxBlockType::CSWRecordingBlock:
         {
             auto len = LoadBinary<DWORD>(p_stream);
+            std::cout << " length = " << len << "; ignored/can not handle this block." << std::endl;
             p_stream.ignore(len);
             break;
         }
@@ -151,7 +150,7 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
             auto dura = LoadBinary<WORD>(p_stream);
             if(dura == 0)
             {
-                std::cout << ": Stop the tape" << std::endl;
+                std::cout << ": Stop the tape!!" << std::endl;
             }
             else
             {
@@ -169,9 +168,11 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
         case TzxBlockType::GroupEnd:
             break;
         case TzxBlockType::Jumptoblock:
+            std::cout << "; ignored/can not handle this block." << std::endl;
             p_stream.ignore(2);
             break;
         case TzxBlockType::Loopstart:
+            std::cout << "; ignored/can not handle this block." << std::endl;
             p_stream.ignore(2);
             break;
         case TzxBlockType::Loopend:
@@ -179,6 +180,7 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
         case TzxBlockType::Callsequence:
         {
             auto len = LoadBinary<WORD>(p_stream);
+            std::cout << " length = " << len << "; ignored/can not handle this block." << std::endl;
             p_stream.ignore(len * 2);
             break;
         }
@@ -189,6 +191,7 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
         case TzxBlockType::Selectblock:
         {
             auto len = LoadBinary<WORD>(p_stream);
+            std::cout << " length = " << len << "; ignored/can not handle this block." << std::endl;
             p_stream.ignore(len * 2);
             break;
         }
@@ -199,7 +202,7 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
             p_stream.ignore(5);
             break;
         case TzxBlockType::Messageblock:
-            p_stream.ignore(1);
+            p_stream.ignore(1);     // time
            [[fallthrough]];              // no break
         case TzxBlockType::Textdescription:
         {

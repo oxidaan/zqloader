@@ -100,6 +100,7 @@ void TzxWriter::WriteTzxFile(const Pulsers& p_pulsers, std::ostream& p_stream,  
     WriteBinary(p_stream, std::byte{ 0x1A });
     WriteBinary(p_stream, std::byte{ 1 });
     WriteBinary(p_stream, std::byte{ 20 });
+    WriteInfo(p_stream);
     const Pulser *prevprev{};
     const Pulser *prev{};
     const Pulser *current{};
@@ -147,7 +148,7 @@ void TzxWriter::WriteTzxFile(const Pulsers& p_pulsers, std::ostream& p_stream,  
         }
         else if(prevprev)
         {
-            prevprev->Accept(writer);       // -> WriteAsTzxBlock
+            prevprev->Accept(writer);       // -> WriteAsTzxBlock (visitor pattern)
         }
 
         prevprev = prev;
@@ -161,6 +162,18 @@ void TzxWriter::WriteTzxFile(const Pulsers& p_pulsers, std::ostream& p_stream,  
     if(prev)
     {
         prev->Accept(writer);            // -> WriteAsTzxBlock
+    }
+}
+
+void TzxWriter::WriteInfo(std::ostream& p_stream)
+{
+    WriteBinary(p_stream, TzxBlockType::Textdescription);
+    extern const char *GetVersion();
+    std::string s = std::string("File written by ZQLoader version ") + GetVersion();
+    WriteBinary(p_stream, BYTE(s.length()));
+    for(const auto c: s)
+    {
+        WriteBinary(p_stream, c);
     }
 }
 
