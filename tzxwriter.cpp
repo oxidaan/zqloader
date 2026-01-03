@@ -445,7 +445,7 @@ void TzxWriter::WriteAsTurboData(std::ostream& p_stream, const TonePulser &p_pil
     block.length[0] = len & 0xff;           // bit of weird 24 bit length
     block.length[1] = BYTE((len & 0xff00) >> 8);
     block.length[2] = BYTE((len & 0xff0000) >> 16);
-    std::cout << "TurboSpeedDataBlock: Pilot Length = " << (1000.0 * block.length_of_pilot_tone * block.length_of_pilot_pulse * spectrum::tstate_dur.count()) << "  " <<  block << std::endl;
+    std::cout << "TurboSpeedDataBlock: Pilot length = " << (1000.0 * block.length_of_pilot_tone * block.length_of_pilot_pulse * spectrum::tstate_dur.count()) << "  " <<  block << std::endl;
     WriteBinary(p_stream, block);
     for(int i = 0; i < len; i++)
     {
@@ -540,7 +540,7 @@ void TzxWriter::WriteAsZqLoaderTurboData(std::ostream &p_stream, const TonePulse
         }
         else
         {
-            for (int npd = 0; npd < generalized_data_block.npd ; npd++)        // should be = 8
+            for (int npd = 0; npd < generalized_data_block.npd ; npd++)        // should be  8
             {
                 bool bit = (asd >> (7 - npd)) & 0x1;
                 if(bit)

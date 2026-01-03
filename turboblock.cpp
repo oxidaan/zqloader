@@ -107,6 +107,10 @@ std::chrono::milliseconds TurboBlock::EstimateHowLongSpectrumWillTakeToDecompres
 
 TurboBlock& TurboBlock::DebugDump(int p_max) const
 {
+    if(m_skip_pilot)
+    {
+        std::cout << "Skipping pilot\n";
+    }
     auto dest = GetDestAddress();
     if (m_data_size == spectrum::SCREEN_SIZE && dest == spectrum::SCREEN_START)
     {
@@ -260,6 +264,7 @@ inline uint8_t TurboBlock::CalculateChecksum(const DataBlock& p_data)
 
 std::ostream& operator << (std::ostream& p_stream, const TurboBlock::Header& p_header)
 {
+    extern std::string LastOut7ffdToString(int p_last_out_7ffd);
     p_stream
         << "length = " << p_header.m_length << '\n'
         << "load_address = " << p_header.m_load_address << '\n'
@@ -271,9 +276,10 @@ std::ostream& operator << (std::ostream& p_stream, const TurboBlock::Header& p_h
         << "\nchecksum = " << int(p_header.m_checksum) << '\n'
         << "After block do: "
         << ((p_header.m_after_block == TurboBlock::AfterBlock::LoadNext)      ? "LoadNext" :
+            (p_header.m_after_block == TurboBlock::AfterBlock::LoadNextNoPilot)? "LoadNextNoPilot" :
             (p_header.m_after_block == TurboBlock::AfterBlock::CopyLoader)    ? "CopyLoader" :
             (p_header.m_after_block == TurboBlock::AfterBlock::ReturnToBasic) ? "ReturnToBasic" :
-            (p_header.m_after_block == TurboBlock::AfterBlock::BankSwitch)    ? "Switch Bank to: "  + std::to_string(p_header.m_bank_to_switch) :
+            (p_header.m_after_block == TurboBlock::AfterBlock::BankSwitch)    ? "Switch Bank to: "  + LastOut7ffdToString(p_header.m_bank_to_switch) :
             "Start MC at: " + std::to_string(p_header.m_usr_start_address) + 
             "; CLEAR address/SP = " + std::to_string(p_header.m_clear_address)) << '\n'
         << std::hex << "m_code_for_most = " << int(p_header.m_code_for_most) << ' '

@@ -36,6 +36,7 @@
 #endif
 
 struct DataBlock;
+struct MemoryBlock;
 
 /// This is the main ZQLoader interface used for both commandline
 /// as qt ui tool.
@@ -145,7 +146,7 @@ public:
     ZQLoader &PlayleaderTone();
 
     /// Only used for fun attributes
-    ZQLoader &AddDataBlock(DataBlock p_block, uint16_t p_start_address);
+    ZQLoader &AddMemoryBlock(MemoryBlock p_block, uint16_t p_load_address = 0);
 
     /// Time at end so actual time needed once done.
     std::chrono::milliseconds GetTimeNeeded() const;

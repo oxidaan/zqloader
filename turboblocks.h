@@ -59,8 +59,11 @@ public:
     /// Get # Memory blocks added
     size_t size() const;
 
-
+    /// Add given memory block, just a push_back.
     TurboBlocks& AddMemoryBlock(MemoryBlock p_block);
+
+    /// Add given memory block, make it a turboblock immidiately.
+    TurboBlocks& AddMemoryBlockAsTurboBlock(MemoryBlock p_block, uint16_t p_load_address = 0);
 
     /// p_usr_address: when done loading all blocks end start machine code here as in RANDOMIZE USR xxxx
     /// p_clear_address: when done loading put stack pointer here, which is a bit like CLEAR xxxx
@@ -81,7 +84,7 @@ public:
     /// Call after Finalize.
     /// to given SpectrumLoader.
     /// no-op when there are no blocks.
-    TurboBlocks& MoveToLoader(SpectrumLoader& p_spectrumloader, bool p_is_fun_attribute = false);
+    TurboBlocks& MoveToLoader(SpectrumLoader& p_spectrumloader, bool p_is_fun_attribute = false, uint16_t p_load_address = 0);
 
 
     /// Set durations in T states for zero and one pulses.
@@ -132,6 +135,7 @@ public:
     // Length needed when loader code needs to be moved away from BASIC location
     uint16_t GetLoaderCodeLength(bool p_with_registers) const;
    
+    TurboBlocks& SetSkipPilots(bool p_to_what);
 
     TurboBlocks &DebugDump() const;
 private:

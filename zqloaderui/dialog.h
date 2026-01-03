@@ -12,6 +12,7 @@
 
 #include <QDialog>
 #include <zqloader.h>
+#include "zxvideo.h"
 
 
 QT_BEGIN_NAMESPACE
@@ -37,17 +38,22 @@ public:
         Tuning,                     // playing endless header tone
         Preloading,                 // preloading zqloader
         PreloadingFunAttribs,       // after preloading zqloader loading fun-attributes
+        VideoFunFirst,
+        VideoFunNext,
         Cancelled                   // Playing was cancelled
     };
     Dialog(QWidget *parent = nullptr);
     ~Dialog() override;
 private:
     void Go();
+    void SetZqLoaderParameters();
     void Load();
     void Save() const;
     bool Read(QSettings& p_settings, QObject *p_for_what);
     void Write(QSettings& p_settings, const QObject *p_for_what) const;
     void UpdateUI();
+
+    void OnDone();
 
     void SetState(State p_state);
     void RestoreDefaults();
@@ -61,6 +67,7 @@ private:
     Ui::Dialog *ui;
     ZQLoader m_zqloader;
     State m_state;
+//    ZxVideo m_zxvideo;
 };
 
 

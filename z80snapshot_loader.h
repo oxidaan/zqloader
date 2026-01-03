@@ -74,7 +74,7 @@ class SnapShotLoader
         uint8_t  inhibit_button_status;
         uint8_t  inhibit_flag_rom;
         // not always there
-        uint8_t  last_out_0x1ffd;   
+        uint8_t  last_out_0x1ffd;                   // extra paging features of the +2A/+3
     };
     // Only used at z80 v2
     struct Z80SnapShotDataHeader
@@ -103,9 +103,9 @@ class SnapShotLoader
         uint16_t IX_reg;
         uint8_t  iff2;           // Interrupt flipflop, bit 2 0=DI, otherwise EI 
         uint8_t  R_reg;
-        uint16_t  AF_reg;
-        uint16_t  SP_reg;
-        uint8_t imode;       // Interrupt mode (0, 1 or 2)
+        uint16_t AF_reg;
+        uint16_t SP_reg;
+        uint8_t  imode;       // Interrupt mode (0, 1 or 2)
         uint8_t  border;
     };
 #pragma pack(pop)
@@ -143,11 +143,14 @@ public:
         return m_usr;
     }
 
-    // Actually entire value for last OUT to 0x7ffd.
-    int GetLastBankToSwitchTo() const
+    // Entire value for last OUT to 0x7ffd.
+    // GetLastOut7ffd() & 0x7 = bank
+    int GetLastOut7ffd() const
     {
         return m_last_out_7ffd;
     }
+
+
 
     ///  Get entire snapshot but excluding registers.
     MemoryBlocks GetRam()

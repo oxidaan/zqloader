@@ -20,15 +20,15 @@ class Application :
 public:
     using QApplication::QApplication;
 
-    bool notify( QObject * receiver, QEvent * e ) override
+    bool notify( QObject * receiver, QEvent * ev ) override
     {
         try
         {
-            return QApplication::notify( receiver, e );
+            return QApplication::notify( receiver, ev );
         }
-        catch(const std::exception &e)
+        catch(const std::exception &ex)
         {
-            QMessageBox::warning( nullptr, "Error", e.what() );
+            QMessageBox::warning( nullptr, "Error", ex.what() );
         }
         return false;
     }

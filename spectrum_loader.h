@@ -106,7 +106,7 @@ public:
     }
 
 
-    /// Write all added pulsers data as a TZX file. Not fully working though.
+    /// Write all added pulsers data as a TZX file.
     SpectrumLoader& WriteTzxFile(std::ostream& p_file);
 
     // Set the call backs

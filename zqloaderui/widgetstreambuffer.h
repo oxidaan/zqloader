@@ -27,6 +27,7 @@ public:
     TextEditStreamBuffer(QTextEdit* p_output) : m_output(p_output) 
     {
         p_output->setWordWrapMode(QTextOption::NoWrap);     // speeds up
+        p_output->setUndoRedoEnabled(false);
         connect(this, &TextEditStreamBuffer::signalBufferFull, this, [this] 
         {
             // This runs in QT's ui thread

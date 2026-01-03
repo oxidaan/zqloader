@@ -203,7 +203,7 @@ public:
             throw std::runtime_error("No Memory block added. Nothing to do!");
         }
 
-        // Combine adjacent blocks, combine overlapping blocks; order from high to low.
+        // Combine adjacent blocks, combine overlapping blocks; order from low to high
         auto memory_blocks = Compact(std::move(m_memory_blocks));
         DONT_USE(m_memory_blocks);
         {
@@ -291,17 +291,28 @@ public:
         return m_turbo_blocks.size();
     }
 
-    /// Move all added turboblocks to SpectrumLoader as given at CTOR.
+    /// Move all earlier added turboblocks to given SpectrumLoader.
     /// Call after Finalize.
-    /// to given SpectrumLoader.
+    /// p_is_fun_attribute originally used for scrolling attribute text, but more general
+    /// for a continues stream of (small) blocks. (can skip pilot, dont log)
     /// no-op when there are no blocks.
-    void MoveToLoader(SpectrumLoader& p_spectrumloader, bool p_is_fun_attribute)
+    /// p_load_address: when given (!=0) load there first.
+    void MoveToLoader(SpectrumLoader& p_spectrumloader, bool p_is_fun_attribute, uint16_t p_load_address = 0)
     {
+        static bool skip_pilot = false;
+        if(p_is_fun_attribute)
+        {
+        // disable this feature for now  m_skip_pilots = true;
+        }
+        else
+        {
+            skip_pilot = false;     // reset
+        }
         // Only! for preloading, else no-op:
         auto memory_blocks = std::move(m_memory_blocks);
         for (auto& block : memory_blocks)
         {
-            AddTurboBlock(std::move(block));
+            AddMemoryBlockAsTurboBlock(std::move(block), p_load_address);
         }
         std::chrono::milliseconds pause_before = 0ms;
         if (IsZqLoaderAdded())        // else probably already preloaded
@@ -309,16 +320,20 @@ public:
             p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_header), spectrum::tstate_quick_zero, 1750ms);
             p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_code), spectrum::tstate_quick_zero, 1500ms);
             std::chrono::milliseconds pause_before = m_initial_wait;
-           // p_spectrumloader.AddPause(m_initial_wait); // time needed to start our loader after loading itself (basic!)
         }
 
+
+
         int cnt = 1;
+       
         for (auto& tblock : m_turbo_blocks)
         {
+            bool next_skip_pilot = m_skip_pilots ? tblock.TrySetLoadNextNoPilot() : false;
             auto next_pause = tblock.EstimateHowLongSpectrumWillTakeToDecompress(m_decompression_speed); // b4 because moved
+            tblock.SetSkipPilot(skip_pilot);
             if (!p_is_fun_attribute)
             {
-                std::cout << "Block #" << cnt++ << std::endl;
+                std::cout << "Block #" << cnt++ << "\n";
                 if (pause_before > 0ms)
                 {
                     std::cout << "Pause before = " << pause_before.count() << "ms\n";
@@ -327,6 +342,7 @@ public:
             }
             std::move(tblock).MoveToLoader(p_spectrumloader, pause_before, m_zero_duration, m_one_duration, m_end_of_byte_delay);
             pause_before = next_pause;
+            skip_pilot = next_skip_pilot;
         }
         m_turbo_blocks.clear();
 
@@ -473,8 +489,11 @@ private:
         std::cout << "Patching byte '" << p_name << "' to: " << int(p_value) << " hex= " << std::hex << int(p_value) << std::dec << " bin= " << std::bitset<8>(int(p_value)) << std::endl;
     }
 
+    // Move memory blocks to turboblocks.
+    // Set what to do after each block eg bankswitch, CopyLoader (first), SetUsrStartAddress (last)
     // p_last_bank_to_set when <0: 48K snapshot. Dont do bank setting.
-    void MemoryBlocksToTurboBlocks(MemoryBlocks p_memory_blocks, uint16_t p_loader_copy_start, uint16_t p_usr_address, uint16_t p_clear_address, int p_last_bank_to_set)
+    // Called from Finalize.
+    void MemoryBlocksToTurboBlocks(MemoryBlocks &&p_memory_blocks, uint16_t p_loader_copy_start, uint16_t p_usr_address, uint16_t p_clear_address, int p_last_bank_to_set)
     {
         TurboBlock *prev = nullptr;
         TurboBlock *prevprev = nullptr;
@@ -503,7 +522,7 @@ private:
                         load_address = m_symbols.GetSymbol("ASM_UPPER_START_OFFSET");
                     }
                 }        
-                prev = &AddTurboBlock(std::move(block), load_address);
+                prev = &AddMemoryBlockAsTurboBlock(std::move(block), load_address);
             }
         }
         if(prevprev && p_last_bank_to_set >=0 && p_last_bank_to_set != prev_bank_set)
@@ -532,11 +551,12 @@ private:
     }
 
 
-    // Add given MemoryBlock as turbo block.
+    // Add given memoryblock as turbo block
+    // to end of list of turboblocks.
     // So convert to TurboBlock.
-    // Add given datablock as turbo block at given start address
-    // to end of list of turboblocks
-    TurboBlock &AddTurboBlock(MemoryBlock&& p_block, uint16_t p_load_address = 0)
+    // p_load_address: when given (!=0) load there first.
+    // Note: A memoryblock already has a destination address.
+    TurboBlock &AddMemoryBlockAsTurboBlock(MemoryBlock&& p_block, uint16_t p_load_address = 0)
     {
         if (m_turbo_blocks.size() == 0)
         {
@@ -557,6 +577,7 @@ private:
             tblock.SetLoadAddress(p_load_address);
         }
         tblock.SetData(std::move(p_block.m_datablock), m_compression_type);
+
         m_turbo_blocks.push_back(std::move(tblock));
         return m_turbo_blocks.back();
     }
@@ -569,15 +590,13 @@ private:
     }
 
 private:
-
     DataBlock                     m_zqloader_header;               // standard zx header for zqloader
     DataBlock                     m_zqloader_code;                 // block with entire code for zqloader
     MemoryBlocks                  m_memory_blocks;
     std::list<TurboBlock>         m_turbo_blocks;                  // turbo blocks to load
-    //std::unique_ptr<TurboBlock>   m_upper_block;                   // when a block is found that overlaps our loader (nullptr when not) must be loaded last
+    Symbols                       m_symbols;                       // named symbols as read from EXP file
     uint16_t                      m_loader_copy_start = 0;         // start of free space were our loader can be copied to, begins with stack, then Control code copied from basic
     CompressionType               m_compression_type        = loader_defaults::compression_type;
-    Symbols                       m_symbols;                       // named symbols as read from EXP file
     int                           m_zero_duration           = loader_defaults::zero_duration;
     int                           m_one_duration            = loader_defaults::one_duration;
     int                           m_end_of_byte_delay       = loader_defaults::end_of_byte_delay;
@@ -587,6 +606,7 @@ private:
     int                           m_io_xor_value            = loader_defaults::io_xor_value;            // aka ZERO_MAX sees a 'one' when waited more than this number of cycli at wait for edge
     int                           m_decompression_speed     = loader_defaults::decompression_speed;     // kb/second time spectrum needsto decompress before sending next block
     std::chrono::milliseconds     m_initial_wait            = loader_defaults::initial_wait;
+    bool                          m_skip_pilots             = false;
 }; // class TurboBlocks
 
 
@@ -625,9 +645,16 @@ size_t TurboBlocks::size() const
     return m_pimpl->m_memory_blocks.size(); 
 }
 
+
 TurboBlocks& TurboBlocks::AddMemoryBlock(MemoryBlock p_block)
 {
     m_pimpl->m_memory_blocks.push_back(std::move(p_block));
+    return *this;
+}
+
+TurboBlocks& TurboBlocks::AddMemoryBlockAsTurboBlock(MemoryBlock p_block,  uint16_t p_load_address)
+{
+    m_pimpl->AddMemoryBlockAsTurboBlock(std::move(p_block), p_load_address);
     return *this;
 }
 
@@ -636,9 +663,9 @@ size_t TurboBlocks::Finalize(uint16_t p_usr_address, uint16_t p_clear_address, i
     return m_pimpl->Finalize(p_usr_address, p_clear_address, p_last_bank_to_set);
 }
 
-TurboBlocks & TurboBlocks::MoveToLoader(SpectrumLoader& p_spectrumloader, bool p_is_fun_attribute)
+TurboBlocks & TurboBlocks::MoveToLoader(SpectrumLoader& p_spectrumloader, bool p_is_fun_attribute, uint16_t p_load_address)
 {
-    m_pimpl->MoveToLoader(p_spectrumloader, p_is_fun_attribute);
+    m_pimpl->MoveToLoader(p_spectrumloader, p_is_fun_attribute, p_load_address);
     return *this;
 }
 
@@ -723,6 +750,12 @@ TurboBlocks &TurboBlocks::DebugDump() const
 {
     m_pimpl->DebugDump();
     return *const_cast<TurboBlocks*>(this);
+}
+
+TurboBlocks& TurboBlocks::SetSkipPilots(bool p_to_what)
+{
+    m_pimpl->m_skip_pilots = p_to_what;
+    return *this;
 }
 
 

@@ -18,6 +18,7 @@
 
 // Must match value at compressor.h:
 //    DEFINE DO_COMRESS_PAIRS
+//    DEFINE CAN_SKIP_PILOT
 
 //    DEFINE DEBUG
   
@@ -124,12 +125,7 @@ ASM_START:
     call ROM_CLS                 // cls; also opens channel #2 so rst 10 goes to screen
 
 
-    // move loader to upper regions. (to avoid contended memory)
-    // this can be overwritten when loading last block.
-    ld HL, ASM_UPPER_START_OFFSET       
-    ld DE, ASM_UPPER_START
-    ld BC, ASM_UPPER_LEN            
-    ldir
+
 
  IFDEF DEBUG
     ld DE, TEXT_LOADING
@@ -138,38 +134,8 @@ ASM_START:
     
     // initialize
     di                          // #di1          
-    exx                     
-        // I think BC', DE', HL' must be saved for save return to BASIC (or before ei)
-        push DE                 // #PP1
-        push HL                 // #PP2
-        push BC                 // #PP5
-//  exx                      // not needed
-
-
-
-ASM_CONTROL_CODE_START:
-  
-//============================================================================
-// Load one turbo block, then decompresses block.
-// Loads header first. Header determines target location, compression type etc.
-// When error prints error and returns.
-// When loaded ok header indicates what to do:
-//   continue to next block or
-//   return to BASIC or
-//   jump to start address as in RANDOMIZE USR xxxxx.
-//============================================================================
-
-LOAD_START:
-next_block:
-
-    // Initialize for loading header
-    // exx                    // not needed
-    ld HL, HEADER         // location of header @ (++HL)
-    ld BC, HEADER_LEN     // length of header 
-    exx
 
     // Intialize edge plus border color -> C
-    // So get intial value from port->C
     // Initialize H to C XOR-value.
     // https://worldofspectrum.org/faq/reference/48kreference.htm#PortFE
     // E=ear, M=mic, K-keyboard, B = bordercolor
@@ -184,17 +150,57 @@ IO_XOR_VALUE+*: ld H, 0b01000111 // The C xor value, see WAIT_FOR_EDGE #3 so tog
                                 // so border xors between 010 (red) and 101 (cyan)
     ld E, 0b01000000            // EAR mask value after IN
 
+  
+    exx // 1) shadow the above C, H and E  #exx1
+        // 2) I think BC', DE', HL' must be saved for save return to BASIC (or before ei)
+        push DE                 // #PP1
+        push HL                 // #PP2
+        push BC                 // #PP5
+//  exx                      // not needed but see #exx1
+
+    // move loader to upper regions. (to avoid contended memory)
+    // this can be overwritten when loading last block.
+    // Note: this also makes sure H is not zero **
+    ld HL, ASM_UPPER_START_OFFSET       
+    ld DE, ASM_UPPER_START
+    ld BC, ASM_UPPER_LEN            
+    ldir
 
 
-    call LOAD_HEADER_PLUS_DATA  // upper, absolute call is ok
+ASM_CONTROL_CODE_START:
+  
+//============================================================================
+// Load one turbo block, then decompresses block.
+// Loads header first. Header determines target location, compression type etc.
+// When error prints error and returns.
+// When loaded ok header indicates what to do:
+//   continue to next block or
+//   return to BASIC or
+//   jump to start address as in RANDOMIZE USR xxxxx.
+//============================================================================
+    
+LOAD_START:
+next_block:
+ IFDEF CAN_SKIP_PILOT
+    ld A, H               // H is not zero ** for sure so A as well.
+ ENDIF
+next_block_no_pilot:      // here A should be zero so skip pilot
+    // Initialize for loading header
+    // exx                    // not needed
+    ld HL, HEADER         // location of header @ (++HL)
+    ld BC, HEADER_LEN     // length of header 
+    exx                   // #exx1 get back C',H' and E' / shadow HL and BC
+
+
+    call LOAD_HEADER_PLUS_DATA  // upper, absolute call is ok, when A zero skip pilot
     jr z, ERROR                 // (timeout) error  
 
     // check checksum
-    exx
+    exx                         // shadow the above C, H and E; get E' which is checksum
     ld A, (m_checksum)          // check checksum E' should be m_checksum
     cp E 
     jr nz, CHECKSUM_ERROR
-    // exx                      // not needed
+    // exx                      // not needed, gets C back at #exx1
 
     // -- Once here here a turbo block was correctly loaded --
 
@@ -245,13 +251,22 @@ copy_done:
     dec A
     jr z, next_block            // when H == 1 (AfterBlock::LoadNext) continue to next block
     dec A
-    jp z, COPY_ME               // when H = 2 (AfterBlock::CopyLoader) copy me, then to next block (at new location)
+    jp z, COPY_ME               // when H == 2 (AfterBlock::CopyLoader) copy me, then to next block (at new location)
     dec A
-    jr z, END_TO_BASIC          // when H = 3 (AfterBlock::ReturnToBasic) so last block but do not start MC, return to BASIC.
+    jr z, END_TO_BASIC          // when H == 3 (AfterBlock::ReturnToBasic) so last block but do not start MC, return to BASIC.
  IFDEF BANKSWITCH128
-    dec A                       // when H = 4 (AfterBlock::BankSwitch) ZX spectrum 128 bank switch command
+    dec A                       // when H == 4 (AfterBlock::BankSwitch) ZX spectrum 128 bank switch command
     jr z, BANKSWITCH
  ENDIF
+ IFDEF CAN_SKIP_PILOT 
+ IF NOT DEFINED BANKSWITCH128
+    dec A                       // skip H == 4
+ ENDIF
+    dec A
+    jr z, next_block_no_pilot   // when H == 5 (AfterBlock::LoadNextNoPilot) continue to next block w/o pilot    
+ ENDIF
+
+
     // TODO can add ZXSpectrem 128 bankswitching here.
     // -- When here: --
     // -- HL is start address as in RANDOMIZE USR xxxxx --
@@ -486,6 +501,7 @@ COPY_ME_END_JUMP+*:     jp SCREEN_23RD + STACK_SIZE             // Continue at n
 // C: last IN at WAIT_FOR_EDGE; border color.
 // H: XOR value for C.
 // C': Checksum init value must also be sizeof header.
+// A: when 0 skip pilot(leader) + sync.
 // Out:
 // When OK: The header plus data is read.
 // C': checksum / must be zero at end when ok. 
@@ -494,6 +510,10 @@ COPY_ME_END_JUMP+*:     jp SCREEN_23RD + STACK_SIZE             // Continue at n
 //  z=0  ok
 //  z=1  Timeout or error (B==0)
 LOAD_HEADER_PLUS_DATA:
+ IFDEF CAN_SKIP_PILOT
+    or A
+    jr z, skip_pilot
+ ENDIF
 
 // wait for edge or until enter pressed.
 // Note value of B is not really relevant at first.
@@ -516,10 +536,10 @@ wait_for_first_edge:
     ld L, LEADER_MIN_EDGES      // (eg 200) > 200 correct edges needed
 .leader_loop1:    
     ld B, LEADER_MAX            // # counts = max acceptable time between edges
-    call WAIT_FOR_EDGE
+    call WAIT_FOR_EDGE          // #IN's done =  1 + B-in - B-out, so 1 + LEADER_MAX - B-out
     jr z, try_again             // T/O no edge (note B is 0 when T/O)
 
-    ld A, B
+    ld A, B                     // B = 1 + LEADER_MAX - #IN's done
     cp LEADER_MAX+2-LEADER_MIN   // minimum acceptable time between edges (eg 12+2-8=6)
     // B > LEADER_MAX-LEADER_MIN (eg 4) : waited shorter than LEADER_MIN -> nc -> nok to soon
     jr nc, try_again            // edge < LEADER_MIN so to soon 
@@ -550,7 +570,8 @@ wait_for_first_edge:
     // When fails from now on do not try again.
     // call PRINT_DEBUG            // @DEBUG
 
-    ld    A, C
+skip_pilot: 
+    ld    A, C                  //  00001010 or 
     xor   0b00000011            //  Toggle border 001 blue <-> 110 yellow from now on
     ld    C, A                  //  C=0E001001    H is still 01000111
 
@@ -611,7 +632,7 @@ wait_for_first_edge:
 LOAD_BYTES:   
 
 BIT_LOOP_MAX+*:     ld D, ONE_MAX               // eg 12 can also be set from C++ code
-
+ 
     ld B, 200                   // Minisync
     call WAIT_FOR_EDGE          // Minisync 62T states since last in
     ret z                       // Minisync 5 T states
@@ -691,7 +712,7 @@ load_done:
 //  z=0 OK
 wait_for_edge_loop1:    
     dec B                       // Dec. cycle count (carry not touched) 43 since in
-    ret z                       // 5/11T t/o, note carry still not set    (c=0 z=1)
+    ret z                       // 5/11T t/o, note carry still not set    (c=0 z=1, B=0)
 WAIT_FOR_EDGE:        
     //ld A,$7F 	                // Maybe not needed. Read from port 0x7FFE, read EAR. 49 + 16 since prev. IN is 59 
     in A,($FE)                  // bit 0 is !BREAK, bit 6 is ear

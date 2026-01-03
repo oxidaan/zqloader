@@ -18,6 +18,7 @@
 
 ///
 /// Our turbo block as used with zqloader.z80asm.
+/// Has header and data.
 ///
 class TurboBlock
 {
@@ -26,10 +27,11 @@ public:
     // What to do after a block was loaded, stored at m_usr_start_address
     enum class AfterBlock : uint16_t
     {
-        LoadNext      = 256,        // go on to next block (H=1 at z80)
-        CopyLoader    = 512,        // copy z80 loader code, then go on to next block (H=2 at z80)
-        ReturnToBasic = 768,        // return to basic (H=3 at z80)
-        BankSwitch    = 1024,       // TODO zx spectrum 128 bank switch command (H=4)
+        LoadNext        = 0x1 << 8,       // go on to next block (H=1 at z80)
+        CopyLoader      = 0x2 << 8,       // copy z80 loader code, then go on to next block (H=2 at z80)
+        ReturnToBasic   = 0x3 << 8,       // return to basic (H=3 at z80)
+        BankSwitch      = 0x4 << 8,       // zx spectrum 128 bank switch command (H=4)
+        LoadNextNoPilot = 0x5 << 8,       // go on to next block, skip pilot (H=5 at z80)
         // all other values are like RANDOMIZE USR xxxxx so start MC there (and this was last block)
     };
 
@@ -174,7 +176,25 @@ public:
         return *this;
     }
 
+    bool TrySetLoadNextNoPilot()
+    {
+        if(GetHeader().m_after_block == AfterBlock::LoadNext)
+        {
+            GetHeader().m_after_block = AfterBlock::LoadNextNoPilot;
+            return true;
+        }
+        return false;
+    }
+    TurboBlock& SetSkipPilot(bool p_to_what)
+    {
+        m_skip_pilot = p_to_what;
+        return *this;
+    }
 
+    AfterBlock GetAfterBlockDo() const
+    {
+        return GetHeader().m_after_block;
+    }
     
     /// Move this TurboBlock (as pulsers) to given loader (eg SpectrumLoader).
     /// Give it leader+sync as used by zqloader.z80asm.
@@ -190,9 +210,15 @@ public:
         {
             PausePulser(p_loader.GetTstateDuration()).SetLength(p_pause_before).MoveToLoader(p_loader);           // pause before
         }
-
-        TonePulser(p_loader.GetTstateDuration()).SetPattern(500, 500).SetLength(200ms).MoveToLoader(p_loader);    // leader; best to have even number of edges
-        TonePulser(p_loader.GetTstateDuration()).SetPattern(250, 499).SetLength(1).MoveToLoader(p_loader);        // sync + 499=minisync!
+        if(!m_skip_pilot)
+        {
+            TonePulser(p_loader.GetTstateDuration()).SetPattern(500, 500).SetLength(200ms).MoveToLoader(p_loader);    // leader; best to have even number of edges
+            TonePulser(p_loader.GetTstateDuration()).SetPattern(250, 499).SetLength(1).MoveToLoader(p_loader);        // sync + 499=minisync!
+        }
+        else        // still needs minisync
+        {
+            TonePulser(p_loader.GetTstateDuration()).SetPattern(600).SetLength(1).MoveToLoader(p_loader);     
+        }
 
 
 
@@ -219,7 +245,6 @@ public:
 
 
 private:
-
 
     // See https://wikiti.brandonw.net/index.php?title=Z80_Optimization#Looping_with_16_bit_counter
     // 'Looping with 16 bit counter'
@@ -284,6 +309,7 @@ private:
 private:
 
     size_t      m_data_size{};               // size of (uncompressed/final) data exl. header. Note: Spectrum does not need this.
+    bool        m_skip_pilot = false;        // has pilot tone + sync
     DataBlock   m_data;                      // the data as send to Spectrum, starts with header
 }; // class TurboBlock
 

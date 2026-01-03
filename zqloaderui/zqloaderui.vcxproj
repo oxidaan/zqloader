@@ -37,13 +37,13 @@
   </ImportGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="QtSettings">
     <QtInstall>qt6</QtInstall>
-    <QtModules>core;widgets</QtModules>
+    <QtModules>core;widgets;multimedia</QtModules>
     <QtBuildConfig>debug</QtBuildConfig>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'" Label="QtSettings">
     <QtInstall>qt6</QtInstall>
     <QtBuildConfig>release</QtBuildConfig>
-    <QtModules>core;widgets</QtModules>
+    <QtModules>core;widgets;multimedia</QtModules>
     <QtDeploy>true</QtDeploy>
   </PropertyGroup>
   <Target Name="QtMsBuildNotFound" BeforeTargets="CustomBuild;ClCompile" Condition="!Exists('$(QtMsBuild)\qt.targets') or !Exists('$(QtMsBuild)\qt.props')">
@@ -116,6 +116,8 @@
   <ItemGroup>
     <ClCompile Include="dialog.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="video.cpp" />
+    <ClCompile Include="zxvideo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="dial.h" />
@@ -141,6 +143,12 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="lineedit.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="video.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="zxvideo.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

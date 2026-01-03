@@ -396,7 +396,7 @@ public:
         return m_zero_pattern;
     }
     
-    // Get extra delay after byte (as set) (tzx writer needs this)
+    // Get extra delay after byte (as set) (in TStates) (tzx writer needs this)
     int GetExtraDelayAfterByte() const
     {
         return m_delay_duration;
@@ -416,7 +416,7 @@ public:
 
 
 
-    /// Set delay for byte store
+    /// Set delay for byte store (in TStates)
     DataPulser& SetEndOfByteDelay(int p_delay)
     {
         m_delay_duration = p_delay;

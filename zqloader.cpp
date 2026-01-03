@@ -29,9 +29,10 @@
 namespace fs = std::filesystem;
 
 
+// ** version **
 LIB_API const char *GetVersion()
 {
-    return "3.0.2";
+    return "3.0.3 RC1";
 }
 
 
@@ -190,10 +191,10 @@ public:
     }
 
     /// Only used for fun attributs
-    void AddDataBlock(DataBlock p_block, uint16_t p_start_address)
+    void AddMemoryBlock(MemoryBlock p_block, uint16_t p_load_address)
     {
-        m_turboblocks.AddMemoryBlock({std::move(p_block), p_start_address});
-        m_turboblocks.MoveToLoader(m_spectrumloader, true);
+        m_turboblocks.AddMemoryBlockAsTurboBlock(std::move(p_block) , p_load_address);
+        m_turboblocks.MoveToLoader(m_spectrumloader, true, p_load_address);
     }
 
     /// Stop/cancel playing immidiately
@@ -227,7 +228,7 @@ public:
     {
         m_128_mode = true;
         AddZqLoader(m_normal_filename);
-        m_turboblocks.MoveToLoader(m_spectrumloader, true);
+        m_turboblocks.MoveToLoader(m_spectrumloader, true);     // needed?
         m_is_preloaded = true;
     }
 
@@ -471,7 +472,7 @@ private:
         snapshot_regs_filename.replace_extension("bin");
         DataBlock regblock = LoadFromFile(snapshot_regs_filename);
         snapshotloader.SetRegBlock(std::move(regblock)).MoveToTurboBlocks(m_turboblocks, m_new_loader_location, m_use_fun_attribs);
-        m_turboblocks.Finalize(snapshotloader.GetUsrAddress(), 0, snapshotloader.GetLastBankToSwitchTo());
+        m_turboblocks.Finalize(snapshotloader.GetUsrAddress(), 0, snapshotloader.GetLastOut7ffd());
     }
 
 
@@ -856,9 +857,9 @@ void ZQLoader::Test()
 }
 
 
-ZQLoader& ZQLoader::AddDataBlock(DataBlock p_block, uint16_t p_start_address)
+ZQLoader& ZQLoader::AddMemoryBlock(MemoryBlock p_block, uint16_t p_load_address)
 {
-    m_pimpl->AddDataBlock(std::move(p_block), p_start_address);
+    m_pimpl->AddMemoryBlock(std::move(p_block), p_load_address);
     return *this;
 }
 

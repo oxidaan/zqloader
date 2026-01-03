@@ -9,12 +9,16 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="dialog.cpp" />
+    <ClCompile Include="video.cpp" />
+    <ClCompile Include="zxvideo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="dial.h" />
     <QtMoc Include="dialog.h" />
     <QtMoc Include="widgetstreambuffer.h" />
     <QtMoc Include="lineedit.h" />
+    <QtMoc Include="video.h" />
+    <QtMoc Include="zxvideo.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\resource\zqloader.rc" />

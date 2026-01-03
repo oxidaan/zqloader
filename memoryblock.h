@@ -13,7 +13,7 @@
 #include <list>
 #include <algorithm>       // clamp
 
-// Stores a DataBlock + (spectrum compatible) start address
+// Stores a DataBlock + (spectrum compatible) start (destination) address
 // Also bank number.
 struct MemoryBlock
 {
@@ -77,7 +77,7 @@ inline std::pair<int, int> FindNextAddress(const MemoryBlocks &p_memory_blocks, 
 
 // Compact/simplifies given memory blocks.
 // Combines directly adjacent memory blocks into one.
-// Combines overlapping memoy blocks, content of last has highest priority.
+// Combines overlapping memory blocks, content of last has highest priority.
 // Result is sorted form low address to high address.
 inline MemoryBlocks Compact(MemoryBlocks p_memory_blocks)
 {
@@ -87,7 +87,7 @@ inline MemoryBlocks Compact(MemoryBlocks p_memory_blocks)
     // dump in *loading* order at mem_combined thus taking care of overlaps.
     for(const auto &block: p_memory_blocks)
     {
-        if(block.m_bank < 0)
+        if(block.m_bank < 0)        // 128K bank switch block. See end.
         {
             mem_combined.resize(std::max(size_t(block.m_address + block.size()), mem_combined.size()));        // can only grow
             // cpy datablock->mem_combined

@@ -69,6 +69,8 @@ inline int PageToBank(int p_page_num, bool p_48_mode)
 
 }
 
+/// Byte 34 is 'hardware mode'
+/// See table at https://worldofspectrum.org/faq/reference/z80format.htm
 inline bool GetIs48K(uint8_t p_byte34, bool p_is_v3)
 {
     if(p_byte34 == 2)
@@ -76,6 +78,14 @@ inline bool GetIs48K(uint8_t p_byte34, bool p_is_v3)
         throw std::runtime_error("SAMRAM not supported, I dont know what that is, sorry");
     }
     return p_byte34 == 0 || p_byte34 == 1 || (p_byte34 == 3 && p_is_v3 == true);
+}
+
+std::string LastOut7ffdToString(int p_last_out_7ffd)
+{
+    std::stringstream ss;
+    return "Bank = " + std::to_string(p_last_out_7ffd & 0x07) + 
+          " Screen = " + (p_last_out_7ffd & 0b00001000 ? "Shadow (bank 7)" : "Normal (bank 5)") + 
+          " ROM = " +    (p_last_out_7ffd & 0b00010000 ? "48K Basic" : "128K");
 }
 
 namespace fs = std::filesystem;
@@ -171,7 +181,7 @@ SnapShotLoader& SnapShotLoader::LoadZ80(std::istream& p_stream)
         }
         else
         {
-            std::cout << "128K snapshot. Current bank = " << (m_last_out_7ffd & 0x07) << std::endl;
+            std::cout << "128K snapshot. " + LastOut7ffdToString(m_last_out_7ffd) << std::endl;
         }
 
         MemoryBlock mem48k;
@@ -203,17 +213,20 @@ SnapShotLoader& SnapShotLoader::LoadZ80(std::istream& p_stream)
             }
             bank16k.m_address = PageToAddress(data_header.page_num, m_is_48K);
             bank16k.m_bank = PageToBank(data_header.page_num, m_is_48K);
-            // std::cout << int(data_header.page_num) << ' ' << bank16k.m_bank << ' ' << bank16k.m_address <<  ' ' << int(header2.current_bank) << std::endl;
-            if(bank16k.m_bank == 2 || bank16k.m_bank == 5 ||  bank16k.m_bank == (header2.last_out_7ffd & 0x7))
+            std::cout << "Page = " << int(data_header.page_num) << " bank = " << bank16k.m_bank << " address = " << bank16k.m_address;
+            if(bank16k.m_bank == 2 || bank16k.m_bank == 5 ||  bank16k.m_bank == 0)//(header2.last_out_7ffd & 0x7))
             {
+                // asume bank 0 is set by default
                 // Copy these banks to the 48K datablock; will be the first.
                 // Same as v1 snapshot. And SNA snapshot.
                 std::copy(bank16k.m_datablock.begin(), bank16k.m_datablock.end(), mem48k.m_datablock.begin() +  bank16k.m_address - spectrum::RAM_START);
+                std::cout << " (48k block)" << std::endl;
             }
             else
             {
                 // Its a switchable bank.
                 m_ram.push_back(std::move(bank16k));
+                std::cout << " (switchable bank)" << std::endl;
             }
         }
         m_ram.push_front( std::move(mem48k));
@@ -231,6 +244,7 @@ SnapShotLoader& SnapShotLoader::LoadZ80(std::istream& p_stream)
     m_z80_snapshot_header = std::move(header);
     return *this;
 }
+
 
 
 
@@ -252,22 +266,34 @@ SnapShotLoader& SnapShotLoader::LoadSna(std::istream& p_stream)
         m_is_48K = false;
         pc = LoadBinary<uint16_t>(p_stream);
         m_last_out_7ffd = int(LoadBinary<uint8_t>(p_stream));       // = port 0x7ffd
-        auto current_bank = m_last_out_7ffd & 0x07;
-        std::cout << "128K SNA snapshot. Current bank = " << current_bank << std::endl;
+        int current_bank = m_last_out_7ffd & 0x7;
+        std::cout << "128K SNA snapshot. " + LastOut7ffdToString(m_last_out_7ffd) << std::endl;
+
         uint8_t trdos_rom_paged  = LoadBinary<uint8_t>(p_stream);
         (void)trdos_rom_paged;
-        m_ram.push_back(std::move(mem48k));
-        int banks[] = {0,1,3,4,6,7};        // all not duplicated banks
+        int banks[] = {0,1,3,4,6,7};        // all not duplicated banks; banks 5,2,[current] are in 'mem48k'
         for(int bank : banks)
         {
-            if(bank != current_bank)        // and also skip current bank
+            if(bank != current_bank)        // and also skip current bank, is already in mem48k
             {
                 std::cout << p_stream.tellg() << " Reading bank: " << bank << std::endl;
                 MemoryBlock bank16k;
                 bank16k.m_address = 0xc000;
-                bank16k.m_bank = bank;
                 bank16k.m_datablock.resize(16384);
-                p_stream.read(reinterpret_cast<char*>(bank16k.m_datablock.data()), 16384);
+                // we want to have bank 0 in mem48k
+                if(bank == 0)  // note current_bank != 0
+                {
+                    // last 16k of ealier read mem48k->bank16k
+                    std::copy(mem48k.m_datablock.begin() + 0x8000, mem48k.m_datablock.end(), bank16k.m_datablock.begin());
+                    bank16k.m_bank = current_bank;
+                    // read (bank 0) into last 16k of mem48k (basically swap them)
+                    p_stream.read(reinterpret_cast<char*>(mem48k.m_datablock.data()) + 0x8000, 16384);
+                }
+                else
+                {
+                    p_stream.read(reinterpret_cast<char*>(bank16k.m_datablock.data()), 16384);
+                    bank16k.m_bank = bank;
+                }
                 m_ram.push_back(std::move(bank16k));
             }
         }
@@ -278,8 +304,8 @@ SnapShotLoader& SnapShotLoader::LoadSna(std::istream& p_stream)
         // 'pop pc'
         pc = uint16_t(mem48k.m_datablock[header.SP_reg - spectrum::RAM_START]) + 256 * uint16_t(mem48k.m_datablock[header.SP_reg + 1 - spectrum::RAM_START]);
         header.SP_reg += 2;
-        m_ram.push_back(std::move(mem48k));
     }
+    m_ram.push_front(std::move(mem48k));
     // sna snapshot header -> z80 snapshot header
     m_z80_snapshot_header.A_reg            = (header.AF_reg >> 8) & 0xff;
     m_z80_snapshot_header.F_reg            = header.AF_reg & 0xff;
