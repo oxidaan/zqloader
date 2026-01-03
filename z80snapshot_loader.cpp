@@ -283,7 +283,7 @@ SnapShotLoader& SnapShotLoader::LoadSna(std::istream& p_stream)
                 // we want to have bank 0 in mem48k
                 if(bank == 0)  // note current_bank != 0
                 {
-                    // last 16k of ealier read mem48k->bank16k
+                    // last 16k of earlier read mem48k->bank16k
                     std::copy(mem48k.m_datablock.begin() + 0x8000, mem48k.m_datablock.end(), bank16k.m_datablock.begin());
                     bank16k.m_bank = current_bank;
                     // read (bank 0) into last 16k of mem48k (basically swap them)
