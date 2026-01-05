@@ -51,7 +51,7 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, const std::string &p_zx
 
         if (m_last_block_type == TapeBlockType::header && m_headercnt >= 1)
         {
-            std::cout << "<b>Warning found stray header (tap or tzx file possibly not correct)<\b>" << std::endl;
+            std::cout << "<b>Warning found stray header (tap or tzx file possibly not correct)</b>" << std::endl;
             m_headercnt = 0;
         }
         

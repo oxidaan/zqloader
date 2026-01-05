@@ -31,7 +31,6 @@ public:
         CopyLoader      = 0x2 << 8,       // copy z80 loader code, then go on to next block (H=2 at z80)
         ReturnToBasic   = 0x3 << 8,       // return to basic (H=3 at z80)
         BankSwitch      = 0x4 << 8,       // zx spectrum 128 bank switch command (H=4)
-        LoadNextNoPilot = 0x5 << 8,       // go on to next block, skip pilot (H=5 at z80)
         // all other values are like RANDOMIZE USR xxxxx so start MC there (and this was last block)
     };
 
@@ -176,15 +175,7 @@ public:
         return *this;
     }
 
-    bool TrySetLoadNextNoPilot()
-    {
-        if(GetHeader().m_after_block == AfterBlock::LoadNext)
-        {
-            GetHeader().m_after_block = AfterBlock::LoadNextNoPilot;
-            return true;
-        }
-        return false;
-    }
+
     TurboBlock& SetSkipPilot(bool p_to_what)
     {
         m_skip_pilot = p_to_what;
@@ -210,15 +201,8 @@ public:
         {
             PausePulser(p_loader.GetTstateDuration()).SetLength(p_pause_before).MoveToLoader(p_loader);           // pause before
         }
-        if(!m_skip_pilot)
-        {
-            TonePulser(p_loader.GetTstateDuration()).SetPattern(500, 500).SetLength(200ms).MoveToLoader(p_loader);    // leader; best to have even number of edges
-            TonePulser(p_loader.GetTstateDuration()).SetPattern(250, 499).SetLength(1).MoveToLoader(p_loader);        // sync + 499=minisync!
-        }
-        else        // still needs minisync
-        {
-            TonePulser(p_loader.GetTstateDuration()).SetPattern(600).SetLength(1).MoveToLoader(p_loader);     
-        }
+        TonePulser(p_loader.GetTstateDuration()).SetPattern(500, 500).SetLength(m_skip_pilot ? 20ms : 200ms).MoveToLoader(p_loader);    // leader; best to have even number of edges
+        TonePulser(p_loader.GetTstateDuration()).SetPattern(250, 499).SetLength(1).MoveToLoader(p_loader);        // sync + 499=minisync!
 
 
 

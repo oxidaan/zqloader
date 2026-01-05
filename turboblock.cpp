@@ -109,7 +109,7 @@ TurboBlock& TurboBlock::DebugDump(int p_max) const
 {
     if(m_skip_pilot)
     {
-        std::cout << "Skipping pilot\n";
+        std::cout << "Skipping/shorter pilot\n";
     }
     auto dest = GetDestAddress();
     if (m_data_size == spectrum::SCREEN_SIZE && dest == spectrum::SCREEN_START)
@@ -276,7 +276,6 @@ std::ostream& operator << (std::ostream& p_stream, const TurboBlock::Header& p_h
         << "\nchecksum = " << int(p_header.m_checksum) << '\n'
         << "After block do: "
         << ((p_header.m_after_block == TurboBlock::AfterBlock::LoadNext)      ? "LoadNext" :
-            (p_header.m_after_block == TurboBlock::AfterBlock::LoadNextNoPilot)? "LoadNextNoPilot" :
             (p_header.m_after_block == TurboBlock::AfterBlock::CopyLoader)    ? "CopyLoader" :
             (p_header.m_after_block == TurboBlock::AfterBlock::ReturnToBasic) ? "ReturnToBasic" :
             (p_header.m_after_block == TurboBlock::AfterBlock::BankSwitch)    ? "Switch Bank to: "  + LastOut7ffdToString(p_header.m_bank_to_switch) :

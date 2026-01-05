@@ -299,15 +299,6 @@ public:
     /// p_load_address: when given (!=0) load there first.
     void MoveToLoader(SpectrumLoader& p_spectrumloader, bool p_is_fun_attribute, uint16_t p_load_address = 0)
     {
-        static bool skip_pilot = false;
-        if(p_is_fun_attribute)
-        {
-        // disable this feature for now  m_skip_pilots = true;
-        }
-        else
-        {
-            skip_pilot = false;     // reset
-        }
         // Only! for preloading, else no-op:
         auto memory_blocks = std::move(m_memory_blocks);
         for (auto& block : memory_blocks)
@@ -328,9 +319,8 @@ public:
        
         for (auto& tblock : m_turbo_blocks)
         {
-            bool next_skip_pilot = m_skip_pilots ? tblock.TrySetLoadNextNoPilot() : false;
             auto next_pause = tblock.EstimateHowLongSpectrumWillTakeToDecompress(m_decompression_speed); // b4 because moved
-            tblock.SetSkipPilot(skip_pilot);
+            tblock.SetSkipPilot(p_is_fun_attribute);
             if (!p_is_fun_attribute)
             {
                 std::cout << "Block #" << cnt++ << "\n";
@@ -342,7 +332,6 @@ public:
             }
             std::move(tblock).MoveToLoader(p_spectrumloader, pause_before, m_zero_duration, m_one_duration, m_end_of_byte_delay);
             pause_before = next_pause;
-            skip_pilot = next_skip_pilot;
         }
         m_turbo_blocks.clear();
 

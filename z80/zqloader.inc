@@ -18,7 +18,6 @@
 
 // Must match value at compressor.h:
 //    DEFINE DO_COMRESS_PAIRS
-//    DEFINE CAN_SKIP_PILOT
 
 //    DEFINE DEBUG
   
@@ -125,7 +124,12 @@ ASM_START:
     call ROM_CLS                 // cls; also opens channel #2 so rst 10 goes to screen
 
 
-
+    // move loader to upper regions. (to avoid contended memory)
+    // this can be overwritten when loading last block.
+    ld HL, ASM_UPPER_START_OFFSET       
+    ld DE, ASM_UPPER_START
+    ld BC, ASM_UPPER_LEN            
+    ldir
 
  IFDEF DEBUG
     ld DE, TEXT_LOADING
@@ -134,37 +138,13 @@ ASM_START:
     
     // initialize
     di                          // #di1          
-
-    // Intialize edge plus border color -> C
-    // Initialize H to C XOR-value.
-    // https://worldofspectrum.org/faq/reference/48kreference.htm#PortFE
-    // E=ear, M=mic, K-keyboard, B = bordercolor
-    //            7  6  5  4  3  2  1  0
-    // in(0xfe):  0  E  0  K  K  K  K  K    
-    // out(0xfe): d  d  d  E !M  B  B  B  
-    // Note: removed initializing edge at IN. Not really needed.
-IO_INIT_VALUE+*: ld C, 0b00001010 // ear zero border red 010 <-> 101 cyan + also set mic (and/or ear)
-                                  // initialize c with result: 0E001010 see WAIT_FOR_EDGE #2
-                                  // TODO set bit 7? ***7)
-IO_XOR_VALUE+*: ld H, 0b01000111 // The C xor value, see WAIT_FOR_EDGE #3 so toggles border bits + last edge
-                                // so border xors between 010 (red) and 101 (cyan)
-    ld E, 0b01000000            // EAR mask value after IN
-
-  
-    exx // 1) shadow the above C, H and E  #exx1
-        // 2) I think BC', DE', HL' must be saved for save return to BASIC (or before ei)
+    exx                     
+        // I think BC', DE', HL' must be saved for save return to BASIC (or before ei)
         push DE                 // #PP1
         push HL                 // #PP2
         push BC                 // #PP5
-//  exx                      // not needed but see #exx1
+//  exx                      // not needed
 
-    // move loader to upper regions. (to avoid contended memory)
-    // this can be overwritten when loading last block.
-    // Note: this also makes sure H is not zero **
-    ld HL, ASM_UPPER_START_OFFSET       
-    ld DE, ASM_UPPER_START
-    ld BC, ASM_UPPER_LEN            
-    ldir
 
 
 ASM_CONTROL_CODE_START:
@@ -181,26 +161,40 @@ ASM_CONTROL_CODE_START:
     
 LOAD_START:
 next_block:
- IFDEF CAN_SKIP_PILOT
-    ld A, H               // H is not zero ** for sure so A as well.
- ENDIF
-next_block_no_pilot:      // here A should be zero so skip pilot
+
     // Initialize for loading header
     // exx                    // not needed
     ld HL, HEADER         // location of header @ (++HL)
     ld BC, HEADER_LEN     // length of header 
-    exx                   // #exx1 get back C',H' and E' / shadow HL and BC
+    exx
+
+    // Intialize edge plus border color -> C
+    // So get intial value from port->C
+    // Initialize H to C XOR-value.
+    // https://worldofspectrum.org/faq/reference/48kreference.htm#PortFE
+    // E=ear, M=mic, K-keyboard, B = bordercolor
+    //            7  6  5  4  3  2  1  0
+    // in(0xfe):  0  E  0  K  K  K  K  K    
+    // out(0xfe): d  d  d  E !M  B  B  B  
+    // Note: removed initializing edge at IN. Not really needed.
+IO_INIT_VALUE+*: ld C, 0b00001010 // ear zero border red 010 <-> 101 cyan + also set mic (and/or ear)
+                                  // initialize c with result: 0E001010 see WAIT_FOR_EDGE #2
+                                  // TODO set bit 7? ***7)
+IO_XOR_VALUE+*: ld H, 0b01000111 // The C xor value, see WAIT_FOR_EDGE #3 so toggles border bits + last edge
+                                // so border xors between 010 (red) and 101 (cyan)
+    ld E, 0b01000000            // EAR mask value after IN
 
 
-    call LOAD_HEADER_PLUS_DATA  // upper, absolute call is ok, when A zero skip pilot
+
+    call LOAD_HEADER_PLUS_DATA  // upper, absolute call is ok
     jr z, ERROR                 // (timeout) error  
 
     // check checksum
-    exx                         // shadow the above C, H and E; get E' which is checksum
+    exx
     ld A, (m_checksum)          // check checksum E' should be m_checksum
     cp E 
     jr nz, CHECKSUM_ERROR
-    // exx                      // not needed, gets C back at #exx1
+    // exx                      // not needed
 
     // -- Once here here a turbo block was correctly loaded --
 
@@ -258,15 +252,6 @@ copy_done:
     dec A                       // when H == 4 (AfterBlock::BankSwitch) ZX spectrum 128 bank switch command
     jr z, BANKSWITCH
  ENDIF
- IFDEF CAN_SKIP_PILOT 
- IF NOT DEFINED BANKSWITCH128
-    dec A                       // skip H == 4
- ENDIF
-    dec A
-    jr z, next_block_no_pilot   // when H == 5 (AfterBlock::LoadNextNoPilot) continue to next block w/o pilot    
- ENDIF
-
-
     // TODO can add ZXSpectrem 128 bankswitching here.
     // -- When here: --
     // -- HL is start address as in RANDOMIZE USR xxxxx --
@@ -501,7 +486,6 @@ COPY_ME_END_JUMP+*:     jp SCREEN_23RD + STACK_SIZE             // Continue at n
 // C: last IN at WAIT_FOR_EDGE; border color.
 // H: XOR value for C.
 // C': Checksum init value must also be sizeof header.
-// A: when 0 skip pilot(leader) + sync.
 // Out:
 // When OK: The header plus data is read.
 // C': checksum / must be zero at end when ok. 
@@ -510,10 +494,6 @@ COPY_ME_END_JUMP+*:     jp SCREEN_23RD + STACK_SIZE             // Continue at n
 //  z=0  ok
 //  z=1  Timeout or error (B==0)
 LOAD_HEADER_PLUS_DATA:
- IFDEF CAN_SKIP_PILOT
-    or A
-    jr z, skip_pilot
- ENDIF
 
 // wait for edge or until enter pressed.
 // Note value of B is not really relevant at first.
@@ -570,7 +550,6 @@ wait_for_first_edge:
     // When fails from now on do not try again.
     // call PRINT_DEBUG            // @DEBUG
 
-skip_pilot: 
     ld    A, C                  //  00001010 or 
     xor   0b00000011            //  Toggle border 001 blue <-> 110 yellow from now on
     ld    C, A                  //  C=0E001001    H is still 01000111
