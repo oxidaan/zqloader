@@ -207,7 +207,7 @@ private:
     Pulsers             m_standby_pulsers;
     MovableMutex        m_mutex_standby_pulsers;
     size_t              m_current_pulser = 0;
-    DoneFun             m_OnDone;
+    DoneFun             m_OnDone{};
     //mutable Doublesec   m_time_estimated{};
     mutable int         m_duration_in_tstates{};
     Doublesec           m_tstate_dur = spectrum::tstate_dur;

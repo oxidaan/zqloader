@@ -10,7 +10,7 @@
 
 namespace fs = std::filesystem;
 
-
+/// QMediaPlayer/QCamera etc wrapper
 class Video::Impl
 {
     friend class Video;
@@ -52,7 +52,7 @@ public:
     {}
 
 
-
+    // can run in midiaudio thread
     bool Play( const std::string &p_url )
     {
         Stop();

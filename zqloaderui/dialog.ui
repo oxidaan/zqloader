@@ -379,7 +379,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>797</width>
+            <width>618</width>
             <height>605</height>
            </rect>
           </property>
@@ -1038,8 +1038,8 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>814</width>
-            <height>510</height>
+            <width>98</width>
+            <height>792</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_4">

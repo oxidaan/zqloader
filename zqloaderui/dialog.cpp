@@ -31,10 +31,12 @@
 #include <qevent.h>
 namespace fs = std::filesystem;
 
-constexpr const char *DefaultNormalFilename = "[Leave emtpy to use a version of zqloader]";
+constexpr const char *DefaultNormalFilename = "[Leave empty to use a version of zqloader (any other file will be loaded at normal speed) ]";
 constexpr const char *DefaultZxFilename = "[Optional first name as in LOAD \"somename\"]";
 constexpr const char *DefaultTurboFilename = "[Select a file to speed load here, a game for example.]";
 constexpr const char *DefaultOutputFilename = "[To write an output file instead of playing sound enter a .wav or .tzx output file here. Leave empty for normal usage (playing audio)]";
+constexpr const char *DefaultVideoFile = "[To have 'live' (...) video on ZX spectrum. Enter a filename here or 'camera' for webcam.]";
+constexpr const char *DefaultImageDir = "[To have images as dia show on ZX spectrum. Not working yet.]";
 
 inline void MakeBlack(QLineEdit *p_line_edit)
 {
@@ -390,6 +392,8 @@ Dialog::Dialog(QWidget *parent)
     ConnectLineEditFocus(ui->lineEditTurboFile,  DefaultTurboFilename);
     ConnectLineEditFocus(ui->lineEditZxFilename, DefaultZxFilename);
     ConnectLineEditFocus(ui->lineEditOutputFile, DefaultOutputFilename);
+    ConnectLineEditFocus(ui->lineEditVideoFile, DefaultVideoFile);
+    ConnectLineEditFocus(ui->lineEditImageDir, DefaultImageDir);
 
 
 
@@ -465,8 +469,17 @@ inline void Dialog::OnDone()
         }
         m_zqloader.SetCompressionType(CompressionType::automatic);
         m_zqloader.AddMemoryBlock({std::move(block), spectrum::SCREEN_START}, 0);
-        ui->zxvideo->Play(ui->lineEditVideoFile->text().toStdString());
-        m_state = State::VideoFunNext;
+        try
+        {
+            ui->zxvideo->Play(ui->lineEditVideoFile->text().toStdString());
+            m_state = State::VideoFunNext;
+        }
+        catch(const std::exception &e)
+        {
+            std::cout << "<b>" << e.what() << "</b>" << std::endl;
+            m_state = State::Cancelled;
+            //SetState(State::Cancelled);
+        }
     }
     else if( m_state == State::VideoFunNext)
     {
@@ -587,16 +600,19 @@ inline void Dialog::Go()
 {
     try
     {
-        std::string video_url = ui->tabWidget->currentIndex() == 2 ? ui->lineEditVideoFile->text().toStdString() : "";
-        if(!video_url.empty())
+        if(ui->tabWidget->currentIndex() == 2)
         {
-            // start video fun
-            m_zqloader.Reset();
-            fs::path filename1 = ui->lineEditNormalFile->text().toStdString();
-            m_zqloader.SetNormalFilename(filename1).SetPreload();       // should be zqloader or empty
-            SetZqLoaderParameters();
-            m_zqloader.Start();
-            SetState(State::VideoFunFirst);
+            std::string video_url =  ui->lineEditVideoFile->text().toStdString();
+            if(!video_url.empty() && video_url[0] != '[')
+            {
+                // start video fun
+                m_zqloader.Reset();
+                fs::path filename1 = ui->lineEditNormalFile->text().toStdString();
+                m_zqloader.SetNormalFilename(filename1).SetPreload();       // should be zqloader or empty
+                SetZqLoaderParameters();
+                m_zqloader.Start();
+                SetState(State::VideoFunFirst);
+            }
             return;
         }
 
@@ -789,6 +805,8 @@ inline void Dialog::Load()
     ui->lineEditTurboFile->signalFocusOut();
     ui->lineEditZxFilename->signalFocusOut();
     ui->lineEditOutputFile->signalFocusOut();
+    ui->lineEditVideoFile->signalFocusOut();
+    ui->lineEditImageDir->signalFocusOut();
 }
 
 /// Read all line edits + dialog position from given settings

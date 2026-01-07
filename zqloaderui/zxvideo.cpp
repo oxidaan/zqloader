@@ -47,10 +47,11 @@ public:
         if (!m_image.isNull()) 
         {
             auto w = m_image.width() * 4;
-            auto h = m_image.height() * 4;
-            painter.drawImage(0, 0, m_image.scaled(w, h)); // draw the image at (0,0)
+            auto h = m_image.height() * 8;
+            painter.drawImage(0, 0, m_video.GetImage().scaled(w, h)); // draw the image at (0,0)
+            painter.drawImage(w, 0, m_image.scaled(w, h)); // draw the image at (0,0)
             auto image_attr = AttrToImage(m_width_and_height, ImageToAttr(m_image));
-            painter.drawImage(w, 0,  image_attr.scaled(w, h)); // draw the image at (w,0)
+            painter.drawImage(2*w, 0,  image_attr.scaled(w, h)); // draw the image at (w,0)
         }
     }
 
@@ -123,6 +124,69 @@ private:
         }
         return image;
     }
+
+    static QImage NormalizeContrast(const QImage &p_image)
+    {
+        QImage img = p_image.convertToFormat(QImage::Format_RGB32);
+
+        int w = img.width();
+        int h = img.height();
+
+        int minR = 255, minG = 255, minB = 255;
+        int maxR = 0,   maxG = 0,   maxB = 0;
+
+        // 1. Find min/max per channel
+        for (int y = 0; y < h; y++) 
+        {
+            const QRgb *line = reinterpret_cast<const QRgb*>(img.scanLine(y));
+            for (int x = 0; x < w; x++) 
+            {
+                int r = qRed(line[x]);
+                int g = qGreen(line[x]);
+                int b = qBlue(line[x]);
+                if(r >10 && g >10  && b > 10)
+                {
+                    minR = std::min(minR, r);
+                    minG = std::min(minG, g); 
+                    minB = std::min(minB, b); 
+                }
+                if(r < 245 && g < 245 && b < 245)
+                {
+                    maxR = std::max(maxR, r);
+                    maxG = std::max(maxG, g);
+                    maxB = std::max(maxB, b);
+                }
+            }
+        }
+
+        int rangeR = maxR - minR;
+        int rangeG = maxG - minG;
+        int rangeB = maxB - minB;
+        // Avoid division by zero
+        rangeR = rangeR ? rangeR : 1;
+        rangeG = rangeG ? rangeG : 1;
+        rangeB = rangeB ? rangeB : 1;
+
+        // 2. Stretch contrast
+        for (int y = 0; y < h; y++) 
+        {
+            QRgb *line = reinterpret_cast<QRgb*>(img.scanLine(y));
+            for (int x = 0; x < w; x++)
+            {
+                int r = qRed(line[x]);
+                int g = qGreen(line[x]);
+                int b = qBlue(line[x]);
+
+                int nr = std::clamp((r - minR) * 255 / rangeR, 0, 255);
+                int ng = std::clamp((g - minG) * 255 / rangeG, 0, 255);
+                int nb = std::clamp((b - minB) * 255 / rangeB, 0, 255);
+
+                line[x] = qRgb(nr, ng, nb);
+            }
+        }
+
+        return img;
+    }
     
     static Attributes ImageToAttr(QImage p_image)
     {
@@ -131,6 +195,7 @@ private:
         {
             p_image = p_image.convertToFormat(QImage::Format_RGB32);
         }
+        p_image = NormalizeContrast(p_image);
         int width = p_image.width();
         int height = p_image.height();
         const auto* data = p_image.bits();
