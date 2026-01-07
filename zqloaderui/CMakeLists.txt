@@ -17,8 +17,8 @@ project(zqloaderui VERSION 0.1 LANGUAGES CXX)
 #set(CMAKE_CXX_STANDARD 17)
 #set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5      COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets)
+find_package(QT NAMES Qt6 Qt5      COMPONENTS Widgets Multimedia)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets Multimedia)
 
 
 if (NOT Qt${QT_VERSION_MAJOR}_FOUND)
@@ -36,6 +36,8 @@ set(PROJECT_SOURCES
         dialog.h
         widgetstreambuffer.h
         dialog.ui
+        video.cpp
+        zxvideo.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -61,7 +63,7 @@ else()
     endif()
 endif()
 #target_include_directories(zqloaderlib PRIVATE .)
-target_link_libraries(zqloaderui PRIVATE Qt${QT_VERSION_MAJOR}::Widgets zqloaderlib)
+target_link_libraries(zqloaderui PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Multimedia zqloaderlib)
 target_include_directories(zqloaderui PRIVATE . ..)
 
 

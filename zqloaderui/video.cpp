@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <QCamera>
 #include <QMediaCaptureSession>
+#include <QMediaDevices>
 #include <iostream>
 
 namespace fs = std::filesystem;
@@ -21,9 +22,13 @@ public:
         m_this(p_this)
     {
         //m_media_player.setVideoSink(&m_video_sink);
-        QObject::connect(&m_media_player, &QMediaPlayer::errorOccurred, [this](QMediaPlayer::Error e)
+        QObject::connect(&m_media_player, &QMediaPlayer::errorOccurred, [](QMediaPlayer::Error e)
         {
             std::cout << "Mediaplayer Error:" << e << std::endl; 
+        });
+        QObject::connect(&m_camera, &QCamera::errorOccurred, [](QCamera::Error e)
+        {
+            std::cout << "Camera Error:" << e << std::endl;
         });
         QObject::connect(&m_media_player, &QMediaPlayer::mediaStatusChanged, [this](QMediaPlayer::MediaStatus s)
         {
@@ -58,8 +63,21 @@ public:
         Stop();
         if( p_url.find( "camera" ) == 0 )
         {
-            m_session.setVideoSink(&m_video_sink);
+            auto cameras = QMediaDevices::videoInputs();
+
+            if (cameras.empty())
+            {
+                throw std::runtime_error("No camera available");
+            }
+            std::cout << "Using camera 1 from " << cameras.size() << std::endl;
+            m_camera.setCameraDevice(cameras.front());   // ← select real device
+            auto formats = m_camera.cameraDevice().videoFormats();
+            if (!formats.empty())
+            {
+                m_camera.setCameraFormat(formats.front());   // ← important on Linux
+            }
             m_session.setCamera(&m_camera);
+            m_session.setVideoSink(&m_video_sink);
             m_camera.start();
             return true;
         }
@@ -115,14 +133,14 @@ public:
 
 
 private:
-    bool                    m_auto_repeat = true;
-    Video *                 m_this;
-    QMediaPlayer            m_media_player;     // used when playing stream or file
-    QCamera                 m_camera;           // used when camera capture
-    QMediaCaptureSession    m_session;          // used when camera capture
-    QVideoSink              m_video_sink;
-    QVideoFrame             m_frame;            // last frame received at m_video_sink
-    bool                    m_frame_received = false;
+    bool                        m_auto_repeat = true;
+    Video *                     m_this;
+    QMediaPlayer                m_media_player;     // used when playing stream or file
+    QCamera                     m_camera;           // used when camera capture
+    QMediaCaptureSession        m_session;          // used when camera capture
+    QVideoSink                  m_video_sink;
+    QVideoFrame                 m_frame;            // last frame received at m_video_sink
+    bool                        m_frame_received = false;
 };
 
 
