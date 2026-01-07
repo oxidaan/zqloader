@@ -105,7 +105,7 @@ More options can be given with syntax: option=value, or just 'option value' or o
     usescreen or -s         When loading a snapshot, normally it will try to find empty space for
                             the loader. Only when not found it uses the lower 2/3 of screen for 
                             that. With this option it will allways use the screen.
-    fun_attribs or -f       When using screen for a snapshot, giving this paremeter overwrites
+    fun_attribs or -f       When using screen for a snapshot, giving this parameter overwrites
                             the loader garbage at screen with a funny text attribute text.
 
     zero_tstates = value

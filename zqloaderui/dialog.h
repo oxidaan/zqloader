@@ -12,7 +12,7 @@
 
 #include <QDialog>
 #include <zqloader.h>
-#include "zxvideo.h"
+//#include "zxvideo.h"
 
 
 QT_BEGIN_NAMESPACE
