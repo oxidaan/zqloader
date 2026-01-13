@@ -450,7 +450,10 @@ private:
         {
             std::cout << "<b>Warning: Number of found code blocks (" << m_turboblocks.size() << ") not equal to LOAD \"\" CODE statements in BASIC (" << tab_to_turbo_blocks.GetNumberLoadCode() << ")!</b>\n" << std::endl;
         }
-        auto size = m_turboblocks.Finalize(m_dont_call_USR ? 0 : tab_to_turbo_blocks.GetUsrAddress(), tab_to_turbo_blocks.GetClearAddress());
+        auto size = m_turboblocks.Finalize(m_when_done_return_to_basic ? 0 :
+                                           m_when_done_call_usr == 0 ? tab_to_turbo_blocks.GetUsrAddress() :
+                                           m_when_done_call_usr,
+                                           tab_to_turbo_blocks.GetClearAddress());
         if(size == 0)
         {
             throw std::runtime_error("No blocks present in file: '" + p_filename.string() + "' that could be turboloaded (note: can only handle code blocks, not BASIC)");
@@ -556,7 +559,8 @@ public:
     uint32_t                                m_sample_rate         = loader_defaults::sample_rate;
     fs::path                                m_exe_path;                    // s/a argv[0]
     Action                                  m_action = Action::play_audio;
-    bool                                    m_dont_call_USR       = false;
+    uint16_t                                m_when_done_call_usr = 0; // 0 is automatic
+    bool                                    m_when_done_return_to_basic = false;
     bool                                    m_is_busy = false;
     bool                                    m_is_preloaded = false;
     DoneFun                                 m_OnDone;
@@ -728,9 +732,10 @@ ZQLoader& ZQLoader::SetFunAttribs(bool p_value)
     return *this;
 }
 
-ZQLoader& ZQLoader::SetDontCallUser(bool p_value)
+ZQLoader& ZQLoader::SetWhenDoneDo(uint16_t p_value, bool p_return_to_basic)
 {
-    m_pimpl->m_dont_call_USR = p_value;
+    m_pimpl->m_when_done_return_to_basic = p_return_to_basic;
+    m_pimpl->m_when_done_call_usr = p_value;
     return *this;
 }
 

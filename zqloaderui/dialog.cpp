@@ -94,7 +94,7 @@ void WriteFunText(ZQLoader &p_zq_loader, bool p_first)
         // wipe screen
         DataBlock all_attr;
         all_attr.resize(768);
-        p_zq_loader.SetCompressionType(CompressionType::none);
+        p_zq_loader.SetCompressionType(CompressionType::automatic);
         p_zq_loader.AddMemoryBlock({std::move(all_attr), spectrum::ATTR_BEGIN}, 0);
     }
     else
@@ -103,8 +103,8 @@ void WriteFunText(ZQLoader &p_zq_loader, bool p_first)
         text_attr.resize(256);
         empty = ZQLoader::WriteTextToAttr(text_attr, text, std::byte{}, false, col);    // 0_byte: random colors
         // copy fun attributes into 48k data block
-        p_zq_loader.SetCompressionType(CompressionType::none);      // else ugly
-        p_zq_loader.AddMemoryBlock({std::move(text_attr), spectrum::ATTR_23RD}, 0);
+        p_zq_loader.SetCompressionType(CompressionType::automatic);      // else ugly
+        p_zq_loader.AddMemoryBlock({std::move(text_attr), spectrum::ATTR_23RD}, 40000);
     }
     col --;
     if(empty)
@@ -558,7 +558,7 @@ inline void Dialog::RestoreDefaults()
     ui->lineEditDeCompressionSpeed->setText(QString::number(loader_defaults::decompression_speed));
     ui->lineEditInitialWait->setText(QString::number(loader_defaults::initial_wait.count()));
 
-    ui->comboBoxLoaderLocation->setCurrentIndex(1);     // automatic.
+    ui->comboBoxLoaderLocation->setCurrentIndex(0);     // automatic.
     ui->lineEditLoaderAddress->setText(QString::number(spectrum::SCREEN_23RD));
 
     ui->lineEditSampleRate->setText(QString::number(m_zqloader.GetDeviceSampleRate()));
@@ -588,7 +588,7 @@ inline void Dialog::RestoreDefaults()
     ui->lineEditZxFilename->setText("");
     ui->lineEditZxFilename->signalFocusOut();
 
-    ui->checkBoxNoUSR->setChecked(false);
+    ui->comboBoxWhenDone->setCurrentIndex(0);     // automatic.
     // ui->lineEditOutputFile->setText("");      // no leave even when pressed restore defaults
     // ui->lineEditOutputFile->signalFocusOut();    
 }
@@ -654,6 +654,7 @@ inline void Dialog::Go()
         ui->pushButtonClean->setEnabled(true);
         std::cout << "\n" << std::endl;
 
+        SetZqLoaderParameters();
       
         // When outputfile="path/to/filename" or -w or -wav given: 
         // Convert to wav file instead of outputting sound
@@ -663,7 +664,6 @@ inline void Dialog::Go()
         m_zqloader.SetNormalFilename(normal_filename, zxfilename[0] == '[' ? "" : zxfilename);
         m_zqloader.SetTurboFilename(turbo_filename, zxfilename[0] == '[' ? "" : zxfilename);
 
-        SetZqLoaderParameters();
 
         SetState(State::Playing);
         m_zqloader.Start();
@@ -703,22 +703,36 @@ void Dialog::SetZqLoaderParameters()
     m_zqloader.SetCompressionType(CompressionType(ui->comboBoxCompressionType->currentIndex()));                                    
     m_zqloader.SetDeCompressionSpeed(ui->lineEditDeCompressionSpeed->text().toInt());
     m_zqloader.SetInitialWait(std::chrono::milliseconds(ui->lineEditInitialWait->text().toInt()));
-    m_zqloader.SetDontCallUser(ui->checkBoxNoUSR->isChecked());
     m_zqloader.SetUseStandaardSpeedForRom(ui->checkBoxUseStandardClockForRom->isChecked());
 
-    if(ui->comboBoxLoaderLocation->currentIndex() == 0)
-    {
-        m_zqloader.SetLoaderCopyTarget(ZQLoader::LoaderLocation::screen);
-    }
-    else if(ui->comboBoxLoaderLocation->currentIndex() == 1)
+    if(ui->comboBoxLoaderLocation->currentIndex() == 0)     // automatic
     {
         m_zqloader.SetLoaderCopyTarget(ZQLoader::LoaderLocation::automatic);
     }
+    else if(ui->comboBoxLoaderLocation->currentIndex() == 1)        // screen
+    {
+        m_zqloader.SetLoaderCopyTarget(ZQLoader::LoaderLocation::screen);
+    }
     else
     {
-        uint16_t adr = ui->lineEditLoaderAddress->text().toInt();
+        uint16_t adr = ui->lineEditLoaderAddress->text().toInt();       // given location
         m_zqloader.SetLoaderCopyTarget(adr);
     }
+
+    if(ui->comboBoxWhenDone->currentIndex() == 0)       // automatic
+    {
+        m_zqloader.SetWhenDoneDo(0, false);
+    }
+    if(ui->comboBoxWhenDone->currentIndex() == 1)        // return to basic
+    {
+        m_zqloader.SetWhenDoneDo(0, true);     
+    }
+    else // given address
+    {
+        uint16_t adr = ui->lineEditUSR->text().toInt();     
+        m_zqloader.SetWhenDoneDo(adr, false);
+    }
+
     m_zqloader.SetFunAttribs(ui->checkBoxFunAttribs->isChecked());
     m_zqloader.SetSampleRate(ui->lineEditSampleRate->text().toInt());
     m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());

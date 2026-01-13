@@ -320,7 +320,7 @@ public:
         for (auto& tblock : m_turbo_blocks)
         {
             auto next_pause = tblock.EstimateHowLongSpectrumWillTakeToDecompress(m_decompression_speed); // b4 because moved
-            tblock.SetSkipPilot(p_is_fun_attribute);
+            // skip for now tblock.SetSkipPilot(p_is_fun_attribute);
             if (!p_is_fun_attribute)
             {
                 std::cout << "Block #" << cnt++ << "\n";
@@ -697,7 +697,10 @@ TurboBlocks& TurboBlocks::SetCompressionType(CompressionType p_compression_type)
 
 TurboBlocks& TurboBlocks::SetDeCompressionSpeed(int p_kb_per_sec)
 {
-    m_pimpl->m_decompression_speed = p_kb_per_sec;
+    if(p_kb_per_sec != 0)
+    {
+        m_pimpl->m_decompression_speed = p_kb_per_sec;
+    }
     return *this;
 }
 

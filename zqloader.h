@@ -117,7 +117,7 @@ public:
     ZQLoader &SetFunAttribs(bool p_value);
 
     /// Dont call machine code (USR) at end of loading, return to BASIC instead
-    ZQLoader& SetDontCallUser(bool p_value);
+    ZQLoader& SetWhenDoneDo(uint16_t p_usr_address, bool p_return_to_basic );
 
     ///  Reset, stop, wipe all added data (files)
     ZQLoader& Reset();

@@ -1,6 +1,6 @@
 //==============================================================================
 // PROJECT:         zqloader
-// FILE:            turboblock.i
+// FILE:            zqloader.inc
 // DESCRIPTION:     ZX Spectrum Z80 assember file for turboloader 'zqloader'
 // 
 // Copyright (c) 2025 Daan Scherft [Oxidaan]
