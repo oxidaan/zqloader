@@ -589,6 +589,7 @@ inline void Dialog::RestoreDefaults()
     ui->lineEditZxFilename->signalFocusOut();
 
     ui->comboBoxWhenDone->setCurrentIndex(0);     // automatic.
+    ui->lineEditUSR->setText("");
     // ui->lineEditOutputFile->setText("");      // no leave even when pressed restore defaults
     // ui->lineEditOutputFile->signalFocusOut();    
 }

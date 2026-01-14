@@ -65,7 +65,7 @@
    <item row="0" column="0">
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
@@ -378,7 +378,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
           <property name="geometry">
            <rect>
             <x>0</x>
-            <y>-32</y>
+            <y>0</y>
             <width>954</width>
             <height>610</height>
            </rect>
@@ -925,8 +925,8 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>971</width>
-            <height>563</height>
+            <width>583</width>
+            <height>272</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_4">
@@ -1050,8 +1050,8 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>971</width>
-            <height>563</height>
+            <width>98</width>
+            <height>792</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_4">
@@ -1166,13 +1166,22 @@ li.checked::marker { content: &quot;\2612&quot;; }
   <tabstop>comboBoxLoaderLocation</tabstop>
   <tabstop>lineEditLoaderAddress</tabstop>
   <tabstop>checkBoxFunAttribs</tabstop>
-  <tabstop>pushButtonCalculate</tabstop>
-  <tabstop>tabWidget</tabstop>
+  <tabstop>comboBoxWhenDone</tabstop>
+  <tabstop>lineEditUSR</tabstop>
   <tabstop>textEditOutput</tabstop>
   <tabstop>scrollArea</tabstop>
   <tabstop>scrollArea_2</tabstop>
   <tabstop>scrollArea_3</tabstop>
   <tabstop>pushButtonGo</tabstop>
+  <tabstop>pushButtonCalculate</tabstop>
+  <tabstop>tabWidget</tabstop>
+  <tabstop>lineEditVideoFile</tabstop>
+  <tabstop>pushButtonBrowseVideoFile</tabstop>
+  <tabstop>pushButton</tabstop>
+  <tabstop>lineEditImageDir</tabstop>
+  <tabstop>scrollArea_3</tabstop>
+  <tabstop>pushButtonTest</tabstop>
+  <tabstop>scrollArea_3</tabstop>
  </tabstops>
  <resources/>
  <connections/>
