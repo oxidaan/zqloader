@@ -112,13 +112,13 @@ public:
     {
         std::cout << 1 + &*R"(
 <b>Playing an endless leader tone for sound tuning...</b>
-- Connect the audio cable from the host computer to the ZX Spectrum <b>EAR</b> input
+- Connect the audio cable from the host computer to the ZX Spectrum <b>EAR</b> input.
 - Set <b>volume to max</b>, both in the operating system as well as the dials above.
 - Make <b>sure no other sound</b> is playing.
 - Sometimes a stereo cable is better, sometimes mono:
 &nbsp;&nbsp;When the ZX-Spectrum and the host computer are sharing a common (electrical) ground, a stereo cable is probably best.
 &nbsp;&nbsp;When using a stereo cable, it is best to invert one sound output (left or right); you can use the volume dials for that.
-&nbsp;&nbsp;(Just turn one dial fully to the left.)
+&nbsp;&nbsp;(Just turn one dial fully to the left)
 &nbsp;&nbsp;In other cases, a mono cable may give better results.
 &nbsp;&nbsp;(See also, for example <a href="https://retrocomputing.stackexchange.com/questions/773/loading-zx-spectrum-tape-audio-in-a-post-cassette-world">here...</a>.)
 )";

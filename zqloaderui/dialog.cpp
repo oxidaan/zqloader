@@ -125,8 +125,8 @@ Dialog::Dialog(QWidget *parent)
     setWindowIcon(icon);
 
     // redirect cout to textEditOutput
-    ui->textEditOutput->moveCursor(QTextCursor::End);
-    auto buffer = new TextEditStreamBuffer(ui->textEditOutput);
+    ui->textBrowserOutput->moveCursor(QTextCursor::End);
+    auto buffer = new TextEditStreamBuffer(ui->textBrowserOutput);
     std::streambuf* oldCoutBuffer = std::cout.rdbuf(buffer);
     (void)oldCoutBuffer;
 
@@ -223,6 +223,12 @@ Dialog::Dialog(QWidget *parent)
 
     // make hyperlinks work in about text
     connect(ui->labelAbout, &QLabel::linkActivated, [](const QString & link)
+    {
+        QDesktopServices::openUrl(link);
+    });
+    // make hyperlinks work in output text
+    ui->textBrowserOutput->setOpenLinks(false);  // Disable internal loading
+    connect(ui->textBrowserOutput, &QTextBrowser::anchorClicked, [](const QUrl & link)
     {
         QDesktopServices::openUrl(link);
     });
@@ -338,7 +344,7 @@ Dialog::Dialog(QWidget *parent)
     // Clean button pressed
     connect(ui->pushButtonClean,&QPushButton::pressed, [this]
     {
-        ui->textEditOutput->clear();
+        ui->textBrowserOutput->clear();
         ui->pushButtonClean->setEnabled(false);
     });
 
