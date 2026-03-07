@@ -154,7 +154,7 @@ public:
     }
     Doublesec GetTstateDuration() const
     {
-        return m_tstate_dur;
+        return m_use_standard_clock_for_rom ? spectrum::tstate_dur : m_tstate_dur;
     }
 
     // Ignore speed as set by SetTstateDuration for normal speed (=rom) loading routines
@@ -208,7 +208,6 @@ private:
     MovableMutex        m_mutex_standby_pulsers;
     size_t              m_current_pulser = 0;
     DoneFun             m_OnDone{};
-    //mutable Doublesec   m_time_estimated{};
     mutable int         m_duration_in_tstates{};
     Doublesec           m_tstate_dur = spectrum::tstate_dur;
     bool                m_use_standard_clock_for_rom = false;

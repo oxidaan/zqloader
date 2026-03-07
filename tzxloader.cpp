@@ -226,7 +226,7 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
         }
         case TzxBlockType::Custominfoblock:
         {
-            p_stream.ignore(0x10);
+            p_stream.ignore(10);
             auto len = LoadBinary<WORD>(p_stream);
             p_stream.ignore(len);
             break;

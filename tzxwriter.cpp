@@ -12,7 +12,7 @@
 #include "tzx_types.h"
 #include "loadbinary.h"     // WriteBinary
 #include <algorithm>
-#include "spectrum_consts.h"
+#include "spectrum_consts.h"      // spectrum::tstate_one etc at IsPulserSpectrumData
 #include <string>
 #include <sstream>
 
@@ -93,18 +93,29 @@ inline bool TzxWriter::IsZqLoaderTurboData(const Pulser &p_pulser)
     return pulser_ptr && !IsPulserSpectrumData(*pulser_ptr) && !IsPulserTurboData(*pulser_ptr);
 }
 
-void TzxWriter::WriteTzxFile(const Pulsers& p_pulsers, std::ostream& p_stream,  Doublesec p_tstate_dur)
+void TzxWriter::WriteBegin(std::ostream& p_stream)
 {
     p_stream << "ZXTape!";
     std::cout << "ZXTape!" << std::endl;
     WriteBinary(p_stream, std::byte{ 0x1A });
     WriteBinary(p_stream, std::byte{ 1 });
     WriteBinary(p_stream, std::byte{ 20 });
-    WriteInfo(p_stream);
+}
+
+// convenience
+void TzxWriter::WriteTzxFile(const Pulsers& p_pulsers, std::ostream& p_stream,  Doublesec p_tstate_dur)
+{
+    WriteBegin(p_stream);
+    extern const char *GetVersion();
+    WriteInfo(p_stream, std::string("File written by ZQLoader version ") + GetVersion());
+    WritePulsers(p_pulsers, p_stream, p_tstate_dur);
+}
+
+void TzxWriter::WritePulsers(const Pulsers& p_pulsers, std::ostream& p_stream,  Doublesec p_tstate_dur)
+{
     const Pulser *prevprev{};
     const Pulser *prev{};
     const Pulser *current{};
-    TzxBlockWriter writer(p_stream, p_tstate_dur);
     int zqblocks = 0;       // logging only
     for(const auto &p : p_pulsers)
     {
@@ -148,7 +159,7 @@ void TzxWriter::WriteTzxFile(const Pulsers& p_pulsers, std::ostream& p_stream,  
         }
         else if(prevprev)
         {
-            prevprev->Accept(writer);       // -> WriteAsTzxBlock (visitor pattern)
+            WriteAsTzxBlock(*prevprev, p_stream, p_tstate_dur);
         }
 
         prevprev = prev;
@@ -157,33 +168,51 @@ void TzxWriter::WriteTzxFile(const Pulsers& p_pulsers, std::ostream& p_stream,  
     // Write remaining last two blocks when not already done so.
     if(prevprev)
     {
-        prevprev->Accept(writer);        // -> WriteAsTzxBlock
+        WriteAsTzxBlock(*prevprev, p_stream, p_tstate_dur);
     }
     if(prev)
     {
-        prev->Accept(writer);            // -> WriteAsTzxBlock
+        WriteAsTzxBlock(*prev, p_stream, p_tstate_dur);
     }
 }
 
-void TzxWriter::WriteInfo(std::ostream& p_stream)
+void TzxWriter::WriteInfo(std::ostream& p_stream, const std::string &p_text)
 {
     WriteBinary(p_stream, TzxBlockType::Textdescription);
-    extern const char *GetVersion();
-    std::string s = std::string("File written by ZQLoader version ") + GetVersion();
-    WriteBinary(p_stream, BYTE(s.length()));
-    for(const auto c: s)
+    WriteBinary(p_stream, BYTE(p_text.length()));
+    for(auto c: p_text)
     {
         WriteBinary(p_stream, c);
     }
 }
 
-void TzxWriter::TzxBlockWriter::WriteAsTzxBlock(const TonePulser &p_pulser, std::ostream &p_stream) const
+// Write a Pulser as TzxBlock
+void TzxWriter::WriteAsTzxBlock(const Pulser &p_pulser, std::ostream &p_stream,  Doublesec p_tstate_dur) 
+{
+    if(dynamic_cast<const TonePulser *>(&p_pulser))
+    {
+        WriteAsTzxBlock(*dynamic_cast<const TonePulser *>(&p_pulser), p_stream, p_tstate_dur);
+    }
+    if(dynamic_cast<const PausePulser *>(&p_pulser))
+    {
+        WriteAsTzxBlock(*dynamic_cast<const PausePulser *>(&p_pulser), p_stream, p_tstate_dur);
+    }
+    if(dynamic_cast<const DataPulser *>(&p_pulser))
+    {
+        WriteAsTzxBlock(*dynamic_cast<const DataPulser *>(&p_pulser), p_stream, p_tstate_dur);
+    }
+}
+
+
+// Write a tone (eg leader).
+// Puretone or GeneralizedDataBlock
+void TzxWriter::WriteAsTzxBlock(const TonePulser &p_pulser, std::ostream &p_stream, Doublesec p_tstate_dur) 
 {
     const auto &pattern = p_pulser.GetPattern();
     auto max_pulses = p_pulser.GetMaxPulses();
     if(pattern.size() == 1)
     {
-        std::cout << "Tone: Puretone patt=" << pattern[0] << " #pulses=" << max_pulses << " Dur=" << ((max_pulses * pattern[0]) * m_tstate_dur).count() << "sec" << std::endl;
+        std::cout << "Tone: Puretone patt=" << pattern[0] << " #pulses=" << max_pulses << " Dur=" << ((max_pulses * pattern[0]) * p_tstate_dur).count() << "sec" << std::endl;
         WriteBinary(p_stream, TzxBlockType::Puretone);
         std::cout << "  ";
         WriteBinary(p_stream, WORD(pattern[0]));
@@ -192,7 +221,7 @@ void TzxWriter::TzxBlockWriter::WriteAsTzxBlock(const TonePulser &p_pulser, std:
     }
     else if(pattern.size() == 2 && pattern[0] == pattern[1])
     {
-        std::cout << "Tone: Puretone patt=" << pattern[0] << " #pulses=" << 2 * max_pulses << " Dur=" << ((2 * max_pulses * pattern[0]) * m_tstate_dur).count() << "sec" << std::endl;
+        std::cout << "Tone: Puretone patt=" << pattern[0] << " #pulses=" << 2 * max_pulses << " Dur=" << ((2 * max_pulses * pattern[0]) * p_tstate_dur).count() << "sec" << std::endl;
         WriteBinary(p_stream, TzxBlockType::Puretone);
         std::cout << "  ";
         WriteBinary(p_stream, WORD(pattern[0]));
@@ -262,14 +291,14 @@ void TzxWriter::TzxBlockWriter::WriteAsTzxBlock(const TonePulser &p_pulser, std:
 
 
 
-/// Write a pause
+/// Write a pause.
 /// Long pauses are written as PauseOrStopthetapecommand
 /// Short ones as (empty) GeneralizedDataBlock, can also have edge at end.
-void TzxWriter::TzxBlockWriter::WriteAsTzxBlock(const PausePulser &p_pulser, std::ostream& p_stream) const
+void TzxWriter::WriteAsTzxBlock(const PausePulser &p_pulser, std::ostream& p_stream, Doublesec p_tstate_dur) 
 {
     auto edge = p_pulser.GetEdgeAfterWait();
     auto duration_in_tstates = p_pulser.GetDurationInTStates();
-    auto len_in_ms = WORD((1000.0 * duration_in_tstates * m_tstate_dur).count());
+    auto len_in_ms = WORD((1000.0 * duration_in_tstates * p_tstate_dur).count());
     if(duration_in_tstates > 35000 /* 0xffff */ && edge == Edge::no_change) // 10ms
     {
         std::cout << "Pause: PauseOrStopthetapecommand " << len_in_ms << "ms; (TStates=" << duration_in_tstates << ")" << std::endl;
@@ -346,8 +375,9 @@ void TzxWriter::TzxBlockWriter::WriteAsTzxBlock(const PausePulser &p_pulser, std
 
 /// Write a generalizedDataBlock with *just* data.
 /// No pilot/sync.
-void TzxWriter::TzxBlockWriter::WriteAsTzxBlock(const DataPulser &p_pulser, std::ostream& p_stream) const
+void TzxWriter::WriteAsTzxBlock(const DataPulser &p_pulser, std::ostream& p_stream, Doublesec p_tstate_dur) 
 {
+    (void)p_tstate_dur;
     const auto &one_pattern = p_pulser.GetOnePattern();
     const auto &zero_pattern = p_pulser.GetZeroPattern();
     const auto total_size = p_pulser.GetTotalSize();        // # bytes
@@ -410,7 +440,7 @@ void TzxWriter::TzxBlockWriter::WriteAsTzxBlock(const DataPulser &p_pulser, std:
 }
 
 // Write as ID 0x10 - StandardSpeedDataBlock.
-// Has predefined pilot and sync so these parametersare not used.
+// Has predefined pilot and sync so these parameters are not used.
 void TzxWriter::WriteAsStandardSpectrum(std::ostream& p_stream, const TonePulser &p_pilot, const TonePulser &p_sync, const DataPulser &p_data)
 {
     (void)p_pilot;

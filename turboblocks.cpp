@@ -26,12 +26,12 @@
     (void) somevar; \
     class{} somevar;    \
     (void) somevar;
+
 #ifdef _MSC_VER
 #pragma warning(disable: 4458)
 #endif
 
 namespace fs = std::filesystem;
-
 using namespace std::placeholders;
 
 
@@ -39,10 +39,6 @@ using namespace std::placeholders;
 #ifdef _MSC_VER
 #pragma warning (disable: 4456) // declaration of '' hides previous local declaration
 #endif
-
-
-
-
 
 
 

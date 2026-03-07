@@ -16,23 +16,6 @@
 #include <ostream>                  // std::ostream
 
 
-class PausePulser;
-class TonePulser;
-class DataPulser;
-
-// Visitor Interface
-// (used for tzx writing)
-class PulserVisitor
-{
-public:
-    PulserVisitor() = default;
-    virtual ~PulserVisitor() = default;
-    virtual void Visit(const PausePulser& p_pulser) const = 0;
-    virtual void Visit(const TonePulser& p_pulser) const  = 0;
-    virtual void Visit(const DataPulser& p_pulser) const  = 0;
-
-};
-
 
 /// A pulser is used by miniaudio te create an audio stream.
 /// Encodes binary data to a series of (audio) pulses that can be loaded by
@@ -59,8 +42,6 @@ public:
     {}
 
 
-    // Visitor pattern
-    virtual void Accept(const PulserVisitor& p_visitor) const = 0;
 
     virtual Edge GetEdge() const = 0;       // What to do after wait
     virtual bool Next()          = 0;       // move to next pulse/edge, return true when done.
@@ -117,12 +98,6 @@ public:
 
 
     PausePulser(PausePulser&&) = default;
-
-
-    void Accept(const PulserVisitor& p_visitor) const override
-    {
-        p_visitor.Visit(*this);
-    }
 
 
     /// Set length of pause in milliseconds.
@@ -228,11 +203,6 @@ public:
 
 
     TonePulser(TonePulser&&) = default;
-
-    void Accept(const PulserVisitor& p_visitor) const override
-    {
-        p_visitor.Visit(*this);
-    }
 
 
     /// Set tone pattern using one ore more given T-state durations.
@@ -361,11 +331,6 @@ public:
 
     DataPulser(DataPulser&&) = default;
 
-
-    void Accept(const PulserVisitor& p_visitor) const override
-    {
-        p_visitor.Visit(*this);
-    }
 
     /// Set Pattern (TStates) used to send a "1"
     template<typename ... TParams>
@@ -565,21 +530,14 @@ private:
     }
 
 
-
     void SetOnePattern()
     {
     }
 
 
-
     void SetZeroPattern()
     {
     }
-
-
-
-
-
 
 
     void SetSize(size_t p_size)
@@ -588,23 +546,16 @@ private:
     }
 
 
-
-
-
-
-
     std::byte* GetDataPtr()
     {
         return m_data.data();
     }
 
 
-
     bool AtEnd() const
     {
         return ( m_bitnum / 8 ) >= GetTotalSize();
     }
-
 
 
     // # pulses(=edges) a single bit either 1 or zero needs.
@@ -621,7 +572,6 @@ private:
             return unsigned(m_zero_pattern.size());
         }
     }
-
 
 
     // Get current bit, based on m_bitnum
@@ -704,9 +654,6 @@ public:
     }
 
 
-
-
-
     int GetDurationInTStates() const override
     {
         return 0;
@@ -725,7 +672,6 @@ protected:
     {
         return 0;
     }
-
 
 
     Edge GetEdge() const override

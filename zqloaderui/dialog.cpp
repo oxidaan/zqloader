@@ -885,6 +885,7 @@ inline bool Dialog::Read(QSettings& p_settings, QObject *p_for_what)
             QVariant value = p_settings.value(for_what->objectName());
             if(!value.isNull())
             {
+                QSignalBlocker blocker(for_what);
                 for_what->setValue(value.toInt());
             }
             else
