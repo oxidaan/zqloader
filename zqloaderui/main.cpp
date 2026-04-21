@@ -11,6 +11,7 @@
 #include "dialog.h"
 #include <QApplication>
 #include <QMessageBox>
+#include <qstylefactory.h>
 
 
 /// I want to have std::exceptions to work.
@@ -37,6 +38,7 @@ public:
 int main(int argc, char *argv[])
 {
     Application a(argc, argv);
+    QApplication::setStyle(QStyleFactory::create("Fusion"));
     Dialog w;
     w.show();
     return a.exec();
