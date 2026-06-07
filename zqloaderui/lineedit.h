@@ -1,7 +1,7 @@
 //==============================================================================
 // PROJECT:         zqloader (ui)
 // FILE:            lineedit.h
-// DESCRIPTION:     Definition file for user inteface Dialog (QT/QDialog)
+// DESCRIPTION:     A (Q)LineEdit that signals signalFocusIn and signalFocusOut.
 // 
 // Copyright (c) 2024 Daan Scherft [Oxidaan]
 // This project uses the MIT license. See LICENSE.txt for details.
@@ -13,7 +13,7 @@
 #include <QLineEdit>
 
 
-/// A LineEdit that can more
+/// A (Q)LineEdit that signals signalFocusIn and signalFocusOut.
 class LineEdit : public QLineEdit
 {
     Q_OBJECT

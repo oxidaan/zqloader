@@ -1,3 +1,14 @@
+//==============================================================================
+// PROJECT:         zqloader (ui)
+// FILE:            video.cpp
+// DESCRIPTION:     QMediaPlayer/QCamera etc wrapper
+// 
+// Copyright (c) 2026 Daan Scherft [Oxidaan]
+// This project uses the MIT license. See LICENSE.txt for details.
+//==============================================================================
+
+
+
 #include "video.h"
 #include <QWidget>
 #include <QMediaPlayer>
@@ -11,7 +22,12 @@
 
 namespace fs = std::filesystem;
 
-/// QMediaPlayer/QCamera etc wrapper
+/// QMediaPlayer/QCamera etc wrapper, Wraps:
+/// QMediaPlayer used when playing stream or file
+/// QCamera used when camera capture
+/// QMediaCaptureSession  used when camera capture
+/// QVideoSink Video sink used in setVideoSink
+/// QVideoFrame last frame received at m_video_sink
 class Video::Impl
 {
     friend class Video;
@@ -21,7 +37,6 @@ public:
     Impl(Video *p_this) :
         m_this(p_this)
     {
-        //m_media_player.setVideoSink(&m_video_sink);
         QObject::connect(&m_media_player, &QMediaPlayer::errorOccurred, [](QMediaPlayer::Error e)
         {
             std::cout << "Mediaplayer Error:" << e << std::endl; 
@@ -118,6 +133,7 @@ public:
         return m_frame_received && m_media_player.playbackState() == QMediaPlayer::PlayingState;
     }
 
+    // Get last frame as QImage
     QImage GetImage() const
     {
         if( m_frame_received )

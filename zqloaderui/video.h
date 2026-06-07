@@ -1,3 +1,15 @@
+//==============================================================================
+// PROJECT:         zqloader (ui)
+// FILE:            video.h
+// DESCRIPTION:     QMediaPlayer/QCamera etc wrapper
+// 
+// Copyright (c) 2026 Daan Scherft [Oxidaan]
+// This project uses the MIT license. See LICENSE.txt for details.
+//==============================================================================
+
+
+
+
 #pragma once
 
 

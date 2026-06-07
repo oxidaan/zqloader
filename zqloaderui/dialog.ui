@@ -347,6 +347,31 @@ li.checked::marker { content: &quot;\2612&quot;; }
             </widget>
            </item>
           </layout>
+          <zorder>lineEditZxFilename</zorder>
+          <zorder>line_2</zorder>
+          <zorder>lineEditTurboFile</zorder>
+          <zorder>line_4</zorder>
+          <zorder>lineEditOutputFile</zorder>
+          <zorder>label</zorder>
+          <zorder>dialVolumeLeft</zorder>
+          <zorder>lineEditVolumeLeft</zorder>
+          <zorder>pushButtonPreLoad</zorder>
+          <zorder>pushButtonBrowseTurboFile</zorder>
+          <zorder>lineEditNormalFile</zorder>
+          <zorder>dialVolumeRight</zorder>
+          <zorder>label_28</zorder>
+          <zorder>label_7</zorder>
+          <zorder>label_2</zorder>
+          <zorder>pushButtonBrowseNormalFile</zorder>
+          <zorder>label_3</zorder>
+          <zorder>line</zorder>
+          <zorder>label_10</zorder>
+          <zorder>label_4</zorder>
+          <zorder>lineEditVolumeRight</zorder>
+          <zorder>pushButtonTune</zorder>
+          <zorder>pushButtonBrowseOutputFile</zorder>
+          <zorder>textBrowserOutput</zorder>
+          <zorder>pushButtonClean</zorder>
          </widget>
         </widget>
        </item>
@@ -382,7 +407,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>737</width>
+            <width>957</width>
             <height>712</height>
            </rect>
           </property>
@@ -746,7 +771,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
             </widget>
            </item>
            <item row="0" column="3" colspan="4">
-            <widget class="QLineEdit" name="lineEditSampleRate"/>
+            <widget class="LineEdit" name="lineEditSampleRate"/>
            </item>
            <item row="5" column="6">
             <widget class="QLabel" name="label_22">
@@ -928,7 +953,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>588</width>
+            <width>589</width>
             <height>276</height>
            </rect>
           </property>

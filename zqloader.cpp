@@ -71,7 +71,7 @@ public:
     /// Set output file to write (tzx or tap) - when empty play audio.
     void SetOutputFilename(fs::path p_outputfilename, bool p_allow_overwrite)
     {
-        if (ToLower(p_outputfilename.extension().string()) == ".tzx")
+        if (ToLower(p_outputfilename.extension().string()) == ".tzx")   
         {
             m_action = Action::write_tzx;
         }
@@ -113,6 +113,7 @@ public:
         std::cout << 1 + &*R"(
 <b>Playing an endless leader tone for sound tuning...</b>
 - Connect the audio cable from the host computer to the ZX Spectrum <b>EAR</b> input.
+- At the ZX Spectrum type <i>LOAD ""</i> (and press ENTER).
 - Set <b>volume to max</b>, both in the operating system as well as the dials above.
 - Make <b>sure no other sound</b> is playing.
 - Sometimes a stereo cable is better, sometimes mono:
@@ -895,7 +896,7 @@ void ZQLoader::Version(bool p_with_markup /* = false */)
         std::cout << "</b>";
     }
     std::cout << 1 + &*R"(
-Copyright (c) 2025 Daan Scherft [Oxidaan].
+Copyright (c) 2026 Daan Scherft [Oxidaan].
 https://github.com/oxidaan/zqloader
 This project uses the MIT license. See LICENSE.txt for details.
     )" << std::endl;

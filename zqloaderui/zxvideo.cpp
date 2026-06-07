@@ -1,3 +1,13 @@
+//==============================================================================
+// PROJECT:         zqloader (ui)
+// FILE:            zxvideo.cpp
+// DESCRIPTION:     Video fun
+// 
+// Copyright (c) 2026 Daan Scherft [Oxidaan]
+// This project uses the MIT license. See LICENSE.txt for details.
+//==============================================================================
+
+
 #include "zxvideo.h"
 #include "video.h"
 #include <QWidget>
@@ -48,10 +58,10 @@ public:
         {
             auto w = m_image.width() * 4;
             auto h = m_image.height() * 8;
-            painter.drawImage(0, 0, m_video.GetImage().scaled(w, h)); // draw the image at (0,0)
-            painter.drawImage(w, 0, m_image.scaled(w, h)); // draw the image at (0,0)
+            painter.drawImage(0, 0, m_video.GetImage().scaled(w, h)); // draw the original image 
+            painter.drawImage(w, 0, m_image.scaled(w, h)); // draw the image at spectrum resolution
             auto image_attr = AttrToImage(m_width_and_height, ImageToAttr(m_image));
-            painter.drawImage(2*w, 0,  image_attr.scaled(w, h)); // draw the image at (w,0)
+            painter.drawImage(2*w, 0,  image_attr.scaled(w, h)); // draw the spectrum image at (w,0)
         }
     }
 
@@ -85,7 +95,7 @@ private:
         throw std::runtime_error("Invalid WidthAndHeight enum");
     }
 
-
+    // To show only (from paintEvent); not sent to ZX Spectrum.
     static QImage AttrToImage(WidthAndHeight p_width_and_height, Attributes p_attr)
     {
         auto [width, height] = GetWidthAndHeight(p_width_and_height);
@@ -188,6 +198,8 @@ private:
         return img;
     }
     
+    // Get zx spectrum attribute array for image, can be sent to ZX Spectrum.
+    // given image must be 32x48 or 64x24
     static Attributes ImageToAttr(QImage p_image)
     {
         auto formt = p_image.format();
@@ -250,7 +262,7 @@ private:
             // distance to mean
             int dist = (r1-r2) * (r1-r2) + (g1-g2) * (g1-g2) + (b1-b2) * (b1-b2);
 
-            if(r2 == g2 && g2 ==b2)       // black gray or white
+            if(r2 == g2 && g2 == b2)       // black gray or white
             {
     //            dist = (dist * 7)/8;
             }
@@ -290,7 +302,7 @@ public:
     Video m_video;
 private:
     ZxVideo *m_this;
-    QImage m_image;
+    QImage m_image;         // image resulution is 64x24 or 32x48 depending on m_width_and_height
     mutable std::mutex m_image_mutex;
 };
 

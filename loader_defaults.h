@@ -36,8 +36,8 @@ constexpr double wanted_one_cyclii         = 4.5; // must be > zero_max
 
 constexpr int bit_loop_max                 = 100; // max #INs before timeout. when 0 dont set (so keep defaults at zqloader.z80asm) (old: 12)
 
-constexpr int zero_duration                = loader_tstates::bit_loop_duration - 10 + int((wanted_zero_cyclii - 1.0) * loader_tstates::wait_for_edge_loop_duration);  // bit_loop ; 81;  // @@ see zqloader.asm (old: 118)
-constexpr int one_duration                 = loader_tstates::bit_loop_duration      + int((wanted_one_cyclii  - 1.0) * loader_tstates::wait_for_edge_loop_duration);// 241; //int(91 + 3.5 * 43); //250;  231 worked better with jsw3.z80!? (old: 293)
+constexpr int zero_duration                = loader_tstates::bit_loop_duration + int((wanted_zero_cyclii - 1.0) * loader_tstates::wait_for_edge_loop_duration);  // bit_loop ; 81 -> 91;  // @@ see zqloader.asm (old: 118)
+constexpr int one_duration                 = loader_tstates::bit_loop_duration + int((wanted_one_cyclii  - 1.0) * loader_tstates::wait_for_edge_loop_duration);// 241; //int(91 + 3.5 * 43); //250;  231 worked better with jsw3.z80!? (old: 293)
 
 constexpr int end_of_byte_delay            = loader_tstates::end_of_byte_delay;  // 64, should not change
 

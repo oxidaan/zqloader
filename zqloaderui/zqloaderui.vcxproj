@@ -37,12 +37,22 @@
     <QtInstall>6.11.0_msvc2022_64</QtInstall>
     <QtModules>core;widgets;multimedia</QtModules>
     <QtBuildConfig>debug</QtBuildConfig>
+    <QtDeployNoQuickImport>true</QtDeployNoQuickImport>
+    <QtDeployNoTranslations>true</QtDeployNoTranslations>
+    <QtDeployNoSystemD3dCompiler>true</QtDeployNoSystemD3dCompiler>
+    <QtDeployNoOpenglSw>true</QtDeployNoOpenglSw>
+    <QtDeployCompilerRuntime>skip</QtDeployCompilerRuntime>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'" Label="QtSettings">
     <QtInstall>6.11.0_msvc2022_64</QtInstall>
     <QtBuildConfig>release</QtBuildConfig>
     <QtModules>core;widgets;multimedia</QtModules>
     <QtDeploy>true</QtDeploy>
+    <QtDeployNoQuickImport>true</QtDeployNoQuickImport>
+    <QtDeployNoTranslations>true</QtDeployNoTranslations>
+    <QtDeployNoSystemD3dCompiler>true</QtDeployNoSystemD3dCompiler>
+    <QtDeployNoOpenglSw>true</QtDeployNoOpenglSw>
+    <QtDeployCompilerRuntime>skip</QtDeployCompilerRuntime>
   </PropertyGroup>
   <Target Name="QtMsBuildNotFound" BeforeTargets="CustomBuild;ClCompile" Condition="!Exists('$(QtMsBuild)\qt.targets') or !Exists('$(QtMsBuild)\qt.props')">
     <Message Importance="High" Text="QtMsBuild: could not locate qt.targets, qt.props; project may not build correctly." />
@@ -70,6 +80,7 @@
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>..</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);QT_NO_DEPRECATED_WARNINGS</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -82,6 +93,7 @@
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>..</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_UNICODE;UNICODE;%(PreprocessorDefinitions);QT_NO_DEPRECATED_WARNINGS</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

@@ -400,6 +400,7 @@ Dialog::Dialog(QWidget *parent)
     ConnectLineEditFocus(ui->lineEditOutputFile, DefaultOutputFilename);
     ConnectLineEditFocus(ui->lineEditVideoFile, DefaultVideoFile);
     ConnectLineEditFocus(ui->lineEditImageDir, DefaultImageDir);
+    ConnectLineEditFocus(ui->lineEditSampleRate, "[Device default]");
 
 
 
@@ -567,11 +568,13 @@ inline void Dialog::RestoreDefaults()
     ui->comboBoxLoaderLocation->setCurrentIndex(0);     // automatic.
     ui->lineEditLoaderAddress->setText(QString::number(spectrum::SCREEN_23RD));
 
-    ui->lineEditSampleRate->setText(QString::number(m_zqloader.GetDeviceSampleRate()));
-    ui->lineEditVolumeLeft->setText(QString::number(loader_defaults::volume_left));
-    ui->dialVolumeLeft->setValue(loader_defaults::volume_left);
-    ui->lineEditVolumeRight->setText(QString::number(loader_defaults::volume_right));
-    ui->dialVolumeRight->setValue(loader_defaults::volume_right);
+    ui->lineEditSampleRate->setText("");
+    ui->lineEditSampleRate->signalFocusOut();       // also gives correct tip-text
+    // no defaults for volume
+  //  ui->lineEditVolumeLeft->setText(QString::number(loader_defaults::volume_left));
+  //  ui->dialVolumeLeft->setValue(loader_defaults::volume_left);
+  //  ui->lineEditVolumeRight->setText(QString::number(loader_defaults::volume_right));
+  //  ui->dialVolumeRight->setValue(loader_defaults::volume_right);
 
     ui->lineEditClock->setText(QString::number(spectrum::spectrum_clock));
 
@@ -730,18 +733,18 @@ void Dialog::SetZqLoaderParameters()
     {
         m_zqloader.SetWhenDoneDo(0, false);
     }
-    if(ui->comboBoxWhenDone->currentIndex() == 1)        // return to basic
+    else if(ui->comboBoxWhenDone->currentIndex() == 1)        // return to basic
     {
         m_zqloader.SetWhenDoneDo(0, true);     
     }
-    else // given address
+    else // use given address
     {
         uint16_t adr = ui->lineEditUSR->text().toInt();     
         m_zqloader.SetWhenDoneDo(adr, false);
     }
 
     m_zqloader.SetFunAttribs(ui->checkBoxFunAttribs->isChecked());
-    m_zqloader.SetSampleRate(ui->lineEditSampleRate->text().toInt());
+    m_zqloader.SetSampleRate(ui->lineEditSampleRate->text().toInt());       // 0 so automatic when conversion faild
     m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());
 
 }
@@ -828,6 +831,7 @@ inline void Dialog::Load()
     ui->lineEditOutputFile->signalFocusOut();
     ui->lineEditVideoFile->signalFocusOut();
     ui->lineEditImageDir->signalFocusOut();
+    ui->lineEditSampleRate->signalFocusOut();
 }
 
 /// Read all line edits + dialog position from given settings
@@ -942,12 +946,10 @@ inline int CycleToTstate(double p_cyclii)
 
 inline void Dialog::CalculateLoaderParametersFromSlider(int p_index )
 {
-    int index = p_index == 0 ? 1 : p_index;     // special case when 0
-
     double wanted_zero_cyclii= 1.0;
     double wanted_one_cyclii = wanted_zero_cyclii + 3.0;
     int addhalf = 0;
-    for(int n = 0;  n < index ; n++)
+    for(int n = 0;  n <= p_index ; n++)
     {
         wanted_one_cyclii += addhalf < 2 ? 0.5 : 1.0;
         addhalf++;
@@ -961,17 +963,14 @@ inline void Dialog::CalculateLoaderParametersFromSlider(int p_index )
     int zero_max= (wanted_zero_cyclii + wanted_one_cyclii + 0.5)/2;
 //    int zero_max= (wanted_zero_cyclii + wanted_one_cyclii)/2;
 //    return {wanted_zero_cyclii, zero_max, wanted_one_cyclii};
-    CalculateLoaderParameters(wanted_zero_cyclii, zero_max, wanted_one_cyclii, p_index == 0);
+    CalculateLoaderParameters(wanted_zero_cyclii, zero_max, wanted_one_cyclii);
 
 }
 
 // Based on 'Wanted Zero Cycli'and 'Wanted One Cyclii' calculate
-// 'Zero TStates' and 'One TStates' and put result in the dialog.
+// 'Zero TStates' and 'One TStates' *and put result in the dialog lineEdits*
 // Check validity first, throws when error.
-// p_special case: make one_tstates 10 less. This value should theoretically not work(*) but
-//   worked for me eg at the youtube Jetset Willy snapshot.
-//  (*) because the zero edges are shorter than the loop length.
-inline void Dialog::CalculateLoaderParameters(double p_wanted_zero_cyclii, int p_zero_max, double p_wanted_one_cyclii, bool p_special_case )
+inline void Dialog::CalculateLoaderParameters(double p_wanted_zero_cyclii, int p_zero_max, double p_wanted_one_cyclii )
 {
     if(p_wanted_zero_cyclii < 1.0)
     {
@@ -991,14 +990,7 @@ inline void Dialog::CalculateLoaderParameters(double p_wanted_zero_cyclii, int p
     ui->lineEditWantedZeroCyclii->setText(QString::number(p_wanted_zero_cyclii));
     ui->lineEditZeroMax->setText(QString::number(p_zero_max));
     ui->lineEditWantedOneCyclii->setText(QString::number(p_wanted_one_cyclii));
-    if(!p_special_case)
-    {
-        ui->lineEditZeroTStates->setText(QString::number(zero_tstates));
-    }
-    else
-    {
-        ui->lineEditZeroTStates->setText(QString::number(zero_tstates - 10));
-    }
+    ui->lineEditZeroTStates->setText(QString::number(zero_tstates));
     ui->lineEditOneTStates->setText(QString::number(one_tstates));
 }
 

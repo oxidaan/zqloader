@@ -1,3 +1,14 @@
+//==============================================================================
+// PROJECT:         zqloader (ui)
+// FILE:            zxvideo.h
+// DESCRIPTION:     Video fun!
+// 
+// Copyright (c) 2026 Daan Scherft [Oxidaan]
+// This project uses the MIT license. See LICENSE.txt for details.
+//==============================================================================
+
+
+
 #pragma once
 
 
@@ -27,6 +38,8 @@ static_assert(sizeof(ColorAttr) == 1);
 //using ColorAttr = std::byte;
 using Attributes = std::vector<ColorAttr> ;
 
+// By using horizontal or vertical blocks the spectrum can show these
+// resulutions without color clash. ZQLoader only needs to send attribute blocks.
 enum WidthAndHeight
 {
     wh_32x24,
