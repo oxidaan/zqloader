@@ -307,7 +307,7 @@ private:
         fs::path filename = p_filename;
         if(filename.empty() || filename.string()[0] == '[')
         {
-            filename = m_128_mode ? "zqloader128.tap" : "zqloader.tap";
+            filename = m_128_mode ? "zqloader128.tap" : "zqloader48.tap";
         }
         if(!FileIsZqLoader(filename))
         {

@@ -13,8 +13,8 @@ cmake_minimum_required(VERSION 3.12)
 
 project(zqloader_z80)
 
-find_program(HAVE_SJSASMPLUS sjasmplus)
-if(NOT HAVE_SJSASMPLUS)
+find_program(FOUND_SJASMPLUS sjasmplus)
+if(NOT FOUND_SJASMPLUS)
     message(WARNING "sjasmplus not found! Make sure it is in the PATH. Skipping z80 assembly.
 (Will install the files that were committed in repository instead)")
     # Cant build so install the files that were committed in repository
@@ -27,10 +27,10 @@ if(NOT HAVE_SJSASMPLUS)
             )
     return()
 else()
-    message("sjasmplus found at ${HAVE_SJSASMPLUS}")
+    message("sjasmplus found at ${FOUND_SJASMPLUS}")
 endif()
 
-get_filename_component(SJASMPLUS_PATH  ${HAVE_SJSASMPLUS}  DIRECTORY)       # default for PATH_TO_SJASMPLUS
+get_filename_component(SJASMPLUS_PATH  ${FOUND_SJASMPLUS}  DIRECTORY)       # default for PATH_TO_SJASMPLUS
 set(PATH_TO_SJASMPLUS ${SJASMPLUS_PATH} CACHE PATH "Location of sjasmplus (directory)")
 
 # The directory location of the found binary is not necessary the location of the sjasmplus examples.
@@ -60,17 +60,15 @@ endif()
 
 
 
-foreach(which "" "128")
-    add_custom_target(zqloader_z80${which}
+foreach(which "48" "128")
+    add_custom_target(zqloader_z80_${which}k
       ALL DEPENDS  ${CMAKE_CURRENT_BINARY_DIR}/zqloader${which}.tap
-      SOURCES zqloader${which}.z80asm
-                ${CMAKE_CURRENT_SOURCE_DIR}/zqloader.inc
+      SOURCES zqloader.z80asm
       )
 
     add_custom_command(
         OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/zqloader${which}.tap
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/zqloader${which}.z80asm
-                ${CMAKE_CURRENT_SOURCE_DIR}/zqloader.inc
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/zqloader.z80asm
         COMMAND  "sjasmplus"
         ARGS 
         "--fullpath"
@@ -78,15 +76,17 @@ foreach(which "" "128")
         "--exp=zqloader${which}.exp"                        # export file, has symbols
         "--lst"                                             # lst file, not really needed
         "--syntax=abf"
+        "-DBANKSWITCH${which}"
+#        "--define BANKSWITCH${which}"                      # not recognized?? Bug sjasmplys?
         "--color=on"
-        "${CMAKE_CURRENT_SOURCE_DIR}/zqloader${which}.z80asm"
-        COMMENT "Assembling ${CMAKE_CURRENT_SOURCE_DIR}/zqloader${which}.z80asm to  ${CMAKE_CURRENT_BINARY_DIR}/zqloader${which}.tap"
+        "${CMAKE_CURRENT_SOURCE_DIR}/zqloader.z80asm"
+        COMMENT "Assembling ${CMAKE_CURRENT_SOURCE_DIR}/zqloader.z80asm to  ${CMAKE_CURRENT_BINARY_DIR}/zqloader${which}.tap"
     )
 endforeach()
 
 install(FILES  
         ${CMAKE_CURRENT_BINARY_DIR}/zqloader.exp  
-        ${CMAKE_CURRENT_BINARY_DIR}/zqloader.tap  
+        ${CMAKE_CURRENT_BINARY_DIR}/zqloader48.tap
         ${CMAKE_CURRENT_BINARY_DIR}/zqloader128.tap
         ${CMAKE_CURRENT_BINARY_DIR}/snapshotregs.bin
         DESTINATION z80
