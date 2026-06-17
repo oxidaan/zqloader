@@ -16,27 +16,15 @@
 #include <memory>
 #include <vector>
 #include <QWidget>
+#include "spectrum_screen.h"
+
 class QImage;
 class QPaintEvent;
 
-// ZX Spectrum color attribute
-// https://www.overtakenbyevents.com/lets-talk-about-the-zx-specrum-screen-layout/#:~:text=Each%20block%20of%208x8%20pixels%20has%20a%20single,if%20set%20indicates%20the%20colours%20are%20rendered%20bright.
 
-union ColorAttr
-{
-    struct
-    {
-        uint8_t ink: 3;
-        uint8_t paper: 3;
-        uint8_t bright: 1;
-        uint8_t flash : 1;
-    } attr;
-    std::byte byte;
-};
-static_assert(sizeof(ColorAttr) == 1);
 
 //using ColorAttr = std::byte;
-using Attributes = std::vector<ColorAttr> ;
+using Attributes = std::vector<spectrum::Screen::Attr> ;
 
 // By using horizontal or vertical blocks the spectrum can show these
 // resulutions without color clash. ZQLoader only needs to send attribute blocks.

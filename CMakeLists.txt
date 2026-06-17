@@ -59,8 +59,8 @@ set(DOCUMENTATION
 # Common library containing bulk of code
 add_library(${TARGET_LIB} SHARED  ${SOURCE_LIB} ${INCLUDE} ${DOCUMENTATION} )
 
-# We need c++17
-target_compile_features(${TARGET_LIB} PUBLIC cxx_std_17)
+# We need c++20
+target_compile_features(${TARGET_LIB} PUBLIC cxx_std_20)
 
 
 # Here lives miniadio.h

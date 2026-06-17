@@ -293,7 +293,7 @@ private:
 private:
 
     size_t      m_data_size{};               // size of (uncompressed/final) data exl. header. Note: Spectrum does not need this.
-    bool        m_skip_pilot = false;        // has pilot tone + sync
+    bool        m_skip_pilot = false;        // has (long or short) pilot tone + sync
     DataBlock   m_data;                      // the data as send to Spectrum, starts with header
 }; // class TurboBlock
 

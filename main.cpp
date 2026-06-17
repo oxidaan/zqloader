@@ -9,12 +9,12 @@
 // This project use the miniaudio sound library by David Read.
 
 
-#if __cplusplus < 201703L
+#if __cplusplus < 202002L
 // At MSVC
 // Properties -> C/C++ -> Language -> C++ Language Standard -> ISO c++17 Standard
 // also set at C / C++ -> Command Line -> Additional options : /Zc:__cplusplus
 // plus C / C++ -> Preprocessor -> Use standard conforming preprocessor
-#error "Need c++17 or more"
+#error "Need c++20 or more"
 #endif
 
 

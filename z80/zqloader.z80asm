@@ -183,27 +183,27 @@ next_block:
 IO_INIT_VALUE+*: ld C, 0b00001010 // ear zero border red 010 <-> 101 cyan + also set mic (and/or ear)
                                   // initialize c with result: 0E001010 see WAIT_FOR_EDGE #2
                                   // TODO set bit 7? ***7)
-IO_XOR_VALUE+*: ld H, 0b01000111 // The C xor value, see WAIT_FOR_EDGE #3 so toggles border bits + last edge
-                                // so border xors between 010 (red) and 101 (cyan)
-    ld E, 0b01000000            // EAR mask value after IN
+IO_XOR_VALUE+*: ld H, 0b01000111  // The C xor value, see WAIT_FOR_EDGE #3 so toggles border bits + last edge
+                                  // so border xors between 010 (red) and 101 (cyan)
+    ld E, 0b01000000              // EAR mask value after IN
 
 
 
-    call LOAD_HEADER_PLUS_DATA  // upper, absolute call is ok
-    jr z, ERROR                 // (timeout) error  
+    call LOAD_HEADER_PLUS_DATA    // upper, absolute call is ok
+    jr z, ERROR                   // (timeout) error
 
     // check checksum
     exx
-    ld A, (m_checksum)          // check checksum E' should be m_checksum
+    ld A, (m_checksum)            // check checksum E' should be m_checksum
     cp E 
     jr nz, CHECKSUM_ERROR
-    // exx                      // not needed
+    // exx                        // not needed
 
     // -- Once here here a turbo block was correctly loaded --
 
 
 load_ok:
-    ld DE, (m_clear_address)    // clear address(SP) 
+    ld DE, (m_clear_address)    // clear address(SP)
     push DE                     // #PP3 check later. might get lost when header overwritten (can only be at last block)
     ld DE, (m_usr_start_address)// just loaded last block last/start address
     push DE                     // #PP4 check later. might get lost when header overwritten (can only be at last block)
@@ -642,7 +642,7 @@ BIT_LOOP_MAX+*:     ld D, ONE_MAX               // eg 12 can also be set from C+
     ld A,C           
     xor H                       // H = 01000111 (or 01011111) xor both last edge as border #3
     ld C,A
-    out ($FE),A                 // toggle border color      // 000EMBBB hope 'd5�d7 are not used'
+    out ($FE),A                 // toggle border color 000EMBBB hope 'd5�d7 are not used'
     
     ld A, B
 .bit_one_threshld+1: cp ONE_MAX-ZERO_MAX         // @E (eg 12-3=9) Becomes a '1' when E > B
@@ -689,7 +689,7 @@ load_done:
 //  z=1  timeout
 //  z=0 OK
 wait_for_edge_loop1:    
-    dec B                       // Dec. cycle count (carry not touched) 43 since in
+    dec B                       // Dec. cycle count (carry not touched) 43T since in
     ret z                       // 5/11T t/o, note carry still not set    (c=0 z=1, B=0)
 WAIT_FOR_EDGE:        
     //ld A,$7F 	                // Maybe not needed. Read from port 0x7FFE, read EAR. 49 + 16 since prev. IN is 59 
@@ -744,10 +744,10 @@ HEADER_LEN equ HEADER_END - HEADER
 // ===========================================================================
     
 
-ASM_UPPER_END       // must be UPPER_TOP+1
+ASM_UPPER_END                   // must be UPPER_TOP+1
 ASM_UPPER_LEN EQU ASM_UPPER_END - ASM_UPPER_START
     
-    ENT         // DISP
+    ENT                         // DISP
 
 ASM_END
 ASM_LEN EQU ASM_END - ASM_START
@@ -756,7 +756,7 @@ ASM_LEN EQU ASM_END - ASM_START
 // ===========================================================================
 
     MODULE basic1
-        LEND                                        // end of REM line
+        LEND                    // end of REM line
     ENDMODULE
 TOTAL_END
 TOTAL_LEN EQU TOTAL_END - TOTAL_START                     // length of total basic inc mc-rem for SAVETAP
@@ -812,7 +812,7 @@ R_reg+*:            ld A, R_reg
                     ld R, A                  
 I_reg+*:            ld A, I_reg              
                     ld I, A                  
-                    pop AF        // #PP6 AF itself
+                    pop AF      // #PP6 AF itself
 SP_reg+*:           ld SP, 0        
 imode:              im 1            
 ei_di:              ei              

@@ -20,6 +20,10 @@
 #include <QObject>
 class QImage;
 
+
+/// Video player
+/// Plays froms stream, file or camera hardware.
+/// Signals FrameReceived; get last frame at GetImage.
 class Video : public QObject
 {
 Q_OBJECT
@@ -28,15 +32,19 @@ public:
 
     ~Video();
 
+    /// Play from file, stream or hardware camera
     bool Play(const std::string &p_url);
 
+    /// Stop playing
     Video &Stop();
 
 
     bool IsPlaying() const;
 
+    /// Get last frame as QImage
     QImage GetImage() const;
 signals:
+    // A new frame is present.
     void FrameReceived();
 private:
     class Impl;

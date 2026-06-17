@@ -191,7 +191,7 @@ public:
         }
     }
 
-    /// Only used for fun attributs
+    /// Only used for fun attributes and video fun.
     void AddMemoryBlock(MemoryBlock p_block, uint16_t p_load_address)
     {
         m_turboblocks.AddMemoryBlockAsTurboBlock(std::move(p_block) , p_load_address);

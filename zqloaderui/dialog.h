@@ -40,6 +40,7 @@ public:
         PreloadingFunAttribs,       // after preloading zqloader loading fun-attributes
         VideoFunFirst,
         VideoFunNext,
+        ImageFun,
         Cancelled                   // Playing was cancelled
     };
     Dialog(QWidget *parent = nullptr);

@@ -17,5 +17,5 @@
 //
 // At visual studio:
 // cmd /c "for /F %%i in ('where sjasmplus') do cd "%(FullPath)\..\" & del z80\%(Filename).tap & sjasmplus --fullpath -i%%i/../examples/BasicLib --exp="%(FullPath)\..\%(Filename).exp" --syntax=abf "%(FullPath)" "
-    INCLUDE "zqloader.inc"
+    INCLUDE "zqloader.z80asm"
     

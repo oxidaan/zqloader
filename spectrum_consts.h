@@ -15,16 +15,20 @@
 namespace spectrum
 {
 
+constexpr uint16_t SCREEN_WIDTH = 256;
+constexpr uint16_t SCREEN_HEIGHT = 192;
+constexpr uint16_t SCREEN_PIXEL_SIZE = (SCREEN_WIDTH * SCREEN_HEIGHT) / 8;
+constexpr uint16_t ATTR_SIZE = (SCREEN_WIDTH * SCREEN_HEIGHT) / 64;
+constexpr uint16_t SCREEN_SIZE = SCREEN_PIXEL_SIZE + ATTR_SIZE;
+
 constexpr uint16_t SCREEN_START = 16384;
-constexpr uint16_t SCREEN_PIXEL_SIZE = 6 * 1024;
-constexpr uint16_t ATTR_SIZE = 768;
 constexpr uint16_t ROM_LENGTH = 16384;
 constexpr uint16_t RAM_START = 16384;
+
 constexpr uint16_t SCREEN_23RD = SCREEN_START + 4 * 1024;
 constexpr uint16_t SCREEN_END = SCREEN_START + SCREEN_PIXEL_SIZE;
 constexpr uint16_t ATTR_BEGIN = SCREEN_END;
 constexpr uint16_t ATTR_23RD = ATTR_BEGIN + 512;
-constexpr uint16_t SCREEN_SIZE = SCREEN_PIXEL_SIZE + ATTR_SIZE;
 
 constexpr uint16_t PROG = 23755;      // *usual* start of basic. s/a PRINT PEEK(23635) + 256 * PEEK(23636)
 

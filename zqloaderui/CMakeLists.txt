@@ -14,8 +14,6 @@ project(zqloaderui VERSION 0.1 LANGUAGES CXX)
 
 
 
-#set(CMAKE_CXX_STANDARD 17)
-#set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(QT NAMES Qt6 Qt5      COMPONENTS Widgets Multimedia)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets Multimedia)
@@ -28,22 +26,24 @@ else()
     message("QT${QT_VERSION_MAJOR} found at: ${Qt${QT_VERSION_MAJOR}_DIR}")
 endif()
 
+file(GLOB INCLUDE
+    "*.h"
+    )
+
 set(PROJECT_SOURCES
         main.cpp
         dialog.cpp
-        dial.h
-        lineedit.h
-        dialog.h
-        widgetstreambuffer.h
         dialog.ui
         video.cpp
         zxvideo.cpp
+        zximage.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(zqloaderui
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
+        ${INCLUDE}
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET zqloaderlib APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -67,8 +67,8 @@ target_link_libraries(zqloaderui PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_V
 target_include_directories(zqloaderui PRIVATE . ..)
 
 
-# We need c++17
-target_compile_features(zqloaderui PUBLIC cxx_std_17)
+# We need c++20
+target_compile_features(zqloaderui PUBLIC cxx_std_20)
 set_target_properties(zqloaderui PROPERTIES AUTOMOC TRUE AUTORCC TRUE AUTOUIC TRUE)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

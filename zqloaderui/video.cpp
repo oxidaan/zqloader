@@ -26,7 +26,7 @@ namespace fs = std::filesystem;
 /// QMediaPlayer used when playing stream or file
 /// QCamera used when camera capture
 /// QMediaCaptureSession  used when camera capture
-/// QVideoSink Video sink used in setVideoSink
+/// QVideoSink Video sink used in setVideoSink both for camera as stream/file.
 /// QVideoFrame last frame received at m_video_sink
 class Video::Impl
 {
@@ -73,6 +73,8 @@ public:
 
 
     // can run in midiaudio thread
+    // play from file/stream or from camera.
+    // p_url: "camera": play from camera.
     bool Play( const std::string &p_url )
     {
         Stop();
@@ -82,7 +84,7 @@ public:
 
             if (cameras.empty())
             {
-                throw std::runtime_error("No camera available");
+                throw std::runtime_error("No camera available at this computer");
             }
             std::cout << "Using camera 1 from " << cameras.size() << std::endl;
             m_camera.setCameraDevice(cameras.front());   // ← select real device
@@ -127,11 +129,11 @@ public:
 
 
 
-
     bool IsPlaying() const
     {
         return m_frame_received && m_media_player.playbackState() == QMediaPlayer::PlayingState;
     }
+
 
     // Get last frame as QImage
     QImage GetImage() const
@@ -142,8 +144,6 @@ public:
         }
         return QImage{};
     }
-
-
 
 
 

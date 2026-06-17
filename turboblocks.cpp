@@ -302,11 +302,11 @@ public:
             AddMemoryBlockAsTurboBlock(std::move(block), p_load_address);
         }
         std::chrono::milliseconds pause_before = 0ms;
-        if (IsZqLoaderAdded())        // else probably already preloaded
+        if (IsZqLoaderAdded())        // Add zqloader when added here. When not added here probably already preloaded.
         {
             p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_header), spectrum::tstate_quick_zero, 1750ms);
             p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_code), spectrum::tstate_quick_zero, 1500ms);
-            std::chrono::milliseconds pause_before = m_initial_wait;
+            pause_before = m_initial_wait;
         }
 
 
@@ -316,7 +316,7 @@ public:
         for (auto& tblock : m_turbo_blocks)
         {
             auto next_pause = tblock.EstimateHowLongSpectrumWillTakeToDecompress(m_decompression_speed); // b4 because moved
-            // skip for now tblock.SetSkipPilot(p_is_fun_attribute);
+            // TODO skip for now tblock.SetSkipPilot(p_is_fun_attribute);
             if (!p_is_fun_attribute)
             {
                 std::cout << "Block #" << cnt++ << "\n";
@@ -587,10 +587,10 @@ private:
     int                           m_end_of_byte_delay       = loader_defaults::end_of_byte_delay;
     int                           m_bit_loop_max            = loader_defaults::bit_loop_max;        // aka ONE_MAX, the wait for edge loop counter until timeout  
     int                           m_zero_max                = loader_defaults::zero_max;            // aka ZERO_MAX sees a 'one' when waited more than this number of cycli at wait for edge
-    int                           m_io_init_value           = loader_defaults::io_init_value;        // aka ONE_MAX, the wait for edge loop counter until timeout  
-    int                           m_io_xor_value            = loader_defaults::io_xor_value;            // aka ZERO_MAX sees a 'one' when waited more than this number of cycli at wait for edge
-    int                           m_decompression_speed     = loader_defaults::decompression_speed;     // kb/second time spectrum needsto decompress before sending next block
-    std::chrono::milliseconds     m_initial_wait            = loader_defaults::initial_wait;
+    int                           m_io_init_value           = loader_defaults::io_init_value;       // aka ONE_MAX, the wait for edge loop counter until timeout
+    int                           m_io_xor_value            = loader_defaults::io_xor_value;        // aka ZERO_MAX sees a 'one' when waited more than this number of cycli at wait for edge
+    int                           m_decompression_speed     = loader_defaults::decompression_speed; // kb/second time spectrum needsto decompress before sending next block
+    std::chrono::milliseconds     m_initial_wait            = loader_defaults::initial_wait;        // pause after loading ZQLoader itself, give basic some time.
     bool                          m_skip_pilots             = false;
 }; // class TurboBlocks
 

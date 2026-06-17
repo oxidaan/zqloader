@@ -367,6 +367,15 @@ public:
         return m_delay_duration;
     }
 
+    /// Set delay for byte store (in TStates)
+    DataPulser& SetEndOfByteDelay(int p_delay)
+    {
+        m_delay_duration = p_delay;
+        return *this;
+    }
+
+
+
     /// When != 0 switches to 'pulse mode' having fixed length pulses (given here) being
     /// high or low for 1 or zero as RS-232.
     /// Needs start and stop bits for synchronisation.
@@ -380,13 +389,6 @@ public:
     }
 
 
-
-    /// Set delay for byte store (in TStates)
-    DataPulser& SetEndOfByteDelay(int p_delay)
-    {
-        m_delay_duration = p_delay;
-        return *this;
-    }
 
 
 

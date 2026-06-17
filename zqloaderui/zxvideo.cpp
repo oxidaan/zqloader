@@ -15,18 +15,13 @@
 #include <QVideoSink>
 #include <QVideoFrame>
 #include <QPainter>
-#include <filesystem>
 #include <QCamera>
 #include <QMediaCaptureSession>
 #include <mutex>
 #include "byte_tools.h"
-
+#include "color_distance.h"
+#include "spectrum_screen.h"
 namespace fs = std::filesystem;
-
-constexpr QRgb spectrumpalette_in[]=  {0x000000, 0x0000d8, 0xd80000, 0xd800d8, 0x00d800, 0x00d8d8, 0xd8d800, 0xd8d8d8,      // normal
-                                       0x000000, 0x0000ff, 0xff0000, 0xff00ff, 0x00ff00, 0x00ffff, 0xffff00, 0xffffff};     // bright
-constexpr QRgb spectrumpalette_out[]= {0x000000, 0x0000d8, 0xd80000, 0xd800d8, 0x00d800, 0x00d8d8, 0xd8d800, 0xd8d8d8,      // normal
-                                       0x000000, 0x0000ff, 0xff0000, 0xff00ff, 0x00ff00, 0x00ffff, 0xffff00, 0xffffff};     // bright
 
 
 class ZxVideo::Impl
@@ -58,10 +53,10 @@ public:
         {
             auto w = m_image.width() * 4;
             auto h = m_image.height() * 8;
-            painter.drawImage(0, 0, m_video.GetImage().scaled(w, h)); // draw the original image 
-            painter.drawImage(w, 0, m_image.scaled(w, h)); // draw the image at spectrum resolution
+            painter.drawImage(0, 0, m_video.GetImage().scaled(w, h));   // draw the original image
+            painter.drawImage(w, 0, m_image.scaled(w, h));              // draw the image at spectrum resolution
             auto image_attr = AttrToImage(m_width_and_height, ImageToAttr(m_image));
-            painter.drawImage(2*w, 0,  image_attr.scaled(w, h)); // draw the spectrum image at (w,0)
+            painter.drawImage(2 * w, 0,  image_attr.scaled(w, h));      // draw the spectrum image at (w,0)
         }
     }
 
@@ -113,7 +108,7 @@ private:
                     int color_nr =   (y % 2) ? attr.attr.ink : attr.attr.paper  ;
                     int idx = bright + color_nr;
                     QRgb* row = reinterpret_cast<QRgb*>(data + y     * bytesPerLine);
-                    row[x] = spectrumpalette_out[idx];
+                    row[x] = spectrum::Screen::palette[idx];
                 }
             }
         }
@@ -128,7 +123,7 @@ private:
                     int color_nr =   (x % 2) ? attr.attr.ink : attr.attr.paper;       // paper first
                     int idx = bright + color_nr;
                     QRgb* row = reinterpret_cast<QRgb*>(data + y     * bytesPerLine);
-                    row[x] = spectrumpalette_out[idx];
+                    row[x] = spectrum::Screen::palette[idx];
                 }
             }
         }
@@ -200,6 +195,7 @@ private:
     
     // Get zx spectrum attribute array for image, can be sent to ZX Spectrum.
     // given image must be 32x48 or 64x24
+    // Can run in miniaudio thread
     static Attributes ImageToAttr(QImage p_image)
     {
         auto formt = p_image.format();
@@ -246,53 +242,24 @@ private:
         return attribs;
     }
 
-    static std::pair<int,int> GetNeareastSpectrumColor(QRgb p_color, const QRgb *p_palette, int p_size = 8)
-    {
-        int r1 = qRed(p_color);
-        int g1 = qGreen(p_color);
-        int b1 = qBlue(p_color);
-        int mindist{};
-        int found;
-        for(int n = 0; n < p_size; n++)
-        {
-            int r2 = qRed(p_palette[n]);
-            int g2 = qGreen(p_palette[n]);
-            int b2 = qBlue(p_palette[n]);
-
-            // distance to mean
-            int dist = (r1-r2) * (r1-r2) + (g1-g2) * (g1-g2) + (b1-b2) * (b1-b2);
-
-            if(r2 == g2 && g2 == b2)       // black gray or white
-            {
-    //            dist = (dist * 7)/8;
-            }
-
-            if((dist < mindist) || n==0)
-            {
-                mindist = dist;
-                found = n;
-            }
-        }
-        return {mindist, found};
-    }
 
     // Color attr:
     // F  B  P2 P1 P0 I2 I1 I0
-    static ColorAttr GetSpectrumAttribute(QRgb p_color_paper, QRgb p_color_ink)
+    static spectrum::Screen::Attr GetSpectrumAttribute(QRgb p_color_paper, QRgb p_color_ink)
     {
-        auto [mindist_norm_paper,   found_norm_paper]   = GetNeareastSpectrumColor(p_color_paper, spectrumpalette_in,     8);
-        auto [mindist_bright_paper, found_bright_paper] = GetNeareastSpectrumColor(p_color_paper, spectrumpalette_in + 8, 8);
-        auto [mindist_norm_ink,     found_norm_ink]     = GetNeareastSpectrumColor(p_color_ink,   spectrumpalette_in,     8);
-        auto [mindist_bright_ink,   found_bright_ink]   = GetNeareastSpectrumColor(p_color_ink,   spectrumpalette_in + 8, 8);
+        auto [mindist_norm_paper,   found_norm_paper]   = GetNearestColor(p_color_paper, spectrum::Screen::palette,  std::to_array({0,1,2,3,4,5,6,7}));
+        auto [mindist_bright_paper, found_bright_paper] = GetNearestColor(p_color_paper, spectrum::Screen::palette,  std::to_array({8,9,10,11,12,13,14,15}));
+        auto [mindist_norm_ink,     found_norm_ink]     = GetNearestColor(p_color_ink,   spectrum::Screen::palette,  std::to_array({0,1,2,3,4,5,6,7}));
+        auto [mindist_bright_ink,   found_bright_ink]   = GetNearestColor(p_color_ink,   spectrum::Screen::palette,  std::to_array({8,9,10,11,12,13,14,15}));
         bool use_bright = (mindist_bright_ink + mindist_bright_paper) < (mindist_norm_ink + mindist_norm_paper);
         //std::uint8_t retval;        // can you do anything usefull with std::byte ;-(
         //retval = use_bright ? 0b01000000 : 0;       
         //retval |= (use_bright ? found_bright_paper : found_norm_paper) << 3;
         //retval |= (use_bright ? found_bright_ink : found_norm_ink);
-        ColorAttr retval{};
+        spectrum::Screen::Attr retval{};
         retval.attr.bright = use_bright;
-        retval.attr.paper  = use_bright ? found_bright_paper : found_norm_paper;
-        retval.attr.ink    = use_bright ? found_bright_ink : found_norm_ink;
+        retval.attr.paper  = use_bright ? found_bright_paper - 8 : found_norm_paper;
+        retval.attr.ink    = use_bright ? found_bright_ink - 8 : found_norm_ink;
         retval.attr.flash = 0;
         return retval;
     }

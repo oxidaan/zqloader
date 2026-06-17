@@ -16,5 +16,5 @@
 //    path/to/zqloader/z80/zqloader\z80\zqloader.z80asm  
 
  DEFINE BANKSWITCH128       
-    INCLUDE "zqloader.inc"
+    INCLUDE "zqloader.z80asm"
     

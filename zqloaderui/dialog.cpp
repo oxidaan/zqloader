@@ -160,7 +160,7 @@ Dialog::Dialog(QWidget *parent)
             p_edit->setText(QString::number(p_dial->value())); // read back in case of error, also limits value
         });
         // Volume value directly to zqloader when dial changes
-        connect(p_dial, &QDial::valueChanged, [=]
+        connect(p_dial, &QDial::valueChanged, [this]
         {
             m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());
         });
@@ -172,7 +172,7 @@ Dialog::Dialog(QWidget *parent)
     // common connect code for three browse buttons
     auto ConnectBrowse  = [this](QPushButton *p_button, QLineEdit *p_edit, QString p_text, QString p_filter, QFileDialog::FileMode p_mode, QString p_setting_name)
     {
-        connect(p_button, &QPushButton::pressed, [=]
+        connect(p_button, &QPushButton::pressed, [=, this]
         {
             QSettings settings("Oxidaan", "ZQLoader");
             QString dir = settings.value(p_setting_name, "").toString();    // remember last used dir.
@@ -220,7 +220,11 @@ Dialog::Dialog(QWidget *parent)
         "Mp4 Video files (*.mp4);;All files (*.*)",
         QFileDialog::ExistingFiles,
         "dialog_path_videofile");
-
+    ConnectBrowse(ui->pushButtonBrowseImageDir, ui->lineEditImageDir,
+        "Give image file directory, will take *.jpg and *.png there",
+        "",
+        QFileDialog::Directory,
+        "dialog_path_imagefile");
     // make hyperlinks work in about text
     connect(ui->labelAbout, &QLabel::linkActivated, [](const QString & link)
     {
@@ -281,6 +285,13 @@ Dialog::Dialog(QWidget *parent)
             m_zqloader.WaitUntilDone();
             m_zqloader.Reset();
         }
+        else if( m_state == State::ImageFun)
+        {
+            ui->zxvideo->Stop();
+            SetState(State::Idle);
+            m_zqloader.WaitUntilDone();
+            m_zqloader.Reset();
+        }
         else
         {
             // go pressed
@@ -336,7 +347,7 @@ Dialog::Dialog(QWidget *parent)
     });
 
     // Speed slider dragged/changed
-    connect(ui->horizontalSliderSpeed, &QSlider::valueChanged, [=](int value)
+    connect(ui->horizontalSliderSpeed, &QSlider::valueChanged, [this](int value)
     {
         CalculateLoaderParametersFromSlider(value);
     });
@@ -470,6 +481,7 @@ inline void Dialog::OnDone()
     else if( m_state == State::VideoFunFirst)
     {
         DataBlock block;
+        // send bar pattern to spectrum screen
         for(int n = 0; n < spectrum::SCREEN_PIXEL_SIZE; n++)
         {
             block.push_back(0x0f_byte);
@@ -501,6 +513,12 @@ inline void Dialog::OnDone()
         }
         
     }
+    else if( m_state == State::ImageFun)
+    {
+        const auto &screen = ui->zximage->LoadNext();
+        m_zqloader.SetCompressionType(CompressionType::automatic);
+        m_zqloader.AddMemoryBlock({screen.GetDataBlock().Clone(), spectrum::SCREEN_START}, 40000);
+    }
     else if(m_state != State::Idle)     // eg playing
     {
         emit signalDone();      // swap to ui thread ->
@@ -518,6 +536,7 @@ inline void Dialog::SetState(State p_state)
     case State::Playing:
     case State::VideoFunFirst:
     case State::VideoFunNext:
+    case State::ImageFun:
         ui->pushButtonGo->setText("Stop");
         ui->pushButtonPreLoad->setEnabled(false);
         ui->pushButtonTune->setEnabled(false);
@@ -610,18 +629,28 @@ inline void Dialog::Go()
 {
     try
     {
-        if(ui->tabWidget->currentIndex() == 2)
+        if(ui->tabWidget->currentIndex() == 2)  // fun! tab. Eg video fun
         {
             std::string video_url =  ui->lineEditVideoFile->text().toStdString();
-            if(!video_url.empty() && video_url[0] != '[')
+            std::string image_url =  ui->lineEditImageDir->text().toStdString();
+            if((!video_url.empty() && video_url[0] != '[') ||
+               (!image_url.empty() && image_url[0] != '['))
             {
-                // start video fun
+                // start video or image fun
                 m_zqloader.Reset();
                 fs::path filename1 = ui->lineEditNormalFile->text().toStdString();
                 m_zqloader.SetNormalFilename(filename1).SetPreload();       // should be zqloader or empty
                 SetZqLoaderParameters();
                 m_zqloader.Start();
-                SetState(State::VideoFunFirst);
+                if(!video_url.empty() && video_url[0] != '[')
+                {
+                    SetState(State::VideoFunFirst);
+                }
+                else
+                {
+                    SetState(State::ImageFun);
+                    ui->zximage->SetDirectory(image_url);       // can throw
+                }
             }
             return;
         }
