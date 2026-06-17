@@ -169,7 +169,7 @@ SnapShotLoader& SnapShotLoader::LoadZ80(std::istream& p_stream)
         DataBlock buf(length_and_version);
         p_stream.read(reinterpret_cast<char *>(buf.data()), length_and_version);
         Z80SnapShotHeader2 header2{};
-        memcpy(&header2, buf.data(), length_and_version);
+        memcpy(&header2, buf.data(), std::min(static_cast<size_t>(length_and_version), sizeof(header2)));
 
         header.PC_reg = header2.PC_reg;
 
