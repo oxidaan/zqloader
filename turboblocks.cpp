@@ -304,8 +304,8 @@ public:
         std::chrono::milliseconds pause_before = 0ms;
         if (IsZqLoaderAdded())        // Add zqloader when added here. When not added here probably already preloaded.
         {
-       // TODO @DEBUG     p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_header), spectrum::tstate_quick_zero, 1750ms);
-       // TODO @DEBUG     p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_code), spectrum::tstate_quick_zero, 1500ms);
+            p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_header), spectrum::tstate_quick_zero, 1750ms);
+            p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_code), spectrum::tstate_quick_zero, 1500ms);
             pause_before = m_initial_wait;
         }
 

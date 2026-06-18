@@ -512,7 +512,6 @@ Else the ZX Spectrum will not do anything after loading the turbo loader,
 except waiting.
     )");
         }
-#if 0       // TODO @DEBUG
         if(m_spectrumloader.GetEstimatedDuration() == 0ms)
         {
             throw std::runtime_error(1 + &*R"(
@@ -520,7 +519,6 @@ No files added. Nothing to do.
 Please add a normal file and/or a turbo speed file.
 )");
         }
-#endif
     }
 
 
