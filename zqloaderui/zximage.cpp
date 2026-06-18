@@ -15,14 +15,15 @@
 #include "color_distance.h"
 #include <mutex>
 #include <QPainter>
+#include <iostream>
 
 namespace fs = std::filesystem;
 
 
 
-
-constexpr int spectrum_dark_colors[]  = {0,1,2};        // black, blue, red
-constexpr int spectrum_light_colors[] = {3,4,5,6,7,11,12,13,14,15};  // all others
+using enum spectrum::Screen::PaletteColor;
+constexpr int spectrum_dark_colors[]  = { black, blue, red };
+constexpr int spectrum_light_colors[] = { green, cyan, yellow, white, br_green, br_cyan, br_yellow, br_white};
 
 
 using Attributes = std::vector<spectrum::Screen::Attr>;
@@ -97,8 +98,8 @@ public:
 
     static std::pair<int, QRgb> FindClosest(const QRgb &p_color, spectrum::Screen::Attr p_spectrum_attr)
     {
-        QRgb paper_color = spectrum::Screen::palette[p_spectrum_attr.attr.paper + 8 * p_spectrum_attr.attr.bright]; // light
-        QRgb ink_color   = spectrum::Screen::palette[p_spectrum_attr.attr.ink   + 8 * p_spectrum_attr.attr.bright]; // dark
+        QRgb paper_color = spectrum::Screen::AttrPaperToColor(p_spectrum_attr); // paper=light
+        QRgb ink_color   = spectrum::Screen::AttrInkToColor(p_spectrum_attr);   // ink=dark
         auto dp          = ColorDistance(p_color, paper_color);
         auto di          = ColorDistance(p_color, ink_color);
         return dp < di ? std::pair<int, QRgb> { 0, paper_color } : std::pair<int, QRgb> { 1, ink_color };
@@ -124,46 +125,47 @@ public:
         QImage image256x192 = p_image.scaled(spectrum::SCREEN_WIDTH, spectrum::SCREEN_HEIGHT,
                                              Qt::IgnoreAspectRatio,
                                              Qt::FastTransformation);
+        QImage image256x192gray = image256x192.convertToFormat(QImage::Format_Grayscale8);    // to gray
         auto formt = image256x192.format();
         if (formt != QImage::Format_RGB32)
         {
             image256x192 = image256x192.convertToFormat(QImage::Format_RGB32);
         }
-        // 2) Determine color attribute.
-        for(int attry = 0; attry < 24; attry++)
-        {
-            for(int attrx = 0; attrx < 32; attrx++)
-            {
-                spectrum_screen.SetAttribute(attrx, attry, GetAttributeForCell(p_image, attrx, attry));
-            }
-        }
-        // 3) Floyd–Steinberg dithering
+
+
+        // 2) Floyd–Steinberg dithering on the gray scale image
         for(int y = 0; y < spectrum::SCREEN_HEIGHT; y++)
         {
             for(int x = 0; x < spectrum::SCREEN_WIDTH; x++)
             {
-                spectrum::Screen::Attr attr_here = spectrum_screen.GetAttribute(x / 8, y / 8);
-                QRgb oldcolor       = image256x192.pixel(x, y);
-                auto [is_ink, newcolor] = FindClosest(oldcolor, attr_here);
-                image256x192.setPixel(x, y, newcolor);
+                QRgb oldcolor         = image256x192gray.pixel(x, y);
+                QRgb black(0x000000);
+                QRgb white(0xffffff);
+                auto dist_to_black    = ColorDistance(oldcolor, black);
+                auto dist_to_white    = ColorDistance(oldcolor, white);
+                bool is_ink = dist_to_black < dist_to_white;
+                QRgb newcolor = is_ink ? black: white;
+                image256x192gray.setPixel(x, y, is_ink ? black: white);
                 spectrum_screen.SetPixel(x, y, is_ink);
-#if 0   // TODO @DEBUG
-                int red_error   = qRed(oldcolor) - qRed(newcolor);
-                int green_error = qGreen(oldcolor) - qGreen(newcolor);
-                int blue_error  = qBlue(oldcolor) - qBlue(newcolor);
-                //auto attr_right       = spectrum_screen.GetAttribute((x+1) / 8, y     / 8);
-                //auto attr_left_below  = spectrum_screen.GetAttribute((x-1) / 8, (y+1) / 8);
-                //auto attr_below       = spectrum_screen.GetAttribute( x    / 8, (y+1) / 8);
-                //auto attr_right_below = spectrum_screen.GetAttribute((x+1) / 8, (y+1) / 8);
-                if(/*attr_here.byte == attr_right.byte && */x < 255)
-                    SetFloydSteinbergColor(image256x192, x + 1, y,     red_error, green_error, blue_error, 7);
-                if(/*attr_here.byte == attr_left_below.byte && x > 0 && */ y < 191)
-                    SetFloydSteinbergColor(image256x192, x - 1, y + 1, red_error, green_error, blue_error, 3);
-                if(/* attr_here.byte == attr_below.byte && */y < 191)
-                    SetFloydSteinbergColor(image256x192, x,     y + 1, red_error, green_error, blue_error, 5);
-                if(/* attr_here.byte == attr_right_below.byte && x < 255 && */ y < 191)
-                    SetFloydSteinbergColor(image256x192, x + 1, y + 1, red_error, green_error, blue_error, 1);
-#endif
+
+                int error   = qRed(oldcolor) - qRed(newcolor);      // gray scale r and g and b are same
+                if(x < 255)
+                    SetFloydSteinbergColor(image256x192gray, x + 1, y,     error, error, error, 7);
+                if( x > 0 && y < 191)
+                    SetFloydSteinbergColor(image256x192gray, x - 1, y + 1, error, error, error, 3);
+                if(y < 191)
+                    SetFloydSteinbergColor(image256x192gray, x,     y + 1, error, error, error, 5);
+                if( x < 255 &&  y < 191)
+                    SetFloydSteinbergColor(image256x192gray, x + 1, y + 1, error, error, error, 1);
+
+            }
+        }
+        // 3) Determine color attribute on the original
+        for(int attry = 0; attry < 24; attry++)
+        {
+            for(int attrx = 0; attrx < 32; attrx++)
+            {
+                spectrum_screen.SetAttribute(attrx, attry, GetAttributeForCell(image256x192, attrx, attry));
             }
         }
         return spectrum_screen;
@@ -178,8 +180,8 @@ public:
             {
                 bool bit = p_image.GetPixel(x, y);
                 auto attr = p_image.GetAttribute(x / 8, y / 8);
-                int  coloridx = (bit ? attr.attr.ink : attr.attr.paper) + 8 *  attr.attr.bright;
-                image.setPixel(x, y, spectrum::Screen::palette[coloridx]);
+                auto color = bit ? spectrum::Screen::AttrInkToColor(attr) : spectrum::Screen::AttrPaperToColor(attr);
+                image.setPixel(x, y, color);
             }
         }
         return image;
@@ -188,10 +190,11 @@ public:
     // p_attr_x,  p_attr_y are attribute (32x24) coordinates thus corresponding to top left pixel
     // (as QRgb) of an 8x8 cell at a QImage.
     // For each 8x8 (=64) pixels of that cell determine:
-    // nearest spectrum color considered dark and nearest spectrum color considered light and
-    // count them both. Lower distances to nearest color count heavier.
+    // nearest spectrum color considered dark and nearest spectrum color considered light
+    // and count them both. Lower distances to nearest color count heavier.
     // Then find the indexes for the most used spectrum color considerded dark and light,
-    // return those as spectrum attibute. Using the light colors also detemine bright flag.
+    // return those as spectrum attibute: dark for ink and light for paper.
+    // The used the light color also deteines bright flag.
     // (At spectrum bright flag has barely effect on dark colors).
     spectrum::Screen::Attr GetAttributeForCell(const QImage &p_image, int p_attr_x, int p_attr_y)
     {
@@ -204,29 +207,29 @@ public:
                 QRgb rgb = p_image.pixel(p_attr_x * 8 + x, p_attr_y * 8 + y);
                 auto [dist_light, index_light] = GetNearestColor(rgb, spectrum::Screen::palette, spectrum_light_colors);
                 auto [dist_dark,  index_dark]  = GetNearestColor(rgb, spectrum::Screen::palette, spectrum_dark_colors);
-                count_light[index_light]      ++;//= (( 256 * 256 * 3 ) - dist_light ); // TODO @DEBUG
+                count_light[index_light]      ++;//= (( 256 * 256 * 3 ) - dist_light );
                 count_dark [index_dark]       ++;//= (( 256 * 256 * 3 ) - dist_dark );
             }
         }
         auto FindMax = []( int p_found[])
                        {
                            int max   = 0;
-                           int found = 0;
+                           int idx_found = 0;
                            for(int i = 0; i < 16; i++)
                            {
-                               if(p_found[i] > max || max == 0)
+                               if(p_found[i] >= max)
                                {
-                                   found = i;
+                                   idx_found = i;
                                    max   = p_found[i];
                                }
                            }
-                           return found;
+                           return idx_found;
                        };
         spectrum::Screen::Attr attr;
         auto dark_color  = FindMax(count_dark);      // black, blue, red so 0, 1 or 2
         auto light_color = FindMax(count_light);     // so magenta(3) -- bright white (15)
-        attr.attr.ink    = dark_color;
-        attr.attr.paper  = light_color % 8;
+        attr.attr.ink    = spectrum::Screen::AttributeColor(dark_color);
+        attr.attr.paper  = spectrum::Screen::AttributeColor(light_color % 8);
         attr.attr.bright = light_color > 8;
 
         return attr;

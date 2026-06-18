@@ -261,7 +261,7 @@ Dialog::Dialog(QWidget *parent)
         auto wanted_one_cyclii = ui->lineEditWantedOneCyclii->text().toDouble();
         CalculateLoaderParameters(wanted_zero_cyclii, zero_max, wanted_one_cyclii);
     });
-    // Go or Stop (big) button pressed
+    // Go! or Stop (big) button pressed
     connect(ui->pushButtonGo,&QPushButton::pressed, [this]
     {
         if( m_state == State::Playing || m_state == State::Tuning)
@@ -624,7 +624,7 @@ inline void Dialog::RestoreDefaults()
 
 
 
-// 'Go' pressed.
+// 'Go!' pressed.
 inline void Dialog::Go()
 {
     try

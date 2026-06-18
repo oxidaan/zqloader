@@ -27,10 +27,11 @@ inline int ColorDistance(QRgb p_color1, QRgb p_color2)
 
 
 
-// For given color, find nearest color at given palette.
-// p_size is size of p_palette.
-// returns index at p_palette (0 is first) for nearest found color plus
-// the distance (squared) to that color.
+/// For given color, find nearest color at given palette.
+/// returns index at p_palette (0 is first) for nearest found color plus
+/// the distance (squared) to that color.
+/// Can limit acceptable colors in given pallete with colors in p_which_colors.
+/// Generic - so not spectrum specific.
 inline std::pair<int, int> GetNearestColor(const QRgb &p_color,
     std::span<const int>p_palette, std::span<const int> p_which_colors )
 {
@@ -40,7 +41,7 @@ inline std::pair<int, int> GetNearestColor(const QRgb &p_color,
     for(int n = 0; n < p_palette.size(); n++)
     {
         // c++23 if(std::ranges::contains(p_which_colors, n))
-        if(std::ranges::find(p_which_colors, n) != p_which_colors.end())
+        if(p_which_colors.size() == 0 || std::ranges::find(p_which_colors, n) != p_which_colors.end())
         {
 
             int dist = ColorDistance(p_color, p_palette[n]);

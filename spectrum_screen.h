@@ -24,11 +24,26 @@ namespace spectrum
 class Screen
 {
 public:
+    // spectrum::Screen::AttributeColor
+    enum class AttributeColor : uint8_t
+    {
+        black,          blue,        red,        magenta,        green,       cyan,        yellow,        white,
+    };
+
+    // spectrum::Screen::PaletteColor
+    enum PaletteColor : uint8_t
+    {
+        black,          blue,        red,        magenta,        green,       cyan,        yellow,        white,
+        br_black,       br_blue,     br_red,     br_magenta,     br_green,    br_cyan,     br_yellow,     br_white,
+    };
+
     // spectrum::Screen::palette
     static constexpr int palette[] =
+    {
     // black     blue      red       magenta   green     cyan      yellow    white
-    {  0x000000, 0x0000d8, 0xd80000, 0xd800d8, 0x00d800, 0x00d8d8, 0xd8d800, 0xd8d8d8,     // normal
-       0x000000, 0x0000ff, 0xff0000, 0xff00ff, 0x00ff00, 0x00ffff, 0xffff00, 0xffffff };   // bright
+       0x000000, 0x0000d8, 0xd80000, 0xd800d8, 0x00d800, 0x00d8d8, 0xd8d800, 0xd8d8d8,     // normal
+       0x000000, 0x0000ff, 0xff0000, 0xff00ff, 0x00ff00, 0x00ffff, 0xffff00, 0xffffff      // bright
+    };
 
 
     // spectrum::Screen::Attr
@@ -38,15 +53,25 @@ public:
     {
         struct
         {
-            uint8_t   ink: 3;
-            uint8_t   paper: 3;
-            uint8_t   bright: 1;
-            uint8_t   flash : 1;
+            AttributeColor  ink: 3;
+            AttributeColor  paper: 3;
+            uint8_t         bright: 1;
+            uint8_t         flash : 1;
         } attr;
         std::byte   byte;
     };
-
     static_assert(sizeof( Attr ) == 1);
+    // spectrum::Screen::AttrPaperToColor
+    static auto AttrPaperToColor(const Attr &p_attr)
+    {
+        return palette[int(p_attr.attr.paper) + 8 * p_attr.attr.bright];
+    }
+    static auto AttrInkToColor(const Attr &p_attr)
+    {
+        return palette[int(p_attr.attr.ink) + 8 * p_attr.attr.bright];
+    }
+
+
 public:
 
     Screen()
@@ -57,7 +82,7 @@ public:
     Screen &operator = (Screen &&) = default;
 
 
-
+    /// Set pixel. Codes the infamous spectrum screen layout.
     void SetPixel(int x, int y, bool p_value)
     {
         // 0  1  0  y7 y6  y2 y1 y0    y5 y4 y3 x7 x6 x5 x4 x3
@@ -70,6 +95,7 @@ public:
 
 
 
+    /// Get pixel. Codes the infamous spectrum screen layout.
     bool GetPixel(int x, int y) const
     {
         // 0  1  0  y7 y6  y2 y1 y0    y5 y4 y3 x7 x6 x5 x4 x3
@@ -82,18 +108,18 @@ public:
 
 
     /// Coordinates are attribute coordinates (32x24)
-    void SetAttribute(int x, int y, spectrum::Screen::Attr p_attr)
+    void SetAttribute(int attr_x, int attr_y, spectrum::Screen::Attr p_attr)
     {
-        m_datablock[spectrum::SCREEN_PIXEL_SIZE + y * 32 + x] = p_attr.byte;
+        m_datablock[spectrum::SCREEN_PIXEL_SIZE + attr_y * 32 + attr_x] = p_attr.byte;
     }
 
 
 
     /// Coordinates are attribute coordinates (32x24)
-    spectrum::Screen::Attr GetAttribute(int x, int y) const
+    spectrum::Screen::Attr GetAttribute(int attr_x, int attr_y) const
     {
         spectrum::Screen::Attr a;
-        a.byte = m_datablock[spectrum::SCREEN_PIXEL_SIZE + y * 32 + x];
+        a.byte = m_datablock[spectrum::SCREEN_PIXEL_SIZE + attr_y * 32 + attr_x];
         return a;
     }
 

@@ -104,11 +104,9 @@ private:
                 for (int x = 0; x < 32; x++) 
                 {
                     auto attr = p_attr[(y / 2) * 32 + x];
-                    auto bright = attr.attr.bright ? 8 : 0;
-                    int color_nr =   (y % 2) ? attr.attr.ink : attr.attr.paper  ;
-                    int idx = bright + color_nr;
                     QRgb* row = reinterpret_cast<QRgb*>(data + y     * bytesPerLine);
-                    row[x] = spectrum::Screen::palette[idx];
+                    auto color = (y % 2) ? spectrum::Screen::AttrInkToColor(attr) : spectrum::Screen::AttrPaperToColor(attr);
+                    row[x] = color;
                 }
             }
         }
@@ -119,11 +117,9 @@ private:
                 for (int x = 0; x < 64; x++)   
                 {
                     auto attr = p_attr[y * 32 + (x/2)];
-                    auto bright = attr.attr.bright ? 8 : 0;
-                    int color_nr =   (x % 2) ? attr.attr.ink : attr.attr.paper;       // paper first
-                    int idx = bright + color_nr;
                     QRgb* row = reinterpret_cast<QRgb*>(data + y     * bytesPerLine);
-                    row[x] = spectrum::Screen::palette[idx];
+                    auto color = (x % 2) ? spectrum::Screen::AttrInkToColor(attr) : spectrum::Screen::AttrPaperToColor(attr);
+                    row[x] = color;
                 }
             }
         }
@@ -258,8 +254,8 @@ private:
         //retval |= (use_bright ? found_bright_ink : found_norm_ink);
         spectrum::Screen::Attr retval{};
         retval.attr.bright = use_bright;
-        retval.attr.paper  = use_bright ? found_bright_paper - 8 : found_norm_paper;
-        retval.attr.ink    = use_bright ? found_bright_ink - 8 : found_norm_ink;
+        retval.attr.paper  = spectrum::Screen::AttributeColor(use_bright ? found_bright_paper - 8 : found_norm_paper);
+        retval.attr.ink    = spectrum::Screen::AttributeColor(use_bright ? found_bright_ink - 8 : found_norm_ink);
         retval.attr.flash = 0;
         return retval;
     }

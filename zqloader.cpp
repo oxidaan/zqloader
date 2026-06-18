@@ -506,20 +506,21 @@ private:
         if(FileIsZqLoader(m_normal_filename) && m_turbo_filename.empty() && !m_is_preloaded)
         {
             throw std::runtime_error(1 + &*R"(
-When using zqloader.tap a 2nd filename is needed as runtime argument,
-with the program to be turboloaded. A game for example. 
+When using zqloader.tap a 2nd filename is needed indicating the program to be turboloaded. A game for example.
+This can be given at commandline or the 2nd filename at the dialog.
 Else the ZX Spectrum will not do anything after loading the turbo loader,
 except waiting.
     )");
         }
-
+#if 0       // TODO @DEBUG
         if(m_spectrumloader.GetEstimatedDuration() == 0ms)
         {
             throw std::runtime_error(1 + &*R"(
 No files added. Nothing to do.
-Please add a normal and or turbo speed file.
+Please add a normal file and/or a turbo speed file.
 )");
         }
+#endif
     }
 
 
@@ -578,6 +579,7 @@ private:
     fs::path                                m_output_filename;             // writing wav or tzx
 
     bool                                    m_128_mode = false;
+    bool                                    m_from_dialog;
 
     std::chrono::steady_clock::time_point   m_start_time{};
 }; // class ZQLoader::Impl
