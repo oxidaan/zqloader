@@ -47,9 +47,6 @@
     <ClInclude Include="tzxwriter.h" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="z80\zqloader.z80asm">
-      <Filter>Z80</Filter>
-    </CustomBuild>
     <CustomBuild Include="z80\zqloader_test.z80asm">
       <Filter>Z80</Filter>
     </CustomBuild>
@@ -59,6 +56,9 @@
     <CustomBuild Include="z80\zqloader128.z80asm">
       <Filter>Z80</Filter>
     </CustomBuild>
+    <CustomBuild Include="z80\zqloader48.z80asm">
+      <Filter>Z80</Filter>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <Image Include="resource\icon2.ico" />
@@ -66,7 +66,7 @@
   <ItemGroup>
     <None Include="README.md" />
     <None Include="zqloader.vcxproj" />
-    <None Include="z80\zqloader.inc">
+    <None Include="z80\zqloader.z80asm">
       <Filter>Z80</Filter>
     </None>
   </ItemGroup>

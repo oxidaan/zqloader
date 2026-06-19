@@ -169,7 +169,7 @@ Dialog::Dialog(QWidget *parent)
     ConnectVolume(ui->dialVolumeLeft,  ui->lineEditVolumeLeft);
     ConnectVolume(ui->dialVolumeRight, ui->lineEditVolumeRight);
 
-    // common connect code for three browse buttons
+    // common connect code for all browse buttons
     auto ConnectBrowse  = [this](QPushButton *p_button, QLineEdit *p_edit, QString p_text, QString p_filter, QFileDialog::FileMode p_mode, QString p_setting_name)
     {
         connect(p_button, &QPushButton::pressed, [=, this]
@@ -188,7 +188,14 @@ Dialog::Dialog(QWidget *parent)
             // 9 years old issue still not solved???
             // No same issue as see comment at DTOR ~SampleSender
             // dialog.setOption(QFileDialog::DontUseNativeDialog, true);
-            dialog.setAcceptMode(p_mode == QFileDialog::ExistingFiles ? QFileDialog::AcceptOpen :  QFileDialog::AcceptSave);
+            if (p_mode == QFileDialog::Directory)
+            {
+                dialog.setOption(QFileDialog::ShowDirsOnly);
+            }
+            else
+            {
+                dialog.setAcceptMode(p_mode == QFileDialog::ExistingFiles ? QFileDialog::AcceptOpen : QFileDialog::AcceptSave);
+            }
             if(dialog.exec() == QDialog::Accepted)
             {
                 auto filename = QDir::toNativeSeparators(dialog.selectedFiles().first());   // else wrong slashes in Windows

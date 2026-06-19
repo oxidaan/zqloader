@@ -18,23 +18,28 @@
 #include <random>
 
 
-template <class TString>
-std::string ToLower(TString p_string)
+inline std::string ToLower(std::string p_string)
 {
-    std::string s = std::move(p_string);
-    std::transform(s.begin(), s.end(), s.begin(),
-        [](unsigned char c) { return char(std::tolower(c)); });
-    return s;
+    std::ranges::transform(p_string, p_string.begin(),
+        [](unsigned char c)
+        {
+            return static_cast<char>(std::tolower(c));
+        });
+    return p_string;
+}
+inline std::string ToUpper(std::string p_string)
+{
+    std::ranges::transform(p_string, p_string.begin(),
+        [](unsigned char c)
+        {
+            return static_cast<char>(std::tolower(c));
+        });
+    return p_string;
 }
 
-template <class TString>
-std::string ToUpper(TString p_string)
-{
-    std::string s = std::move(p_string);
-    std::transform(s.begin(), s.end(), s.begin(),
-        [](unsigned char c) { return char(std::toupper(c)); });
-    return s;
-}
+
+
+
 
 
 class CommandLine

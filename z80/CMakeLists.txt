@@ -19,9 +19,10 @@ if(NOT FOUND_SJASMPLUS)
 (Will install the files that were committed in repository instead)")
     # Cant build so install the files that were committed in repository
     install(FILES
-            zqloader.exp
-            zqloader.tap
+            zqloader48.tap
+            zqloader48.exp
             zqloader128.tap
+            zqloader128.exp
             snapshotregs.bin
             DESTINATION z80
             )
@@ -47,9 +48,10 @@ Eg: cmake -DPATH_TO_SJASMPLUS=path/to/sjasmplus
 (Will install the files that were committed in repository instead)")
     # Cant build so install the files that were committed in repository
     install(FILES
-            zqloader.exp
-            zqloader.tap
+            zqloader48.tap
+            zqloader48.exp
             zqloader128.tap
+            zqloader128.exp
             snapshotregs.bin
             DESTINATION z80
             )
@@ -85,9 +87,10 @@ foreach(which "48" "128")
 endforeach()
 
 install(FILES  
-        ${CMAKE_CURRENT_BINARY_DIR}/zqloader.exp  
         ${CMAKE_CURRENT_BINARY_DIR}/zqloader48.tap
+        ${CMAKE_CURRENT_BINARY_DIR}/zqloader48.exp  
         ${CMAKE_CURRENT_BINARY_DIR}/zqloader128.tap
+        ${CMAKE_CURRENT_BINARY_DIR}/zqloader128.exp
         ${CMAKE_CURRENT_BINARY_DIR}/snapshotregs.bin
         DESTINATION z80
         )

@@ -74,7 +74,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
@@ -88,7 +88,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
@@ -127,6 +127,7 @@
     <ClCompile Include="dialog.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="video.cpp" />
+    <ClCompile Include="zximage.cpp" />
     <ClCompile Include="zxvideo.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -159,6 +160,9 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="zxvideo.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="zximage.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

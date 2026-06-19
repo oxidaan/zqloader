@@ -14,7 +14,9 @@
 //    --exp=path/to/zqloader/z80/zqloader.exp \
 //    --lst --syntax=abf --color=on       \
 //    path/to/zqloader/z80/zqloader\z80\zqloader.z80asm  
-
+//
+// At visual studio:
+// cmd /c "for /F %%i in ('where sjasmplus') do cd "%(FullPath)\..\" & del z80\%(Filename).tap & sjasmplus --fullpath -i%%i/../examples/BasicLib --exp="%(FullPath)\..\%(Filename).exp" --syntax=abf "%(FullPath)" "
  DEFINE BANKSWITCH128       
     INCLUDE "zqloader.z80asm"
     

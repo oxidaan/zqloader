@@ -60,7 +60,7 @@ public:
         std::cout << "Processing zqloader file: " << p_filename << " (normal speed)" << std::endl;
 
         fs::path filename_exp = p_filename;
-        filename_exp.replace_extension("exp");          // zqloader.exp (symbols)
+        filename_exp.replace_extension("exp");          // zqloader48.exp or zqloader128.exp (symbols)
         LoadSymbolFilename(filename_exp);
 
         TapLoader loader;

@@ -83,7 +83,7 @@
       <AdditionalIncludeDirectories>miniaudio;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
@@ -143,7 +143,7 @@
       <AdditionalIncludeDirectories>miniaudio;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -215,7 +215,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
-    <CustomBuild Include="z80\zqloader.z80asm">
+    <None Include="z80\zqloader.z80asm">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">false</DeploymentContent>
       <FileType>Document</FileType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">false</ExcludedFromBuild>
@@ -231,7 +231,7 @@
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">cmd /c "for /F %%i in ('where sjasmplus') do cd "%(FullPath)\..\" &amp; del z80\%(Filename).tap &amp; sjasmplus --fullpath -i%%i/../examples/BasicLib --exp="%(FullPath)\..\%(Filename).exp" --syntax=abf "%(FullPath)" "</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">z80\zqloader.inc</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">z80\zqloader.inc</AdditionalInputs>
-    </CustomBuild>
+    </None>
     <CustomBuild Include="z80\zqloader_test.z80asm">
       <FileType>Document</FileType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">true</ExcludedFromBuild>
@@ -248,7 +248,6 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">z80\zqloader_snapshottest.sna</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">z80\zqloader_snapshottest.sna</Outputs>
     </CustomBuild>
-    <None Include="z80\zqloader.inc" />
     <CustomBuild Include="z80\zqloader128.z80asm">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">cmd /c "for /F %%i in ('where sjasmplus') do cd "%(FullPath)\..\" &amp; del z80\%(Filename).tap &amp; sjasmplus --fullpath -i%%i/../examples/BasicLib --exp="%(FullPath)\..\%(Filename).exp" --syntax=abf "%(FullPath)" "</Command>
@@ -257,8 +256,23 @@
       <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</TreatOutputAsContent>
       <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</VerifyInputsAndOutputsExist>
       <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</TreatOutputAsContent>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">z80\zqloader.inc</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">z80\zqloader.inc</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">z80\zqloader.z80asm</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">z80\zqloader.z80asm</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">z80\%(Filename).tap;z80\%(Filename).exp;z80\snapshotregs.bin</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">z80\%(Filename).tap;z80\%(Filename).exp;z80\snapshotregs.bin</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="z80\zqloader48.z80asm">
+      <FileType>Document</FileType>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">z80\zqloader.z80asm</AdditionalInputs>
+      <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</VerifyInputsAndOutputsExist>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">z80\zqloader.z80asm</AdditionalInputs>
+      <VerifyInputsAndOutputsExist Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</VerifyInputsAndOutputsExist>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</TreatOutputAsContent>
+      <TreatOutputAsContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</TreatOutputAsContent>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">cmd /c "for /F %%i in ('where sjasmplus') do cd "%(FullPath)\..\" &amp; del z80\%(Filename).tap &amp; sjasmplus --fullpath -i%%i/../examples/BasicLib --exp="%(FullPath)\..\%(Filename).exp" --syntax=abf "%(FullPath)" "</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">cmd /c "for /F %%i in ('where sjasmplus') do cd "%(FullPath)\..\" &amp; del z80\%(Filename).tap &amp; sjasmplus --fullpath -i%%i/../examples/BasicLib --exp="%(FullPath)\..\%(Filename).exp" --syntax=abf "%(FullPath)" "</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">z80\%(Filename).tap;z80\%(Filename).exp;z80\snapshotregs.bin</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">z80\%(Filename).tap;z80\%(Filename).exp;z80\snapshotregs.bin</Outputs>
     </CustomBuild>
     <None Include="zqloader.vcxproj" />
   </ItemGroup>
