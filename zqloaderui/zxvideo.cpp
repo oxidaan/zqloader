@@ -105,7 +105,7 @@ private:
                 {
                     auto attr = p_attr[(y / 2) * 32 + x];
                     QRgb* row = reinterpret_cast<QRgb*>(data + y     * bytesPerLine);
-                    auto color = (y % 2) ? spectrum::Screen::AttrInkToColor(attr) : spectrum::Screen::AttrPaperToColor(attr);
+                    auto color = (y % 2) ? spectrum::Screen::AttrInkToRgbColor(attr) : spectrum::Screen::AttrPaperToRgbColor(attr);
                     row[x] = color;
                 }
             }
@@ -118,7 +118,7 @@ private:
                 {
                     auto attr = p_attr[y * 32 + (x/2)];
                     QRgb* row = reinterpret_cast<QRgb*>(data + y     * bytesPerLine);
-                    auto color = (x % 2) ? spectrum::Screen::AttrInkToColor(attr) : spectrum::Screen::AttrPaperToColor(attr);
+                    auto color = (x % 2) ? spectrum::Screen::AttrInkToRgbColor(attr) : spectrum::Screen::AttrPaperToRgbColor(attr);
                     row[x] = color;
                 }
             }

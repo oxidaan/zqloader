@@ -1,7 +1,8 @@
 //==============================================================================
 // PROJECT:         zqloader (ui)
 // FILE:            color_distance.h
-// DESCRIPTION:     Distance to mean helper function. Needs QRgb.
+// DESCRIPTION:     Distance to mean helper function. Needs QRgb. But not 
+//                  spectrum specific.
 //
 // Copyright (c) 2026 Daan Scherft [Oxidaan]
 // This project uses the MIT license. See LICENSE.txt for details.
@@ -13,7 +14,7 @@
 #include <QColor>
 #include <span>
 
-// distance to mean, squared.
+/// Distance to mean, squared.
 inline int ColorDistance(QRgb p_color1, QRgb p_color2)
 {
     int r1 = qRed(p_color1);

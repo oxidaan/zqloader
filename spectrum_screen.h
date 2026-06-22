@@ -30,12 +30,6 @@ public:
         black,          blue,        red,        magenta,        green,       cyan,        yellow,        white,
     };
 
-    // spectrum::Screen::PaletteColor
-    enum PaletteColor : uint8_t
-    {
-        black,          blue,        red,        magenta,        green,       cyan,        yellow,        white,
-        br_black,       br_blue,     br_red,     br_magenta,     br_green,    br_cyan,     br_yellow,     br_white,
-    };
 
     // spectrum::Screen::palette
     static constexpr int palette[] =
@@ -61,12 +55,16 @@ public:
         std::byte   byte;
     };
     static_assert(sizeof( Attr ) == 1);
+
     // spectrum::Screen::AttrPaperToColor
-    static auto AttrPaperToColor(const Attr &p_attr)
+
+    // For given attribute return paper color as rgb value.
+    static auto AttrPaperToRgbColor(const Attr &p_attr)
     {
         return palette[int(p_attr.attr.paper) + 8 * p_attr.attr.bright];
     }
-    static auto AttrInkToColor(const Attr &p_attr)
+    // For given attribute return ink color as rgb value.
+    static auto AttrInkToRgbColor(const Attr &p_attr)
     {
         return palette[int(p_attr.attr.ink) + 8 * p_attr.attr.bright];
     }
