@@ -17,14 +17,14 @@
 #include "tzxloader.h"
 #include "turboblocks.h"
 #include "memoryblock.h"
-#include <iostream>
-#include <fstream>
+#include "spectrum_screen.h"
 #include "taptoturboblocks.h"
 #include "z80snapshot_loader.h"
 #include "samplesender.h"
 #include "sampletowav.h"
 #include "loader_defaults.h"
-
+#include <iostream>
+#include <fstream>
 #include <filesystem>
 namespace fs = std::filesystem;
 
@@ -718,7 +718,7 @@ ZQLoader& ZQLoader::SetLoaderCopyTarget(LoaderLocation p_where)
     }
     else if (p_where == LoaderLocation::screen)
     {
-        SetLoaderCopyTarget(spectrum::SCREEN_23RD);
+        SetLoaderCopyTarget(spectrum::screen::SCREEN_23RD);
     }
     return *this;
 }

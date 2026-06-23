@@ -95,7 +95,7 @@ void WriteFunText(ZQLoader &p_zq_loader, bool p_first)
         DataBlock all_attr;
         all_attr.resize(768);
         p_zq_loader.SetCompressionType(CompressionType::automatic);
-        p_zq_loader.AddMemoryBlock({std::move(all_attr), spectrum::ATTR_BEGIN}, 0);
+        p_zq_loader.AddMemoryBlock({std::move(all_attr), spectrum::screen::ATTR_BEGIN}, 0);
     }
     else
     {
@@ -104,7 +104,7 @@ void WriteFunText(ZQLoader &p_zq_loader, bool p_first)
         empty = ZQLoader::WriteTextToAttr(text_attr, text, std::byte{}, false, col);    // 0_byte: random colors
         // copy fun attributes into 48k data block
         p_zq_loader.SetCompressionType(CompressionType::automatic);      // else ugly
-        p_zq_loader.AddMemoryBlock({std::move(text_attr), spectrum::ATTR_23RD}, 40000);
+        p_zq_loader.AddMemoryBlock({std::move(text_attr), spectrum::screen::ATTR_23RD}, 40000);
     }
     col --;
     if(empty)
@@ -489,7 +489,7 @@ inline void Dialog::OnDone()
     {
         DataBlock block;
         // send bar pattern to spectrum screen
-        for(int n = 0; n < spectrum::SCREEN_PIXEL_SIZE; n++)
+        for(int n = 0; n < spectrum::screen::SCREEN_PIXEL_SIZE; n++)
         {
             block.push_back(0x0f_byte);
         }
@@ -513,10 +513,10 @@ inline void Dialog::OnDone()
         // cast Attributes -> to DataBlock
         auto* raw = reinterpret_cast<std::byte*>(all_attr.data());
         DataBlock attrs(raw, raw + all_attr.size());
-        if(attrs.size() == spectrum::ATTR_SIZE)
+        if(attrs.size() == spectrum::screen::ATTR_SIZE)
         {
             m_zqloader.SetCompressionType(CompressionType::automatic);
-            m_zqloader.AddMemoryBlock({std::move(attrs), spectrum::ATTR_BEGIN}, 40000);
+            m_zqloader.AddMemoryBlock({std::move(attrs), spectrum::screen::ATTR_BEGIN}, 40000);
         }
         
     }
@@ -592,7 +592,7 @@ inline void Dialog::RestoreDefaults()
     ui->lineEditInitialWait->setText(QString::number(loader_defaults::initial_wait.count()));
 
     ui->comboBoxLoaderLocation->setCurrentIndex(0);     // automatic.
-    ui->lineEditLoaderAddress->setText(QString::number(spectrum::SCREEN_23RD));
+    ui->lineEditLoaderAddress->setText(QString::number(spectrum::screen::SCREEN_23RD));
 
     ui->lineEditSampleRate->setText("");
     ui->lineEditSampleRate->signalFocusOut();       // also gives correct tip-text

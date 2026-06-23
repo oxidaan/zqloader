@@ -33,17 +33,26 @@ constexpr int spectrum_dark_colors[] = { black , blue, red };
 constexpr int spectrum_light_colors[] = { green, cyan, yellow, white, br_green, br_cyan, br_yellow, br_white};
 
 
-using Attributes = std::vector<spectrum::Screen::Attr>;
+using Attributes = std::vector<spectrum::screen::Attr>;
+
+
+struct AlgorithmParameters
+{
+    bool m_use_distance_to_black_white = true;
+    bool m_use_floyd_steinberg = true;
+    std::span<const int> m_dark_colors = spectrum_dark_colors;
+    std::span<const int> m_light_colors = spectrum_light_colors;
+};
 
 class ZxImage::Impl
 {
-    friend class Video;
 
 public:
 
     Impl(ZxImage *p_this) :
         m_this(p_this)
     {}
+
 
 
 
@@ -54,12 +63,16 @@ public:
         std::unique_lock lock(m_mutex);
         if (!m_image.isNull())
         {
-            auto w = 2 * spectrum::SCREEN_WIDTH;
-            auto h = 2 * spectrum::SCREEN_HEIGHT;
-            painter.drawImage(0, 0, m_image.scaled(w, h));              // draw the original image
+            auto w = 2 * spectrum::screen::SCREEN_WIDTH;
+            auto h = 2 * spectrum::screen::SCREEN_HEIGHT;
+//            painter.drawImage(0, 0, m_image.scaled(w, h, Qt::KeepAspectRatioByExpanding));              // draw the original image
+            painter.drawImage(0, 0, CenterScale(m_image, w, h));              // draw the original image
             painter.drawImage(w, 0, SpectrumScreenToImage(m_screen).scaled(w, h));
         }
     }
+
+
+
 
     void SetDirectory(const fs::path &p_dir)
     {
@@ -80,7 +93,8 @@ public:
     }
 
     // Runs in miniaudio thread
-    const spectrum::Screen &LoadNext()
+    // Return spectrum screen that can be sent as data to Spectrum
+    const spectrum::screen::Screen &LoadNext()
     {
         fs::path image_filename;
         {
@@ -93,7 +107,8 @@ public:
             }
         }
         QImage image(QString::fromStdString(image_filename.string()));
-        auto screen =  ImageToSpectrumScreen(image);
+        AlgorithmParameters how;
+        auto screen =  ImageToSpectrumScreen(image, how);
 
         {
             std::unique_lock lock(m_mutex);
@@ -104,16 +119,181 @@ public:
         return m_screen;
     }
 
-    // At give attribute find best matching (ink or paper) for given rgb color.
-    static std::pair<int, QRgb> FindClosest(const QRgb &p_color, spectrum::Screen::Attr p_spectrum_attr)
+
+
+
+
+    /// Convert given QImage to spectrum screen
+    /// Can run in miniaudio thread
+    spectrum::screen::Screen ImageToSpectrumScreen(const QImage &p_image, AlgorithmParameters p_how)
     {
-        QRgb paper_color = spectrum::Screen::AttrPaperToRgbColor(p_spectrum_attr); // paper=light
-        QRgb ink_color   = spectrum::Screen::AttrInkToRgbColor(p_spectrum_attr);   // ink=dark
-        auto dp          = ColorDistance(p_color, paper_color);
-        auto di          = ColorDistance(p_color, ink_color);
-        return dp < di ? std::pair<int, QRgb> { 0, paper_color } : std::pair<int, QRgb> { 1, ink_color };
+        spectrum::screen::Screen spectrum_screen;
+        // 1) Scale down to spectrum resolution (256x192)
+        QImage image256x192 = CenterScale(p_image, spectrum::screen::SCREEN_WIDTH, spectrum::screen::SCREEN_HEIGHT);
+
+        // 2) Determine color attribute using the scaled image
+        for (int attry = 0; attry < 24; attry++)
+        {
+            for (int attrx = 0; attrx < 32; attrx++)
+            {
+                spectrum::screen::Attr attr = DetermineAttributeForCell(image256x192, attrx, attry, p_how);
+                //attr.attr.ink = spectrum::Screen::AttributeColor::black;
+                //attr.attr.paper = spectrum::Screen::AttributeColor::white;
+                spectrum_screen.SetAttribute(attrx, attry, attr);
+            }
+        }
+
+
+        QImage image256x192gray = image256x192.convertToFormat(QImage::Format_Grayscale8);    // to gray
+        //image256x192gray = image256x192gray.convertToFormat(QImage::Format_RGB32);    // needed?
+        auto formt = image256x192.format();
+        if (formt != QImage::Format_RGB32)
+        {
+            image256x192 = image256x192.convertToFormat(QImage::Format_RGB32);
+        }
+
+
+
+        QImage &image = p_how.m_use_distance_to_black_white ? image256x192gray : image256x192;
+        QRgb color_paper;
+        QRgb color_ink;
+
+        // Floyd–Steinberg dithering using distance to attribute colors
+        for (int y = 0; y < spectrum::screen::SCREEN_HEIGHT; y++)
+        {
+            for (int x = 0; x < spectrum::screen::SCREEN_WIDTH; x++)
+            {
+                if(p_how.m_use_distance_to_black_white)
+                {
+                    color_ink = 0x000000;
+                    color_paper = 0xffffff;
+                }
+                else
+                {
+                    auto attr = spectrum_screen.GetAttribute(x/8, y/8);
+                    color_ink = spectrum::screen::AttrInkToRgbColor(attr);
+                    color_paper = spectrum::screen::AttrPaperToRgbColor(attr);
+                }
+
+                QRgb oldcolor = image.pixel(x, y);
+                auto dist_to_ink   = ColorDistance(oldcolor, color_ink);
+                auto dist_to_paper = ColorDistance(oldcolor, color_paper);
+                bool is_ink = dist_to_ink < dist_to_paper;
+                // not needed image.setPixel(x, y, newcolor);
+                if(p_how.m_use_floyd_steinberg)
+                {
+                    QRgb newcolor = is_ink ? color_ink : color_paper;
+                    SetFloydSteinbergColor4(image, x, y, oldcolor, newcolor);
+                }
+                spectrum_screen.SetPixel(x, y, is_ink);         // write to spectrum screen itself
+            }
+        }
+
+        return spectrum_screen;
     }
 
+    /// Convert given spectrum screen to a QImage.
+    /// To show only - not sent to Spectrum with zqloader
+    static QImage SpectrumScreenToImage(const spectrum::screen::Screen &p_image)
+    {
+        QImage image(spectrum::screen::SCREEN_WIDTH, spectrum::screen::SCREEN_HEIGHT, QImage::Format_RGB32);
+        for(int y = 0; y < spectrum::screen::SCREEN_HEIGHT ; y++)
+        {
+            for(int x = 0; x < spectrum::screen::SCREEN_WIDTH ; x++)
+            {
+                bool bit = p_image.GetPixel(x, y);
+                auto attr = p_image.GetAttribute(x / 8, y / 8);
+                auto color = bit ? spectrum::screen::AttrInkToRgbColor(attr) : spectrum::screen::AttrPaperToRgbColor(attr);
+                image.setPixel(x, y, color);
+            }
+        }
+        return image;
+    }
+
+private:
+
+
+        static bool IsAlmostGray(QRgb p_rgb, int p_threshold)
+        {
+            QColor color(p_rgb);
+
+            // Saturation: 0 = gray, 255 = fully saturated
+            return color.hsvSaturation() < p_threshold;
+        }
+
+
+
+    // p_attr_x,  p_attr_y are attribute (32x24) coordinates thus corresponding to top left pixel
+    // (as QRgb) of an 8x8 cell at a QImage.
+    // For each 8x8 (=64) pixels of that cell determine:
+    // nearest spectrum color considered dark and nearest spectrum color considered light
+    // and count them both. Lower distances to nearest color count heavier.
+    // Then find the indexes for the most used spectrum color considered dark and light,
+    // return those as spectrum attibute: dark for ink and light for paper.
+    // The used the light color also determines bright flag.
+    // (At spectrum bright flag has barely effect on dark colors).
+    static spectrum::screen::Attr DetermineAttributeForCell(const QImage &p_image, int p_attr_x, int p_attr_y, AlgorithmParameters p_how)
+    {
+        int count_dark[16]{};
+        int count_light[16]{};
+        for(int y = 0; y < 8; y++)
+        {
+            for(int x = 0; x < 8; x++)
+            {
+                QRgb rgb = p_image.pixel(p_attr_x * 8 + x, p_attr_y * 8 + y);
+                auto [dist_dark,  index_dark]  = GetNearestColor(rgb, spectrum::screen::palette, p_how.m_dark_colors);
+                auto [dist_light, index_light] = GetNearestColor(rgb, spectrum::screen::palette, p_how.m_light_colors);
+                count_dark [index_dark]       += (( 256 * 256 * 3 ) - dist_dark );
+                count_light[index_light]      += (( 256 * 256 * 3 ) - dist_light );
+            }
+        }
+
+        auto FindMax = [](int p_values[])
+        {
+            int idx_max    = 0;
+            int idx_2ndmax = -1;
+
+            for (int i = 1; i < 16; i++)
+            {
+                if (p_values[i] >= p_values[idx_max])
+                {
+                    idx_2ndmax = idx_max;
+                    idx_max    = i;
+                }
+                else if (idx_2ndmax == -1 || p_values[i] > p_values[idx_2ndmax])
+                {
+                    idx_2ndmax = i;
+                }
+            }
+            return std::pair<int, int>{idx_max, idx_2ndmax};
+        };
+
+        auto dark_color = FindMax(count_dark).first;     // black, blue, red so 0, 1 or 2
+        auto light_color = FindMax(count_light).first;    // so magenta(3) -- bright white (15)
+        spectrum::screen::Attr attr{};
+        attr.attr.ink    = spectrum::screen::AttributeColor(dark_color % 8);
+        attr.attr.paper  = spectrum::screen::AttributeColor(light_color % 8);
+        attr.attr.bright = light_color > 8;
+        return attr;
+    }
+
+
+
+
+    // scale centered, keep aspect ratio, crop sides.
+    static QImage CenterScale(const QImage &p_image, int w, int h)
+    {
+        QImage scaled = p_image.scaled(
+            w, h,
+            Qt::KeepAspectRatioByExpanding,
+            Qt::SmoothTransformation
+        );
+
+        int x = (scaled.width()  - w) / 2;
+        int y = (scaled.height() - h) / 2;
+
+        return scaled.copy(x, y, w, h);
+    }
 
     // Set floyd-steinberg color
     static void SetFloydSteinbergColor(QImage &p_image, int x, int y, int p_red_error, int p_green_error, int p_blue_error, int p_factor)
@@ -125,190 +305,35 @@ public:
         p_image.setPixel(x, y, qRgb(r, g, b));
     }
 
-
-    // Can run in miniaudio thread
-    spectrum::Screen ImageToSpectrumScreen(const QImage &p_image)
+    static void SetFloydSteinbergColor4(QImage &p_image, int x, int y, unsigned int oldcolor, unsigned int newcolor)
     {
-        spectrum::Screen spectrum_screen;
-        // 1) Scale to 256x192
-        QImage image256x192 = p_image.scaled(spectrum::SCREEN_WIDTH, spectrum::SCREEN_HEIGHT,
-                                             Qt::IgnoreAspectRatio,
-                                             Qt::FastTransformation);
-        QImage image256x192gray = image256x192.convertToFormat(QImage::Format_Grayscale8);    // to gray
-        //image256x192gray = image256x192gray.convertToFormat(QImage::Format_RGB32);    // to gray
-        auto formt = image256x192.format();
-        if (formt != QImage::Format_RGB32)
+        int error_r = qRed(oldcolor) - qRed(newcolor);
+        int error_g = qGreen(oldcolor) - qGreen(newcolor);
+        int error_b = qBlue(oldcolor) - qBlue(newcolor);
+        if (x < (p_image.width() - 1))
         {
-            image256x192 = image256x192.convertToFormat(QImage::Format_RGB32);
+            SetFloydSteinbergColor(p_image, x + 1, y,     error_r, error_g, error_b, 7);     // right
         }
-
-        // 2) Determine color attribute using the original
-        for (int attry = 0; attry < 24; attry++)
+        if (x > 0 && y < (p_image.height() - 1))
         {
-            for (int attrx = 0; attrx < 32; attrx++)
-            {
-                spectrum::Screen::Attr attr = GetAttributeForCell(image256x192, attrx, attry);
-                //attr.attr.ink = spectrum::Screen::AttributeColor::black;
-                //attr.attr.paper = spectrum::Screen::AttributeColor::white;
-                spectrum_screen.SetAttribute(attrx, attry, attr);
-            }
+            SetFloydSteinbergColor(p_image, x - 1, y + 1, error_r, error_g, error_b, 3); // left below
         }
-
-#if 0
-        // 3) Floyd–Steinberg dithering on the gray scale image
-        for(int y = 0; y < spectrum::SCREEN_HEIGHT; y++)
+        if (y < (p_image.height() - 1))
         {
-            for(int x = 0; x < spectrum::SCREEN_WIDTH; x++)
-            {
-                QRgb oldcolor         = image256x192gray.pixel(x, y);
-                QRgb color_ink(0x000000);
-                QRgb color_paper(0xffffff);
-                auto dist_to_ink    = ColorDistance(oldcolor, color_ink);
-                auto dist_to_paper    = ColorDistance(oldcolor, color_paper);
-                bool is_ink = dist_to_ink < dist_to_paper;
-                QRgb newcolor = is_ink ? color_ink : color_paper;
-                image256x192gray.setPixel(x, y, is_ink ? color_ink : color_paper);
-                spectrum_screen.SetPixel(x, y, is_ink);         // write to spectrum screeen as well
-
-                // note: should all be same when grayscale
-                int error_r = qRed(oldcolor) - qRed(newcolor);  
-                int error_g = qGreen(oldcolor) - qGreen(newcolor);
-                int error_b = qBlue(oldcolor) - qBlue(newcolor);
-                if (x < 255)
-                {
-                    SetFloydSteinbergColor(image256x192gray, x + 1, y, error_r, error_g, error_b, 7);     // right
-                }
-                if (x > 0 && y < 191)
-                {
-                    SetFloydSteinbergColor(image256x192gray, x - 1, y + 1, error_r, error_g, error_b, 3); // left below
-                }
-                if (y < 191)
-                {
-                    SetFloydSteinbergColor(image256x192gray, x, y + 1, error_r, error_g, error_b, 5);     // below
-                }
-                if (x < 255 && y < 191)
-                {
-                    SetFloydSteinbergColor(image256x192gray, x + 1, y + 1, error_r, error_g, error_b, 1);     // below right
-                }
-
-            }
+            SetFloydSteinbergColor(p_image, x,     y + 1, error_r, error_g, error_b, 5);     // below
         }
-
-#else
-        // 3) Floyd–Steinberg dithering using attribute colors
-        for (int y = 0; y < spectrum::SCREEN_HEIGHT; y++)
+        if (x < (p_image.width() - 1) && y <  (p_image.height() - 1))
         {
-            for (int x = 0; x < spectrum::SCREEN_WIDTH; x++)
-            {
-                QRgb oldcolor = image256x192.pixel(x, y);
-                auto attr = spectrum_screen.GetAttribute(x/8, y/8);
-
-                QRgb color_paper(spectrum::Screen::AttrPaperToRgbColor(attr));
-                QRgb color_ink(spectrum::Screen::AttrInkToRgbColor(attr));
-                auto dist_paper = ColorDistance(oldcolor, color_paper);
-                auto dist_to_ink = ColorDistance(oldcolor, color_ink);
-                bool is_ink = dist_to_ink < dist_paper;
-                QRgb newcolor = is_ink ? color_ink : color_paper;
-                image256x192.setPixel(x, y, newcolor);
-                spectrum_screen.SetPixel(x, y, is_ink);         // write to spectrum screeen as well
-
-                int error_r = qRed(oldcolor) - qRed(newcolor);      
-                int error_g = qGreen(oldcolor) - qGreen(newcolor);  
-                int error_b = qBlue(oldcolor) - qBlue(newcolor);    
-                if (x < 255)
-                {
-                    SetFloydSteinbergColor(image256x192, x + 1, y, error_r, error_g, error_b, 7);     // right
-                }
-                if (x > 0 && y < 191)
-                {
-                    SetFloydSteinbergColor(image256x192, x - 1, y + 1, error_r, error_g, error_b, 3); // left below
-                }
-                if (y < 191)
-                {
-                    SetFloydSteinbergColor(image256x192, x, y + 1, error_r, error_g, error_b, 5);     // below
-                }
-                if (x < 255 && y < 191)
-                {
-                    SetFloydSteinbergColor(image256x192, x + 1, y + 1, error_r, error_g, error_b, 1);     // below right
-                }
-
-            }
+            SetFloydSteinbergColor(p_image, x + 1, y + 1, error_r, error_g, error_b, 1);     // below right
         }
-#endif
-        return spectrum_screen;
-    }
-
-    // To show only not sent to Spectrum
-    static QImage SpectrumScreenToImage(const spectrum::Screen &p_image)
-    {
-        QImage image(spectrum::SCREEN_WIDTH, spectrum::SCREEN_HEIGHT, QImage::Format_RGB32);
-        for(int y = 0; y < spectrum::SCREEN_HEIGHT ; y++)
-        {
-            for(int x = 0; x < spectrum::SCREEN_WIDTH ; x++)
-            {
-                bool bit = p_image.GetPixel(x, y);
-                auto attr = p_image.GetAttribute(x / 8, y / 8);
-                auto color = bit ? spectrum::Screen::AttrInkToRgbColor(attr) : spectrum::Screen::AttrPaperToRgbColor(attr);
-                image.setPixel(x, y, color);
-            }
-        }
-        return image;
-    }
-
-    // p_attr_x,  p_attr_y are attribute (32x24) coordinates thus corresponding to top left pixel
-    // (as QRgb) of an 8x8 cell at a QImage.
-    // For each 8x8 (=64) pixels of that cell determine:
-    // nearest spectrum color considered dark and nearest spectrum color considered light
-    // and count them both. Lower distances to nearest color count heavier.
-    // Then find the indexes for the most used spectrum color considered dark and light,
-    // return those as spectrum attibute: dark for ink and light for paper.
-    // The used the light color also determines bright flag.
-    // (At spectrum bright flag has barely effect on dark colors).
-    spectrum::Screen::Attr GetAttributeForCell(const QImage &p_image, int p_attr_x, int p_attr_y)
-    {
-        int count_light[16]{};
-        int count_dark[16]{};
-        for(int y = 0; y < 8; y++)
-        {
-            for(int x = 0; x < 8; x++)
-            {
-                QRgb rgb = p_image.pixel(p_attr_x * 8 + x, p_attr_y * 8 + y);
-                auto [dist_light, index_light] = GetNearestColor(rgb, spectrum::Screen::palette, spectrum_light_colors);
-                auto [dist_dark,  index_dark]  = GetNearestColor(rgb, spectrum::Screen::palette, spectrum_dark_colors);
-                count_light[index_light]      = (( 256 * 256 * 3 ) - dist_light );
-                count_dark [index_dark]       = (( 256 * 256 * 3 ) - dist_dark );
-            }
-        }
-        auto FindMax = []( int p_found[])
-                       {
-                           int max   = 0;
-                           int idx_found = 0;
-                           for(int i = 0; i < 16; i++)
-                           {
-                               if(p_found[i] >= max)
-                               {
-                                   idx_found = i;
-                                   max   = p_found[i];
-                               }
-                           }
-                           return idx_found;
-                       };
-        spectrum::Screen::Attr attr;
-        auto dark_color  = FindMax(count_dark);      // black, blue, red so 0, 1 or 2
-        auto light_color = FindMax(count_light);     // so magenta(3) -- bright white (15)
-        attr.attr.ink    = spectrum::Screen::AttributeColor(dark_color);
-        attr.attr.paper  = spectrum::Screen::AttributeColor(light_color % 8);
-        attr.attr.bright = light_color > 8;
-
-        return attr;
     }
 
 private:
     std::vector<fs::path> m_filenames;
     int m_index = 0;
     ZxImage * m_this;
-    QImage    m_image;
-    spectrum::Screen m_screen;
+    QImage    m_image;      // original image as loaded from file
+    spectrum::screen::Screen m_screen;
     mutable std::mutex m_mutex;
 }; // class ZxImage::Impl
 
@@ -334,7 +359,7 @@ void ZxImage::SetDirectory(const fs::path &p_dir)
     return m_pimpl->SetDirectory(p_dir);
 }
 
-const spectrum::Screen &ZxImage::LoadNext()
+const spectrum::screen::Screen &ZxImage::LoadNext()
 {
     return m_pimpl->LoadNext();
 }

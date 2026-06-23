@@ -32,7 +32,7 @@ public:
 
     void SetDirectory(const std::filesystem::path &p_path);
 
-    const spectrum::Screen &LoadNext();
+    const spectrum::screen::Screen &LoadNext();
 
     void paintEvent(QPaintEvent* event) override;
 

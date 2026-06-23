@@ -12,69 +12,80 @@
 
 
 #include <cstddef>      // std::byte
-#include <cstdint>
+#include <cstdint>      // uint8_t
 #include "spectrum_consts.h"
 #include "datablock.h"
 
-namespace spectrum
+namespace spectrum::screen
 {
+constexpr uint16_t SCREEN_WIDTH = 256;
+constexpr uint16_t SCREEN_HEIGHT = 192;
+constexpr uint16_t SCREEN_PIXEL_SIZE = (SCREEN_WIDTH * SCREEN_HEIGHT) / 8;
+constexpr uint16_t ATTR_SIZE = (SCREEN_WIDTH * SCREEN_HEIGHT) / 64;
+constexpr uint16_t SCREEN_SIZE = SCREEN_PIXEL_SIZE + ATTR_SIZE;
+constexpr uint16_t SCREEN_23RD = SCREEN_START + 4 * 1024;
+constexpr uint16_t SCREEN_END = SCREEN_START + SCREEN_PIXEL_SIZE;
+constexpr uint16_t ATTR_BEGIN = SCREEN_END;
+constexpr uint16_t ATTR_23RD = ATTR_BEGIN + 512;
 
 
-// spectrum::Screen
+/// Defines 8 spectrum color names.
+enum class AttributeColor : uint8_t
+{
+    black,          blue,        red,        magenta,        green,       cyan,        yellow,        white,
+};
+
+
+/// Defines spectrum colors as RGB
+/// Source https://lospec.com/palette-list/zx-spectrum
+/// I doubt this ok. Especially bright blue is much darker at my ZX Spectrum.
+/// But hey! I am colorblind.
+static constexpr uint32_t palette[] =
+{
+// black     blue      red       magenta   green     cyan      yellow    white
+   0x000000, 0x0000d8, 0xd80000, 0xd800d8, 0x00d800, 0x00d8d8, 0xd8d800, 0xd8d8d8,     // normal
+   0x000000, 0x0000ff, 0xff0000, 0xff00ff, 0x00ff00, 0x00ffff, 0xffff00, 0xffffff      // bright
+};
+
+
+/// ZX Spectrum color attribute
+/// https://www.overtakenbyevents.com/lets-talk-about-the-zx-specrum-screen-layout/#:~:text=Each%20block%20of%208x8%20pixels%20has%20a%20single,if%20set%20indicates%20the%20colours%20are%20rendered%20bright.
+union Attr
+{
+    struct
+    {
+        AttributeColor  ink: 3;
+        AttributeColor  paper: 3;
+        uint8_t         bright: 1;
+        uint8_t         flash : 1;
+    } attr;
+    std::byte   byte;
+};
+static_assert(sizeof( Attr ) == 1);
+
+// spectrum::Screen::AttrPaperToColor
+
+// For given attribute return paper color as rgb value.
+inline auto AttrPaperToRgbColor(const Attr &p_attr)
+{
+    return palette[int(p_attr.attr.paper) + 8 * p_attr.attr.bright];
+}
+// For given attribute return ink color as rgb value.
+inline auto AttrInkToRgbColor(const Attr &p_attr)
+{
+    return palette[int(p_attr.attr.ink) + 8 * p_attr.attr.bright];
+}
+
+
+/// spectrum::Screen
+/// Used for image fun.
 class Screen
 {
-public:
-    // spectrum::Screen::AttributeColor
-    enum class AttributeColor : uint8_t
-    {
-        black,          blue,        red,        magenta,        green,       cyan,        yellow,        white,
-    };
-
-
-    // spectrum::Screen::palette
-    static constexpr int palette[] =
-    {
-    // black     blue      red       magenta   green     cyan      yellow    white
-       0x000000, 0x0000d8, 0xd80000, 0xd800d8, 0x00d800, 0x00d8d8, 0xd8d800, 0xd8d8d8,     // normal
-       0x000000, 0x0000ff, 0xff0000, 0xff00ff, 0x00ff00, 0x00ffff, 0xffff00, 0xffffff      // bright
-    };
-
-
-    // spectrum::Screen::Attr
-    // ZX Spectrum color attribute
-    // https://www.overtakenbyevents.com/lets-talk-about-the-zx-specrum-screen-layout/#:~:text=Each%20block%20of%208x8%20pixels%20has%20a%20single,if%20set%20indicates%20the%20colours%20are%20rendered%20bright.
-    union Attr
-    {
-        struct
-        {
-            AttributeColor  ink: 3;
-            AttributeColor  paper: 3;
-            uint8_t         bright: 1;
-            uint8_t         flash : 1;
-        } attr;
-        std::byte   byte;
-    };
-    static_assert(sizeof( Attr ) == 1);
-
-    // spectrum::Screen::AttrPaperToColor
-
-    // For given attribute return paper color as rgb value.
-    static auto AttrPaperToRgbColor(const Attr &p_attr)
-    {
-        return palette[int(p_attr.attr.paper) + 8 * p_attr.attr.bright];
-    }
-    // For given attribute return ink color as rgb value.
-    static auto AttrInkToRgbColor(const Attr &p_attr)
-    {
-        return palette[int(p_attr.attr.ink) + 8 * p_attr.attr.bright];
-    }
-
-
 public:
 
     Screen()
     {
-        m_datablock.resize(spectrum::SCREEN_SIZE);
+        m_datablock.resize(SCREEN_SIZE);
     }
     Screen(Screen &&) = default;
     Screen &operator = (Screen &&) = default;
@@ -106,23 +117,23 @@ public:
 
 
     /// Coordinates are attribute coordinates (32x24)
-    void SetAttribute(int attr_x, int attr_y, spectrum::Screen::Attr p_attr)
+    void SetAttribute(int attr_x, int attr_y, spectrum::screen::Attr p_attr)
     {
-        m_datablock[spectrum::SCREEN_PIXEL_SIZE + attr_y * 32 + attr_x] = p_attr.byte;
+        m_datablock[SCREEN_PIXEL_SIZE + attr_y * 32 + attr_x] = p_attr.byte;
     }
 
 
 
     /// Coordinates are attribute coordinates (32x24)
-    spectrum::Screen::Attr GetAttribute(int attr_x, int attr_y) const
+    Attr GetAttribute(int attr_x, int attr_y) const
     {
-        spectrum::Screen::Attr a;
-        a.byte = m_datablock[spectrum::SCREEN_PIXEL_SIZE + attr_y * 32 + attr_x];
+        Attr a;
+        a.byte = m_datablock[SCREEN_PIXEL_SIZE + attr_y * 32 + attr_x];
         return a;
     }
 
 
-
+    /// Get as datablock, can be sent with ZQLoader.
     const DataBlock &GetDataBlock() const
     {
         return m_datablock;

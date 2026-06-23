@@ -16,6 +16,7 @@
 #include "memoryblock.h"
 #include "byte_tools.h"
 #include "tools.h"
+#include "spectrum_screen.h"
 #include <fstream>
 #include <filesystem>
 #include <string>
@@ -502,8 +503,8 @@ void SnapShotLoader::MoveToTurboBlocks(TurboBlocks& p_turbo_blocks, uint16_t p_n
                 p_new_loader_location = GetEmptySpaceLocation(first_block, len_needed, 6 * 1024 + 768); // location for our loader code
                 if(p_new_loader_location == 0)                                                            // no empty space found, use last 3rd of screen
                 {
-                    p_new_loader_location = spectrum::SCREEN_23RD;
-                    std::cout << "Not enough empty space found in snapshot. Will copy loader code to screen. (" << spectrum::SCREEN_23RD << "; length = " << len_needed << ")" << std::endl;
+                    p_new_loader_location = spectrum::screen::SCREEN_23RD;
+                    std::cout << "Not enough empty space found in snapshot. Will copy loader code to screen. (" << spectrum::screen::SCREEN_23RD << "; length = " << len_needed << ")" << std::endl;
                 }
                 else
                 {
@@ -522,8 +523,8 @@ void SnapShotLoader::MoveToTurboBlocks(TurboBlocks& p_turbo_blocks, uint16_t p_n
             // or put brackets around it. Else iterator is temporary out of range which asserts.
             std::copy(m_reg_block.begin(), m_reg_block.end(), first_block.begin() + (register_code_start - z80_snapshot_offset));
 
-            DataBlock screenblock(first_block.begin(), first_block.begin() + spectrum::SCREEN_SIZE);      // split
-            DataBlock payload(first_block.begin() + spectrum::SCREEN_SIZE, first_block.end());
+            DataBlock screenblock(first_block.begin(), first_block.begin() + spectrum::screen::SCREEN_SIZE);      // split
+            DataBlock payload(first_block.begin() + spectrum::screen::SCREEN_SIZE, first_block.end());
 
             if(p_write_fun_attribs)
             {
@@ -533,12 +534,12 @@ void SnapShotLoader::MoveToTurboBlocks(TurboBlocks& p_turbo_blocks, uint16_t p_n
                 DataBlock text_attr;
                 text_attr.resize(256);
                 WriteTextToAttr(text_attr, ToUpper(m_name), 0_byte, true, 0);    // 0_byte: random colors
-                std::copy(text_attr.begin(), text_attr.end(), screenblock.begin() + (spectrum::ATTR_23RD - z80_snapshot_offset));
+                std::copy(text_attr.begin(), text_attr.end(), screenblock.begin() + (spectrum::screen::ATTR_23RD - z80_snapshot_offset));
 
             }
             p_turbo_blocks.AddMemoryBlock({std::move(screenblock), spectrum::SCREEN_START});                     // screen
             p_turbo_blocks.SetLoaderCopyTarget(p_new_loader_location);
-            p_turbo_blocks.AddMemoryBlock({std::move(payload), spectrum::SCREEN_START + spectrum::SCREEN_SIZE}); // rest
+            p_turbo_blocks.AddMemoryBlock({std::move(payload), spectrum::SCREEN_START + spectrum::screen::SCREEN_SIZE}); // rest
             // This puts startaddress at where registers are restored, thus starting the snapshot.
             m_usr = register_code_start;
             first = false;

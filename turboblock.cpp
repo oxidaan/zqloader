@@ -8,6 +8,7 @@
 // ==============================================================================
 
 #include "turboblock.h"
+#include "spectrum_screen.h"
 
 TurboBlock::TurboBlock()
 {
@@ -112,7 +113,7 @@ TurboBlock& TurboBlock::DebugDump(int p_max) const
         std::cout << "Skipping/shorter pilot\n";
     }
     auto dest = GetDestAddress();
-    if (m_data_size == spectrum::SCREEN_SIZE && dest == spectrum::SCREEN_START)
+    if (m_data_size == spectrum::screen::SCREEN_SIZE && dest == spectrum::SCREEN_START)
     {
         std::cout << "Screen: ";
     }

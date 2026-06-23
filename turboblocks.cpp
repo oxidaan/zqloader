@@ -16,6 +16,7 @@
 #include "spectrum_consts.h"        // SCREEN_END
 #include "spectrum_types.h"         // ZxBlockType
 #include "symbols.h"
+#include "spectrum_screen.h"
 #include <filesystem>
 #include "spectrum_loader.h"        // CalculateChecksum
 #include <bitset>
@@ -93,7 +94,7 @@ public:
             {
                 if (Overlaps(block, spectrum::PROG, clear))
                 {
-                    auto loader_copy_start = spectrum::SCREEN_23RD;       // default when not set otherwise
+                    auto loader_copy_start = spectrum::screen::SCREEN_23RD;       // default when not set otherwise
                     std::cout << "Block overlaps loader at BASIC (=" << spectrum::PROG << ", " << clear <<
                         "). Will copy loader to screen at " <<
                         loader_copy_start + m_symbols.GetSymbol("STACK_SIZE") <<
@@ -207,9 +208,9 @@ public:
             // First block includes screen but is bigger than that.
             // For visually appealing split of screen to load screen first.
             // Also to add move loader command at end of this first block (later)
-            if (first.GetStartAddress() == spectrum::SCREEN_START && first.size() > spectrum::SCREEN_SIZE)
+            if (first.GetStartAddress() == spectrum::SCREEN_START && first.size() > spectrum::screen::SCREEN_SIZE)
             {
-                auto [screen, after] = SplitBlock(first, spectrum::SCREEN_START + spectrum::SCREEN_SIZE);
+                auto [screen, after] = SplitBlock(first, spectrum::SCREEN_START + spectrum::screen::SCREEN_SIZE);
                 memory_blocks.pop_front();          // kick of first and
                 memory_blocks.push_front(std::move(after));    // replace with these two;
                 memory_blocks.push_front(std::move(screen));   // with screen first
@@ -224,7 +225,7 @@ public:
 
         // Make space for new loader location
         // skip when at screen 2/3rd - not need then and is actually slower. Also screen is loaded earlier.
-        if (loader_copy_start && loader_copy_start != spectrum::SCREEN_23RD )
+        if (loader_copy_start && loader_copy_start != spectrum::screen::SCREEN_23RD )
         {
             memory_blocks = MakeSpaceForCopiedLoader(std::move(memory_blocks), loader_copy_start);
         }

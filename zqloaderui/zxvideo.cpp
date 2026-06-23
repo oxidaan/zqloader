@@ -105,7 +105,7 @@ private:
                 {
                     auto attr = p_attr[(y / 2) * 32 + x];
                     QRgb* row = reinterpret_cast<QRgb*>(data + y     * bytesPerLine);
-                    auto color = (y % 2) ? spectrum::Screen::AttrInkToRgbColor(attr) : spectrum::Screen::AttrPaperToRgbColor(attr);
+                    auto color = (y % 2) ? spectrum::screen::AttrInkToRgbColor(attr) : spectrum::screen::AttrPaperToRgbColor(attr);
                     row[x] = color;
                 }
             }
@@ -118,7 +118,7 @@ private:
                 {
                     auto attr = p_attr[y * 32 + (x/2)];
                     QRgb* row = reinterpret_cast<QRgb*>(data + y     * bytesPerLine);
-                    auto color = (x % 2) ? spectrum::Screen::AttrInkToRgbColor(attr) : spectrum::Screen::AttrPaperToRgbColor(attr);
+                    auto color = (x % 2) ? spectrum::screen::AttrInkToRgbColor(attr) : spectrum::screen::AttrPaperToRgbColor(attr);
                     row[x] = color;
                 }
             }
@@ -241,21 +241,21 @@ private:
 
     // Color attr:
     // F  B  P2 P1 P0 I2 I1 I0
-    static spectrum::Screen::Attr GetSpectrumAttribute(QRgb p_color_paper, QRgb p_color_ink)
+    static spectrum::screen::Attr GetSpectrumAttribute(QRgb p_color_paper, QRgb p_color_ink)
     {
-        auto [mindist_norm_paper,   found_norm_paper]   = GetNearestColor(p_color_paper, spectrum::Screen::palette,  std::to_array({0,1,2,3,4,5,6,7}));
-        auto [mindist_bright_paper, found_bright_paper] = GetNearestColor(p_color_paper, spectrum::Screen::palette,  std::to_array({8,9,10,11,12,13,14,15}));
-        auto [mindist_norm_ink,     found_norm_ink]     = GetNearestColor(p_color_ink,   spectrum::Screen::palette,  std::to_array({0,1,2,3,4,5,6,7}));
-        auto [mindist_bright_ink,   found_bright_ink]   = GetNearestColor(p_color_ink,   spectrum::Screen::palette,  std::to_array({8,9,10,11,12,13,14,15}));
+        auto [mindist_norm_paper,   found_norm_paper]   = GetNearestColor(p_color_paper, spectrum::screen::palette,  std::to_array({0,1,2,3,4,5,6,7}));
+        auto [mindist_bright_paper, found_bright_paper] = GetNearestColor(p_color_paper, spectrum::screen::palette,  std::to_array({8,9,10,11,12,13,14,15}));
+        auto [mindist_norm_ink,     found_norm_ink]     = GetNearestColor(p_color_ink,   spectrum::screen::palette,  std::to_array({0,1,2,3,4,5,6,7}));
+        auto [mindist_bright_ink,   found_bright_ink]   = GetNearestColor(p_color_ink,   spectrum::screen::palette,  std::to_array({8,9,10,11,12,13,14,15}));
         bool use_bright = (mindist_bright_ink + mindist_bright_paper) < (mindist_norm_ink + mindist_norm_paper);
         //std::uint8_t retval;        // can you do anything usefull with std::byte ;-(
         //retval = use_bright ? 0b01000000 : 0;       
         //retval |= (use_bright ? found_bright_paper : found_norm_paper) << 3;
         //retval |= (use_bright ? found_bright_ink : found_norm_ink);
-        spectrum::Screen::Attr retval{};
+        spectrum::screen::Attr retval{};
         retval.attr.bright = use_bright;
-        retval.attr.paper  = spectrum::Screen::AttributeColor(use_bright ? found_bright_paper - 8 : found_norm_paper);
-        retval.attr.ink    = spectrum::Screen::AttributeColor(use_bright ? found_bright_ink - 8 : found_norm_ink);
+        retval.attr.paper  = spectrum::screen::AttributeColor(use_bright ? found_bright_paper - 8 : found_norm_paper);
+        retval.attr.ink    = spectrum::screen::AttributeColor(use_bright ? found_bright_ink - 8 : found_norm_ink);
         retval.attr.flash = 0;
         return retval;
     }
