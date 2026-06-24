@@ -36,7 +36,7 @@ using Attributes = std::vector<spectrum::screen::Attr>;
 
 struct AlgorithmParameters
 {
-    bool m_use_distance_to_black_white = true;
+    bool m_use_distance_to_black_white = false;
     bool m_use_floyd_steinberg = true;
     std::span<const int> m_dark_colors = spectrum_dark_colors;
     std::span<const int> m_light_colors = spectrum_light_colors;
@@ -123,7 +123,7 @@ public:
 
     /// Convert given QImage to spectrum screen
     /// Can run in miniaudio thread
-    spectrum::screen::Screen ImageToSpectrumScreen(const QImage &p_image, AlgorithmParameters p_how)
+    static spectrum::screen::Screen ImageToSpectrumScreen(const QImage &p_image, AlgorithmParameters p_how)
     {
         spectrum::screen::Screen spectrum_screen;
         // 1) Scale down to spectrum resolution (256x192)
@@ -256,7 +256,7 @@ private:
             }
         }
 
-        auto FindMax = [](int p_values[])
+        auto FindMax = [](const int p_values[])
         {
             int idx_max    = 0;
             int idx_2ndmax = -1;
@@ -359,12 +359,12 @@ ZxImage::~ZxImage() = default;
 
 void ZxImage::paintEvent(QPaintEvent* event)
 {
-    return m_pimpl->paintEvent(event);
+    m_pimpl->paintEvent(event);
 }
 
 void ZxImage::SetDirectory(const fs::path &p_dir)
 {
-    return m_pimpl->SetDirectory(p_dir);
+    m_pimpl->SetDirectory(p_dir);
 }
 
 const spectrum::screen::Screen &ZxImage::LoadNext()

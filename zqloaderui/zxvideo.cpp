@@ -18,7 +18,6 @@
 #include <QCamera>
 #include <QMediaCaptureSession>
 #include <mutex>
-#include "byte_tools.h"
 #include "color_distance.h"
 #include "spectrum_screen.h"
 namespace fs = std::filesystem;
@@ -95,7 +94,7 @@ private:
     {
         auto [width, height] = GetWidthAndHeight(p_width_and_height);
         QImage image(width, height, QImage::Format_RGB32);
-        int bytesPerLine = image.bytesPerLine();
+        auto bytesPerLine = image.bytesPerLine();
         auto* data = image.bits();
         if(p_width_and_height == wh_32x48)
         {
@@ -203,7 +202,7 @@ private:
         int width = p_image.width();
         int height = p_image.height();
         const auto* data = p_image.bits();
-        int bytesPerLine = p_image.bytesPerLine();
+        auto bytesPerLine = p_image.bytesPerLine();
         Attributes attribs;
 
         if(height == 48)
@@ -290,7 +289,7 @@ ZxVideo::~ZxVideo() = default;
 
 void ZxVideo::paintEvent(QPaintEvent* event)
 {
-    return m_pimpl->paintEvent(event);
+    m_pimpl->paintEvent(event);
 }
 
 Attributes ZxVideo::GetAttributes() const

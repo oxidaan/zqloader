@@ -116,6 +116,7 @@ void WriteFunText(ZQLoader &p_zq_loader, bool p_first)
 Dialog::Dialog(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::Dialog)
+    , m_state(State::Idle)
 {
     m_zqloader.SetExeFilename(QCoreApplication::applicationDirPath().toStdString());
 
@@ -284,16 +285,9 @@ Dialog::Dialog(QWidget *parent)
             m_zqloader.Reset();
             SetState(State::Cancelled);
         }
-        else if( m_state == State::VideoFunNext)
+        else if( m_state == State::VideoFunNext || m_state == State::ImageFun)
         {
             // Stop pressed (canceled) (pushButtonGo is now cancel)
-            ui->zxvideo->Stop();
-            SetState(State::Idle);
-            m_zqloader.WaitUntilDone();
-            m_zqloader.Reset();
-        }
-        else if( m_state == State::ImageFun)
-        {
             ui->zxvideo->Stop();
             SetState(State::Idle);
             m_zqloader.WaitUntilDone();
@@ -996,7 +990,7 @@ inline void Dialog::CalculateLoaderParametersFromSlider(int p_index )
             wanted_one_cyclii = wanted_zero_cyclii + 3.0;
         }
     }
-    int zero_max= (wanted_zero_cyclii + wanted_one_cyclii + 0.5)/2;
+    int zero_max= static_cast<int>((wanted_zero_cyclii + wanted_one_cyclii + 0.5) / 2);
 //    int zero_max= (wanted_zero_cyclii + wanted_one_cyclii)/2;
 //    return {wanted_zero_cyclii, zero_max, wanted_one_cyclii};
     CalculateLoaderParameters(wanted_zero_cyclii, zero_max, wanted_one_cyclii);

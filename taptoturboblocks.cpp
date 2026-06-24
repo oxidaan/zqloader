@@ -58,7 +58,7 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, const std::string &p_zx
         // matching; earlier or now
         if ((name == p_zxfilename || p_zxfilename == "") || m_headercnt >= 1)
         {
-            m_last_header = std::move(header);
+            m_last_header = header;
             m_headercnt++;
         }
     }

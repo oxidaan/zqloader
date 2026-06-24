@@ -72,7 +72,7 @@ struct TapeHeader
     uint16_t m_basic_program_length;        // basic program length after which start of variables follows
 };
 #pragma pack(pop)
-static_assert(sizeof(TapeHeader) == 17, "Sizeof ZxHeader must be 17");
+static_assert(sizeof(TapeHeader) == 17, "Sizeof TapeHeader must be 17");
 
 
 /// Calculate a ZX Spectrum standard tap block checksum
