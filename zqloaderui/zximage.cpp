@@ -36,7 +36,7 @@ using Attributes = std::vector<spectrum::screen::Attr>;
 
 struct AlgorithmParameters
 {
-    bool m_use_distance_to_black_white = false;
+    bool m_use_distance_to_black_white = true;
     bool m_use_floyd_steinberg = true;
     std::span<const int> m_dark_colors = spectrum_dark_colors;
     std::span<const int> m_light_colors = spectrum_light_colors;
@@ -156,18 +156,20 @@ public:
         QRgb color_paper;
         QRgb color_ink;
 
-        // Floyd–Steinberg dithering using distance to attribute colors
+        // Writing pixels. Optional with Floyd–Steinberg dithering
         for (int y = 0; y < spectrum::screen::SCREEN_HEIGHT; y++)
         {
             for (int x = 0; x < spectrum::screen::SCREEN_WIDTH; x++)
             {
                 if(p_how.m_use_distance_to_black_white)
                 {
+                    // using distance to black/white
                     color_ink = 0x000000;
                     color_paper = 0xffffff;
                 }
                 else
                 {
+                    // using distance to (earlier determined) attribute colors
                     auto attr = spectrum_screen.GetAttribute(x/8, y/8);
                     color_ink = spectrum::screen::AttrInkToRgbColor(attr);
                     color_paper = spectrum::screen::AttrPaperToRgbColor(attr);
