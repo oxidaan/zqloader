@@ -59,3 +59,16 @@ inline std::pair<int, int> GetNearestColor(const QRgb &p_color,
     return { mindist, found_index };
 }
 
+
+inline std::pair<int, int> GetNearestColor(
+    const QRgb& p_color,
+    std::span<const uint32_t> p_palette,
+    std::initializer_list<int> colors)
+{
+    return GetNearestColor(
+        p_color,
+        p_palette,
+        std::span<const int>(colors.begin(), colors.size()));
+}
+
+

@@ -29,11 +29,14 @@ constexpr uint16_t ATTR_BEGIN = SCREEN_END;
 constexpr uint16_t ATTR_23RD = ATTR_BEGIN + 512;
 
 
-/// Defines 8 spectrum color names.
-enum class AttributeColor : uint8_t
+
+/// Defines all 16 color names, including bright, can be used as int
+enum PaletteColor : uint8_t
 {
-    black,          blue,        red,        magenta,        green,       cyan,        yellow,        white,
+    black, blue, red, magenta, green, cyan, yellow, white,
+    br_black, br_blue, br_red, br_magenta, br_green, br_cyan, br_yellow, br_white,
 };
+
 
 
 /// Defines spectrum colors as RGB
@@ -47,6 +50,12 @@ static constexpr uint32_t palette[] =
    0x000000, 0x0000ff, 0xff0000, 0xff00ff, 0x00ff00, 0x00ffff, 0xffff00, 0xffffff      // bright
 };
 
+
+/// Defines 8 spectrum color names. Used as 3 bit in the Attr (attribute)
+enum class AttributeColor : uint8_t
+{
+    black,          blue,        red,        magenta,        green,       cyan,        yellow,        white,
+};
 
 /// ZX Spectrum color attribute
 /// https://www.overtakenbyevents.com/lets-talk-about-the-zx-specrum-screen-layout/#:~:text=Each%20block%20of%208x8%20pixels%20has%20a%20single,if%20set%20indicates%20the%20colours%20are%20rendered%20bright.

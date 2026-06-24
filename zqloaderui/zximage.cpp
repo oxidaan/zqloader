@@ -23,14 +23,12 @@ namespace fs = std::filesystem;
 
 
 
-enum PaletteColor : uint8_t
-{
-    black, blue, red, magenta, green, cyan, yellow, white,
-    br_black, br_blue, br_red, br_magenta, br_green, br_cyan, br_yellow, br_white,
-};
 
+// color categories
+using enum spectrum::screen::PaletteColor;
 constexpr int spectrum_dark_colors[] = { black , blue, red };
 constexpr int spectrum_light_colors[] = { green, cyan, yellow, white, br_green, br_cyan, br_yellow, br_white};
+constexpr int spectrum_gray_colors[] = { black, white, br_black, br_white };
 
 
 using Attributes = std::vector<spectrum::screen::Attr>;
@@ -213,13 +211,13 @@ public:
 private:
 
 
-        static bool IsAlmostGray(QRgb p_rgb, int p_threshold)
-        {
-            QColor color(p_rgb);
+    static bool IsAlmostGray(QRgb p_rgb, int p_threshold = 10)
+    {
+        QColor color(p_rgb);
 
-            // Saturation: 0 = gray, 255 = fully saturated
-            return color.hsvSaturation() < p_threshold;
-        }
+        // Saturation: 0 = gray, 255 = fully saturated
+        return color.hsvSaturation() < p_threshold;
+    }
 
 
 
@@ -241,10 +239,20 @@ private:
             for(int x = 0; x < 8; x++)
             {
                 QRgb rgb = p_image.pixel(p_attr_x * 8 + x, p_attr_y * 8 + y);
-                auto [dist_dark,  index_dark]  = GetNearestColor(rgb, spectrum::screen::palette, p_how.m_dark_colors);
-                auto [dist_light, index_light] = GetNearestColor(rgb, spectrum::screen::palette, p_how.m_light_colors);
-                count_dark [index_dark]       += (( 256 * 256 * 3 ) - dist_dark );
-                count_light[index_light]      += (( 256 * 256 * 3 ) - dist_light );
+                if(IsAlmostGray(rgb))
+                {
+                    auto [dist_dark,  index_dark]  = GetNearestColor(rgb, spectrum::screen::palette, {black});
+                    auto [dist_light, index_light] = GetNearestColor(rgb, spectrum::screen::palette, {white, br_white});
+                    count_dark [index_dark]       += (( 256 * 256 * 3 ) - dist_dark );
+                    count_light[index_light]      += (( 256 * 256 * 3 ) - dist_light );
+                }
+                else
+                {
+                    auto [dist_dark,  index_dark]  = GetNearestColor(rgb, spectrum::screen::palette, p_how.m_dark_colors);
+                    auto [dist_light, index_light] = GetNearestColor(rgb, spectrum::screen::palette, p_how.m_light_colors);
+                    count_dark [index_dark]       += (( 256 * 256 * 3 ) - dist_dark );
+                    count_light[index_light]      += (( 256 * 256 * 3 ) - dist_light );
+                }
             }
         }
 
