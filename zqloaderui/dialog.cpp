@@ -538,6 +538,8 @@ inline void Dialog::SetState(State p_state)
     case State::VideoFunFirst:
     case State::VideoFunNext:
     case State::ImageFun:
+        ui->zxvideo->setVisible(p_state == State::VideoFunFirst || p_state == State::VideoFunNext);
+        ui->zximage->setVisible(p_state == State::ImageFun);
         ui->pushButtonGo->setText("Stop");
         ui->pushButtonPreLoad->setEnabled(false);
         ui->pushButtonTune->setEnabled(false);
