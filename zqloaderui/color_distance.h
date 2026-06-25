@@ -15,7 +15,7 @@
 #include <span>
 
 /// Distance to mean, squared.
-inline int ColorDistance(QRgb p_color1, QRgb p_color2)
+inline int ColorDistanceRgb(QRgb p_color1, QRgb p_color2)
 {
     int r1 = qRed(p_color1);
     int g1 = qGreen(p_color1);
@@ -26,6 +26,25 @@ inline int ColorDistance(QRgb p_color1, QRgb p_color2)
     return ( r1 - r2 ) * ( r1 - r2 ) + ( g1 - g2 ) * ( g1 - g2 ) + ( b1 - b2 ) * ( b1 - b2 );
 }
 
+inline int ColorDistanceHsv(QRgb p_color1, QRgb p_color2)
+{
+    auto h1 = QColor(p_color1).hue();
+    auto h2 = QColor(p_color2).hue();
+    auto s1 = QColor(p_color1).saturation();
+    auto s2 = QColor(p_color2).saturation();
+    auto v1 = QColor(p_color1).value();
+    auto v2 = QColor(p_color2).value();
+    return ( h1 - h2 ) * ( h1 - h2 ) + ( s1 - s2 ) * ( s1 - s2 ) + ( v1 - v2 ) * ( v1 - v2 );
+}
+
+
+inline bool IsAlmostGray(QRgb p_rgb, int p_threshold = 10)
+{
+    QColor color(p_rgb);
+
+    // Saturation: 0 = gray, 255 = fully saturated
+    return color.hsvSaturation() < p_threshold;
+}
 
 
 /// For given color, find nearest color at given palette.
@@ -46,7 +65,7 @@ inline std::pair<int, int> GetNearestColor(const QRgb &p_color,
         if(p_which_colors.size() == 0 || std::ranges::find(p_which_colors, n) != p_which_colors.end())
         {
 
-            int dist = ColorDistance(p_color, p_palette[n]);
+            int dist = ColorDistanceRgb(p_color, p_palette[n]);
 
             if(( dist < mindist ) || first)
             {

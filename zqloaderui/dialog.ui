@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>937</width>
-    <height>664</height>
+    <width>951</width>
+    <height>692</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -100,8 +100,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>913</width>
-            <height>516</height>
+            <width>927</width>
+            <height>544</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_3">
@@ -407,7 +407,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>893</width>
+            <width>907</width>
             <height>702</height>
            </rect>
           </property>
@@ -953,8 +953,8 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>913</width>
-            <height>516</height>
+            <width>927</width>
+            <height>544</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_44">
@@ -973,8 +973,18 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <property name="spacing">
             <number>4</number>
            </property>
-           <item row="3" column="1">
-            <widget class="ZxImage" name="zximage" native="true"/>
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_29">
+             <property name="text">
+              <string>Video file:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="LineEdit" name="lineEditVideoFile"/>
+           </item>
+           <item row="1" column="1">
+            <widget class="LineEdit" name="lineEditImageDir"/>
            </item>
            <item row="0" column="2">
             <widget class="QPushButton" name="pushButtonBrowseVideoFile">
@@ -990,27 +1000,55 @@ li.checked::marker { content: &quot;\2612&quot;; }
              </property>
             </widget>
            </item>
-           <item row="1" column="1">
-            <widget class="LineEdit" name="lineEditImageDir"/>
-           </item>
-           <item row="0" column="1">
-            <widget class="LineEdit" name="lineEditVideoFile"/>
-           </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_29">
-             <property name="text">
-              <string>Video file:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1">
-            <widget class="ZxVideo" name="zxvideo" native="true"/>
-           </item>
            <item row="1" column="2">
             <widget class="QPushButton" name="pushButtonBrowseImageDir">
              <property name="text">
               <string>Browse...</string>
              </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QWidget" name="widget" native="true">
+             <layout class="QVBoxLayout" name="verticalLayout">
+              <property name="spacing">
+               <number>0</number>
+              </property>
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+              <item>
+               <widget class="ZxVideo" name="zxvideo" native="true">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="ZxImage" name="zximage" native="true">
+                <property name="enabled">
+                 <bool>true</bool>
+                </property>
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+               </widget>
+              </item>
+             </layout>
             </widget>
            </item>
           </layout>
@@ -1049,8 +1087,8 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>913</width>
-            <height>516</height>
+            <width>927</width>
+            <height>544</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_4">

@@ -176,8 +176,8 @@ public:
                 }
 
                 QRgb oldcolor = image.pixel(x, y);
-                auto dist_to_ink   = ColorDistance(oldcolor, color_ink);
-                auto dist_to_paper = ColorDistance(oldcolor, color_paper);
+                auto dist_to_ink   = ColorDistanceRgb(oldcolor, color_ink);
+                auto dist_to_paper = ColorDistanceRgb(oldcolor, color_paper);
                 bool is_ink = dist_to_ink < dist_to_paper;
                 // not needed image.setPixel(x, y, newcolor);
                 if(p_how.m_use_floyd_steinberg)
@@ -213,13 +213,6 @@ public:
 private:
 
 
-    static bool IsAlmostGray(QRgb p_rgb, int p_threshold = 10)
-    {
-        QColor color(p_rgb);
-
-        // Saturation: 0 = gray, 255 = fully saturated
-        return color.hsvSaturation() < p_threshold;
-    }
 
 
 
