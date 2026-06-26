@@ -26,8 +26,12 @@ namespace fs = std::filesystem;
 
 // color categories
 using enum spectrum::screen::PaletteColor;
+
+// Spectrum colors considered 'dark'
 constexpr int spectrum_dark_colors[] = { black , blue, red };
+// Spectrum colors considered 'light'
 constexpr int spectrum_light_colors[] = { green, cyan, yellow, white, br_green, br_cyan, br_yellow, br_white};
+
 constexpr int spectrum_gray_colors[] = { black, white, br_black, br_white };
 
 
@@ -229,6 +233,7 @@ private:
     {
         int count_dark[16]{};
         int count_light[16]{};
+
         for(int y = 0; y < 8; y++)
         {
             for(int x = 0; x < 8; x++)
@@ -238,6 +243,13 @@ private:
                 {
                     auto [dist_dark,  index_dark]  = GetNearestColor(rgb, spectrum::screen::palette, {black});
                     auto [dist_light, index_light] = GetNearestColor(rgb, spectrum::screen::palette, {white, br_white});
+                    count_dark [index_dark]       += (( 256 * 256 * 3 ) - dist_dark );
+                    count_light[index_light]      += (( 256 * 256 * 3 ) - dist_light );
+                }
+                else if(IsAlmostSkin(rgb))
+                {
+                    auto [dist_dark,  index_dark]  = GetNearestColor(rgb, spectrum::screen::palette, p_how.m_dark_colors);
+                    auto [dist_light, index_light] = GetNearestColor(rgb, spectrum::screen::palette, { white, br_white});
                     count_dark [index_dark]       += (( 256 * 256 * 3 ) - dist_dark );
                     count_light[index_light]      += (( 256 * 256 * 3 ) - dist_light );
                 }
@@ -274,13 +286,94 @@ private:
         auto dark_color = FindMax(count_dark).first;     // black, blue, red so 0, 1 or 2
         auto light_color = FindMax(count_light).first;    // so magenta(3) -- bright white (15)
         spectrum::screen::Attr attr{};
-        attr.attr.ink    = spectrum::screen::AttributeColor(dark_color % 8);
-        attr.attr.paper  = spectrum::screen::AttributeColor(light_color % 8);
+        attr.attr.ink    = static_cast<spectrum::screen::Attr::Color>(dark_color % 8);
+        attr.attr.paper  = static_cast<spectrum::screen::Attr::Color>(light_color % 8);
         attr.attr.bright = light_color > 8;
         return attr;
     }
 
 
+
+    // p_attr_x,  p_attr_y are attribute (32x24) coordinates thus corresponding to top left pixel
+    // (as QRgb) of an 8x8 cell at a QImage.
+    // For each 8x8 (=64) pixels of that cell determine:
+    // nearest spectrum color considered dark and nearest spectrum color considered light
+    // and count them both. Lower distances to nearest color count heavier.
+    // Then find the indexes for the most used spectrum color considered dark and light,
+    // return those as spectrum attibute: dark for ink and light for paper.
+    // The used the light color also determines bright flag.
+    // (At spectrum bright flag has barely effect on dark colors).
+    static spectrum::screen::Attr DetermineAttributeForCell2(const QImage &p_image, int p_attr_x, int p_attr_y, AlgorithmParameters p_how)
+    {
+        int count_all[16]{};
+        int cnt_bright = 0;
+        // determine bright
+        for(int y = 0; y < 8; y++)
+        {
+            for(int x = 0; x < 8; x++)
+            {
+                QRgb rgb = p_image.pixel(p_attr_x * 8 + x, p_attr_y * 8 + y);
+                auto [dummy,  index]  = GetNearestColor(rgb, spectrum::screen::palette);
+                if(index >= br_black)
+                {
+                    cnt_bright++;
+                }
+             }
+        }
+        bool is_bright = cnt_bright > 32;   // more than half
+
+
+
+        for(int y = 0; y < 8; y++)
+        {
+            for(int x = 0; x < 8; x++)
+            {
+                QRgb rgb = p_image.pixel(p_attr_x * 8 + x, p_attr_y * 8 + y);
+                if(IsAlmostGray(rgb))
+                {
+                    constexpr int gray_bright_colors[] = { br_black, br_white };
+                    constexpr int gray_normal_colors[] = { black, white};
+                    auto [dist_all,  index_all]  = GetNearestColor(rgb, spectrum::screen::palette, is_bright ? gray_bright_colors : gray_normal_colors);
+                    count_all [index_all]       += (( 256 * 256 * 3 ) - dist_all );
+
+                }
+                else
+                {
+                    constexpr int normal_colors[] = { black, blue, red, magenta, green, cyan, yellow, white };
+                    constexpr int bright_colors[] = { br_black, br_blue, br_red, br_magenta, br_green, br_cyan, br_yellow, br_white };
+                    auto [dist_all,  index_all]  = GetNearestColor(rgb, spectrum::screen::palette, is_bright ? bright_colors : normal_colors);
+                    count_all [index_all]        = (( 256 * 256 * 3 ) - dist_all );
+                }
+            }
+        }
+
+        auto FindMax = [](const int p_values[])
+        {
+            int idx_max    = 0;
+            int idx_2ndmax = -1;
+
+            for (int i = 1; i < 16; i++)
+            {
+                if (p_values[i] >= p_values[idx_max])
+                {
+                    idx_2ndmax = idx_max;
+                    idx_max    = i;
+                }
+                else if (idx_2ndmax == -1 || p_values[i] > p_values[idx_2ndmax])
+                {
+                    idx_2ndmax = i;
+                }
+            }
+            return std::pair<int, int>{idx_max, idx_2ndmax};
+        };
+
+        auto [dark_color, light_color]  = FindMax(count_all);
+        spectrum::screen::Attr attr{};
+        attr.attr.ink    = static_cast<spectrum::screen::Attr::Color>(dark_color % 8);
+        attr.attr.paper  = static_cast<spectrum::screen::Attr::Color>(light_color % 8);
+        attr.attr.bright = is_bright;
+        return attr;
+    }
 
 
     // scale centered, keep aspect ratio, crop sides.

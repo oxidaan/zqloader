@@ -259,8 +259,8 @@ private:
         //retval |= (use_bright ? found_bright_ink : found_norm_ink);
         spectrum::screen::Attr retval{};
         retval.attr.bright = use_bright;
-        retval.attr.paper  = spectrum::screen::AttributeColor(use_bright ? found_bright_paper - 8 : found_norm_paper);
-        retval.attr.ink    = spectrum::screen::AttributeColor(use_bright ? found_bright_ink - 8 : found_norm_ink);
+        retval.attr.paper  = static_cast<spectrum::screen::Attr::Color>(use_bright ? found_bright_paper - 8 : found_norm_paper);
+        retval.attr.ink    = static_cast<spectrum::screen::Attr::Color>(use_bright ? found_bright_ink - 8 : found_norm_ink);
         retval.attr.flash = 0;
         return retval;
     }

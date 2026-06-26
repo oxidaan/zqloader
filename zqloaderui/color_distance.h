@@ -47,6 +47,23 @@ inline bool IsAlmostGray(QRgb p_rgb, int p_threshold = 10)
 }
 
 
+inline bool IsAlmostSkin(QRgb p_rgb)
+{
+    int r = qRed(p_rgb);
+    int g = qGreen(p_rgb);
+    int b = qBlue(p_rgb);
+
+    // Convert to YCbCr (approximation)
+    //int Y  =  0.299*r + 0.587*g + 0.114*b;
+    int Cb = -0.1687*r - 0.3313*g + 0.5*b + 128;
+    int Cr =  0.5*r - 0.4187*g - 0.0813*b + 128;
+
+    // Typical skin-color range
+    return (Cb >= 77 && Cb <= 127) &&
+           (Cr >= 133 && Cr <= 173);
+}
+
+
 /// For given color, find nearest color at given palette.
 /// returns index at p_palette (0 is first) for nearest found color plus
 /// the distance (squared) to that color.
