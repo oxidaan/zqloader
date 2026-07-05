@@ -14,6 +14,7 @@
 #include <span>
 #include "color_distance.h"
 #include <mutex>
+#include <semaphore>
 #include <QPainter>
 #include <iostream>
 #include "tools.h"
@@ -25,12 +26,12 @@ namespace fs = std::filesystem;
 
 
 // color categories
-using enum spectrum::screen::PaletteColor;
+using enum spectrum::screen::PaletteColor;  
 
 // Spectrum colors considered 'dark'
 constexpr int spectrum_dark_colors[] = { black , blue, red };
 // Spectrum colors considered 'light'
-constexpr int spectrum_light_colors[] = { green, cyan, yellow, white, br_green, br_cyan, br_yellow, br_white};
+constexpr int spectrum_light_colors[] = { magenta, green, cyan, yellow, white, br_magenta, br_green, br_cyan, br_yellow, br_white};
 
 constexpr int spectrum_gray_colors[] = { black, white, br_black, br_white };
 
@@ -53,11 +54,23 @@ public:
 
     Impl(ZxImage *p_this) :
         m_this(p_this)
-    {}
+    {
+        m_thread = std::thread([this] {ThreadFun(); });
+    }
 
 
+    ~Impl()
+    {
+        Stop();
+    }
 
 
+    void Stop()
+    {
+        m_must_stop = true;
+        m_sem.release();
+        m_thread.join();
+    }
     void paintEvent(QPaintEvent*)
     {
 
@@ -92,25 +105,53 @@ public:
         {
             throw std::runtime_error("No image (.png/.jpg) filenames found at directory: " + p_dir.string());
         }
+        m_sem.release();
     }
 
     // Runs in miniaudio thread
     // Return spectrum screen that can be sent as data to Spectrum
-    const spectrum::screen::Screen &LoadNext()
+    spectrum::screen::Screen GetLastLoadedScreen()
+    {
+        spectrum::screen::Screen screen;
+        {
+            std::unique_lock lock(m_mutex);
+            screen = std::move(m_screen);
+        }
+        m_sem.release();
+        std::cout << "*" << std::flush;
+        return screen;
+    }
+
+
+
+    void ThreadFun()
+    {
+        while (!m_must_stop)
+        {
+            m_sem.acquire();        
+            if (!m_must_stop)
+            {
+                LoadNext();
+            }
+        }
+    }
+
+    void LoadNext()
     {
         fs::path image_filename;
         {
             std::unique_lock lock(m_mutex);
             image_filename = m_filenames[m_index];
             m_index++;
-            if(m_index >= m_filenames.size())
+            if (m_index >= m_filenames.size())
             {
                 m_index = 0;
             }
+            std::cout << m_index << ' ' << image_filename << std::endl;
         }
         QImage image(QString::fromStdString(image_filename.string()));
         AlgorithmParameters how;
-        auto screen =  ImageToSpectrumScreen(image, how);
+        auto screen = ImageToSpectrumScreen(image, how);
 
         {
             std::unique_lock lock(m_mutex);
@@ -118,12 +159,7 @@ public:
             m_screen = std::move(screen);
         }
         m_this->update();       // -> paintEvent
-        return m_screen;
     }
-
-
-
-
 
     /// Convert given QImage to spectrum screen
     /// Can run in miniaudio thread
@@ -307,6 +343,7 @@ private:
     {
         int count_all[16]{};
         int cnt_bright = 0;
+        (void)p_how;
         // determine bright
         for(int y = 0; y < 8; y++)
         {
@@ -426,11 +463,14 @@ private:
 
 private:
     std::vector<fs::path> m_filenames;
+    bool m_must_stop = false;
+    std::binary_semaphore m_sem{ 0 };
     int m_index = 0;
     ZxImage * m_this;
     QImage    m_image;      // original image as loaded from file
     spectrum::screen::Screen m_screen;
     mutable std::mutex m_mutex;
+    std::thread m_thread;
 }; // class ZxImage::Impl
 
 
@@ -455,8 +495,8 @@ void ZxImage::SetDirectory(const fs::path &p_dir)
     m_pimpl->SetDirectory(p_dir);
 }
 
-const spectrum::screen::Screen &ZxImage::LoadNext()
+const spectrum::screen::Screen ZxImage::GetLastLoadedScreen()
 {
-    return m_pimpl->LoadNext();
+    return m_pimpl->GetLastLoadedScreen();
 }
 

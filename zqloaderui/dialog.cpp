@@ -516,7 +516,7 @@ inline void Dialog::OnDone()
     }
     else if( m_state == State::ImageFun)
     {
-        const auto &screen = ui->zximage->LoadNext();
+        const auto screen = ui->zximage->GetLastLoadedScreen();
         m_zqloader.SetCompressionType(CompressionType::automatic);
         m_zqloader.AddMemoryBlock({screen.GetDataBlock().Clone(), spectrum::SCREEN_START}, 40000);
     }

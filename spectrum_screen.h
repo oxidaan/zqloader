@@ -107,7 +107,7 @@ public:
     {
         // 0  1  0  y7 y6  y2 y1 y0    y5 y4 y3 x7 x6 x5 x4 x3
         auto address = (( y & 0b11000000 ) << 5 ) + (( y & 0b00000111 ) << 8 ) + (( y & 0b00111000 ) << 2 ) + (( x & 0b11111000 ) >> 3 );
-        auto bit     = 1 << ( x & 0b00000111 );
+        auto bit     = 0b10000000 >> ( x & 0b00000111 );
         int  value   = int(m_datablock[address]);
         value                = p_value ? value | bit : value & ~bit;
         m_datablock[address] = std::byte(value);
@@ -120,7 +120,7 @@ public:
     {
         // 0  1  0  y7 y6  y2 y1 y0    y5 y4 y3 x7 x6 x5 x4 x3
         auto address = (( y & 0b11000000 ) << 5 ) + (( y & 0b00000111 ) << 8 ) + (( y & 0b00111000 ) << 2 ) + (( x & 0b11111000 ) >> 3 );
-        auto bit     = 1 << ( x & 0b00000111 );
+        auto bit     = 0b10000000 >> ( x & 0b00000111 );
         int  value   = int(m_datablock[address]);
         return value & bit;
     }
