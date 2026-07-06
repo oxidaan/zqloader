@@ -410,8 +410,8 @@ Dialog::Dialog(QWidget *parent)
     ConnectLineEditFocus(ui->lineEditTurboFile,  DefaultTurboFilename);
     ConnectLineEditFocus(ui->lineEditZxFilename, DefaultZxFilename);
     ConnectLineEditFocus(ui->lineEditOutputFile, DefaultOutputFilename);
-    ConnectLineEditFocus(ui->lineEditVideoFile, DefaultVideoFile);
-    ConnectLineEditFocus(ui->lineEditImageDir, DefaultImageDir);
+    ConnectLineEditFocus(ui->lineEditVideoFile,  DefaultVideoFile);
+    ConnectLineEditFocus(ui->lineEditImageDir,   DefaultImageDir);
     ConnectLineEditFocus(ui->lineEditSampleRate, "[Device default]");
 
 

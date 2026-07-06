@@ -10,7 +10,6 @@
 #include "spectrum_loader.h"
 #include "loadbinary.h"
 #include "pulsers.h"
-//#include "tzxloader.h"
 #include "tzxwriter.h"
 
 

@@ -110,7 +110,7 @@ public:
     // Check if any block overwrites our loader copied loader code (after copy)
     // cut it in two pieces before and after thus leaving space,
     // ignoring the middle part (must be screen or emtpy snapshot region)
-    MemoryBlocks MakeSpaceForCopiedLoader(MemoryBlocks p_memory_blocks, uint16_t p_loader_copy_start)
+    MemoryBlocks MakeSpaceForCopiedLoader(MemoryBlocks p_memory_blocks, uint16_t p_loader_copy_start) const
     {
         MemoryBlocks new_blocks;
         uint16_t start = p_loader_copy_start;
@@ -300,7 +300,7 @@ public:
         auto memory_blocks = std::move(m_memory_blocks);
         for (auto& block : memory_blocks)
         {
-            AddMemoryBlockAsTurboBlock(std::move(block), p_load_address);
+            AddMemoryBlockAsTurboBlock(block, p_load_address);
         }
         std::chrono::milliseconds pause_before = 0ms;
         if (IsZqLoaderAdded())        // Add zqloader when added here. When not added here probably already preloaded.
@@ -508,7 +508,7 @@ private:
                         load_address = m_symbols.GetSymbol("ASM_UPPER_START_OFFSET");
                     }
                 }        
-                prev = &AddMemoryBlockAsTurboBlock(std::move(block), load_address);
+                prev = &AddMemoryBlockAsTurboBlock(block, load_address);
             }
         }
         if(prevprev && p_last_bank_to_set >=0 && p_last_bank_to_set != prev_bank_set)
@@ -542,7 +542,7 @@ private:
     // So convert to TurboBlock.
     // p_load_address: when given (!=0) load there first.
     // Note: A memoryblock already has a destination address.
-    TurboBlock &AddMemoryBlockAsTurboBlock(MemoryBlock&& p_block, uint16_t p_load_address = 0)
+    TurboBlock &AddMemoryBlockAsTurboBlock(const MemoryBlock& p_block, uint16_t p_load_address = 0)
     {
         if (m_turbo_blocks.size() == 0)
         {
@@ -562,7 +562,7 @@ private:
         {
             tblock.SetLoadAddress(p_load_address);
         }
-        tblock.SetData(std::move(p_block.m_datablock), m_compression_type);
+        tblock.SetData(p_block.m_datablock, m_compression_type);
 
         m_turbo_blocks.push_back(std::move(tblock));
         return m_turbo_blocks.back();
@@ -638,9 +638,9 @@ TurboBlocks& TurboBlocks::AddMemoryBlock(MemoryBlock p_block)
     return *this;
 }
 
-TurboBlocks& TurboBlocks::AddMemoryBlockAsTurboBlock(MemoryBlock p_block,  uint16_t p_load_address)
+TurboBlocks& TurboBlocks::AddMemoryBlockAsTurboBlock(const MemoryBlock &p_block,  uint16_t p_load_address)
 {
-    m_pimpl->AddMemoryBlockAsTurboBlock(std::move(p_block), p_load_address);
+    m_pimpl->AddMemoryBlockAsTurboBlock(p_block, p_load_address);
     return *this;
 }
 

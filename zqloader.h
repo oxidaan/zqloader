@@ -146,7 +146,7 @@ public:
     ZQLoader &PlayleaderTone();
 
     /// Only used for fun attributes
-    ZQLoader &AddMemoryBlock(MemoryBlock p_block, uint16_t p_load_address = 0);
+    ZQLoader &AddMemoryBlock(const MemoryBlock &p_block, uint16_t p_load_address = 0);
 
     /// Time at end so actual time needed once done.
     std::chrono::milliseconds GetTimeNeeded() const;

@@ -192,9 +192,9 @@ public:
     }
 
     /// Only used for fun attributes and video fun.
-    void AddMemoryBlock(MemoryBlock p_block, uint16_t p_load_address)
+    void AddMemoryBlock(const MemoryBlock &p_block, uint16_t p_load_address)
     {
-        m_turboblocks.AddMemoryBlockAsTurboBlock(std::move(p_block) , p_load_address);
+        m_turboblocks.AddMemoryBlockAsTurboBlock(p_block , p_load_address);
         m_turboblocks.MoveToLoader(m_spectrumloader, true, p_load_address);
     }
 
@@ -863,9 +863,9 @@ void ZQLoader::Test()
 }
 
 
-ZQLoader& ZQLoader::AddMemoryBlock(MemoryBlock p_block, uint16_t p_load_address)
+ZQLoader& ZQLoader::AddMemoryBlock(const MemoryBlock &p_block, uint16_t p_load_address)
 {
-    m_pimpl->AddMemoryBlock(std::move(p_block), p_load_address);
+    m_pimpl->AddMemoryBlock(p_block, p_load_address);
     return *this;
 }
 

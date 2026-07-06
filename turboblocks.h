@@ -63,7 +63,7 @@ public:
     TurboBlocks& AddMemoryBlock(MemoryBlock p_block);
 
     /// Add given memory block, make it a turboblock immidiately.
-    TurboBlocks& AddMemoryBlockAsTurboBlock(MemoryBlock p_block, uint16_t p_load_address = 0);
+    TurboBlocks& AddMemoryBlockAsTurboBlock(const MemoryBlock &p_block, uint16_t p_load_address = 0);
 
     /// p_usr_address: when done loading all blocks end start machine code here as in RANDOMIZE USR xxxx
     /// p_clear_address: when done loading put stack pointer here, which is a bit like CLEAR xxxx

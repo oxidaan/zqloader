@@ -15,6 +15,7 @@
 #include "color_distance.h"
 #include <mutex>
 #include <semaphore>
+#include <thread>
 #include <QPainter>
 #include <iostream>
 #include "tools.h"
@@ -68,7 +69,7 @@ public:
     void Stop()
     {
         m_must_stop = true;
-        m_sem.release();
+        m_sem.release();        // wakeup to end thread
         m_thread.join();
     }
     void paintEvent(QPaintEvent*)
@@ -105,7 +106,7 @@ public:
         {
             throw std::runtime_error("No image (.png/.jpg) filenames found at directory: " + p_dir.string());
         }
-        m_sem.release();
+        m_sem.release();        // -> wakeup loading first
     }
 
     // Runs in miniaudio thread
@@ -117,7 +118,7 @@ public:
             std::unique_lock lock(m_mutex);
             screen = std::move(m_screen);
         }
-        m_sem.release();
+        m_sem.release();            // wakeup loading load next
         std::cout << "*" << std::flush;
         return screen;
     }
@@ -128,7 +129,7 @@ public:
     {
         while (!m_must_stop)
         {
-            m_sem.acquire();        
+            m_sem.acquire();                // wait
             if (!m_must_stop)
             {
                 LoadNext();

@@ -65,10 +65,10 @@ union Attr
 
     struct
     {
-        Color  ink: 3;
-        Color  paper: 3;
-        uint8_t         bright: 1;
-        uint8_t         flash : 1;
+        Color   ink: 3;
+        Color   paper: 3;
+        uint8_t bright: 1;
+        uint8_t flash : 1;
     } attr;
     std::byte   byte;
 };

@@ -21,7 +21,7 @@ However Otla seems barely maintained and uses CppBuilder - I think. Unlike Otla 
 
 Project
 ----
-There are two parts: 
+There are three parts: 
 
 The Z80 assembled ZQloader.
 --
@@ -31,13 +31,17 @@ Once loaded it copies itself to upper memory regions because lower RAM is [conte
 More about the [Z80 assembled ZQloader]
 
 
-zqloader.exe coded in C++ (17) 
+zqloader.exe coded in C++ (20) 
 ---
-Runs on the host computer. It uses [miniaudio](https://github.com/mackron/miniaudio) to generated loading sounds.  
+Commandline version, runs on the host computer. It uses [miniaudio](https://github.com/mackron/miniaudio) to generated loading sounds.  
 First it uploads the ZQloader machine code (described above) itself to the ZX spectrum. It uses traditional ROM speed for that.
 
 After that it will read a TAP, TZX or Z80/sna (snapshot) file. For TAP or TZX files it will recognize a basic loader, taking the start address from that (as in `RANDOMIZE USR XXXX`) (also read `CLEAR` value, if any). Then it will load 1 or more code blocks, which can be a spash screen or machine code, compress them, and send these at turbo speed into the ZX spectrum. 
 More about the [C++ ZQloader...]
+
+zqloaderui.exe coded in C++ (20)
+---
+This is a user interface wrapper written in QT, runs on the host computer. It shares common code in a libary with the commandline version of zqloader.exe.
 
 
 Compression
@@ -71,7 +75,7 @@ First get sources with:
 git clone https://github.com/oxidaan/zqloader
 ```
 
-You can use the file `zqloader.sln` with `zqloader.vcproj` to build the ZQloader executable with Visual studio 2022 in **Windows**.  
+You can use the file `zqloader.sln` with `zqloader.vcproj` to build the ZQloader executable with Visual studio 2026 in **Windows**.  
 Or - at **Linux** - use the `CMakeList.txt` file to build it with CMake eg:
 ```
 mkdir build
@@ -107,7 +111,7 @@ sudo make install
 
 Instructions
 ---
-You need a *real* ZX-spectrum 48K. Connect the ZX-spectrums EAR input to your host computers sound output. At the host computer set sound to maximum.  
+You need a *real* ZX-spectrum. Connect the ZX-spectrums EAR input to your host computers sound output. At the host computer set sound to maximum.  
 At Windows, make sure *Audio Enhancements* are switched off. 
 Eg at `Settings -> System -> Sound -> Speakers -> Advanced`   
 Switch off `Audio Enhancements` there.
@@ -119,7 +123,7 @@ At the ZX Spectrum type:
 LOAD ""
 ```
 
-Then at the host type:
+*For the commandline version*, at the host type:
 ```
 path/to/zqloader path/to/zqloader.tap path/to/turbofile
 ```
@@ -132,7 +136,8 @@ zqloader z80/zqloader.tap c:\games\manic.z80`
 You can play with options like, for example (see also [ZQloader commandline options](#ZQloader-commandline-options) ):
 ```
 zqloader samplerate=48000 volume_left=-100 volume_right=-100 z80/zqloader.tap c:\games/rtype.z80
-```
+```  
+-> It is probably much easier to use the user interface version (zqloadeui.exe) You can enter the turbo file name at the dialog it presents.
 
 Tuning sound
 ---
@@ -141,7 +146,7 @@ And when using stereo it is probably best to invert one sound output (left or ri
 Personally I was using stereo, but without inverting one channel. I used a 'composite-video to hdmi hardware box' that was powered through USB from my laptop. This way, the ZX Spectrum shared ground with the laptop. Later I used composite video directly. For some reason the ZX-Spectrum did not receive any sound at all - until I switched to a mono cable.  
 _A good test is to try to play any sound at the host laptop (eg music) (play loud!). When all is good the ZX-Spectrum border should flash between red-cyan (after typing `LOAD ""`)_  
 Moral of the story: try stereo/mono cables, try with inverted or not inverted sound channels - until it works.  
-The user interface has a 'Tune' button that plays a leader tone forever. You can then adjust volume (and sample rate) until you get the red/cyan stripes.
+-> The user interface has a 'Tune' button that plays a leader tone forever. You can then adjust volume (and sample rate) until you get the red/cyan stripes.
 
 
 
