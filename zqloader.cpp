@@ -1,13 +1,13 @@
-//==============================================================================
+// ==============================================================================
 // PROJECT:         zqloader
 // FILE:            zqloader.cpp
 // DESCRIPTION:     Implementation of class ZQLoader.
 //                  This is the main ZQLoader interface used for both commandline
 //                  as qt ui tool.
-// 
+//
 // Copyright (c) 2024 Daan Scherft [Oxidaan]
 // This project uses the MIT license. See LICENSE.txt for details.
-//==============================================================================
+// ==============================================================================
 // uses pimpl
 
 #include "zqloader.h"
@@ -36,15 +36,16 @@ LIB_API const char *GetVersion()
 }
 
 
+
 class ZQLoader::Impl
 {
 public:
 
-    Impl(const Impl &) = delete;
-    Impl(Impl &&) noexcept = default;
-    Impl & operator = (Impl &&) = default;
-    Impl & operator = (const Impl &) = delete;
-    Impl() = default;
+    Impl(const Impl &)              = delete;
+    Impl(Impl &&) noexcept          = default;
+    Impl & operator =(Impl &&)      = default;
+    Impl & operator =(const Impl &) = delete;
+    Impl()                          = default;
 
 
     /// Set normal filename (eg the top filename in the dialog)
@@ -58,8 +59,9 @@ public:
     }
 
 
+
     /// Set turbo filename eg the 2nd filename in the dialog.
-    void SetTurboFilename(fs::path p_filename, const std::string &p_zxfilename )
+    void SetTurboFilename(fs::path p_filename, const std::string &p_zxfilename)
     {
         if(!p_filename.empty() && p_filename.string()[0] != '[')
         {
@@ -68,10 +70,12 @@ public:
         }
     }
 
+
+
     /// Set output file to write (tzx or tap) - when empty play audio.
     void SetOutputFilename(fs::path p_outputfilename, bool p_allow_overwrite)
     {
-        if (ToLower(p_outputfilename.extension().string()) == ".tzx")   
+        if (ToLower(p_outputfilename.extension().string()) == ".tzx")
         {
             m_action = Action::write_tzx;
         }
@@ -84,6 +88,7 @@ public:
     }
 
 
+
     /// Set volume left + right (-100, 100)
     void SetVolume(int p_volume_left, int p_volume_right)
     {
@@ -93,11 +98,14 @@ public:
     }
 
 
+
     /// Set spectrum clock frequency.
     void SetSpectrumClock(int p_spectrum_clock)
     {
         m_spectrumloader.SetTstateDuration(1s / double(p_spectrum_clock));
     }
+
+
 
     /// Get estimated duration
     /// Not 100% accurate because discrepancy between miniaudio sample rate and time we actually need.
@@ -106,6 +114,8 @@ public:
     {
         return std::chrono::duration_cast<std::chrono::milliseconds>(m_spectrumloader.GetEstimatedDuration());
     }
+
+
 
     /// Play an infinite leader tone for tuning.
     void PlayleaderTone()
@@ -130,7 +140,7 @@ public:
   Switch off <i>Audio Enhancements</i> there.
         )";
 #endif
-    std::cout << "When all is good you get the familiar red/cyan stripes slowly moving up.\n" << std::endl;
+        std::cout << "When all is good you get the familiar red/cyan stripes slowly moving up.\n" << std::endl;
 
         m_spectrumloader.AddEndlessLeader();
         m_spectrumloader.Attach(m_sample_sender);
@@ -140,16 +150,17 @@ public:
     }
 
 
+
     /// Run it (go pressed)
     void Run(bool p_threaded)
     {
         Check();
         m_turboblocks.DebugDump();
-        std::cout << "Estimated duration: " << GetEstimatedDuration().count() << "ms  (" <<  m_spectrumloader.GetDurationInTStates() << " TStates)" << std::endl;
+        std::cout << "Estimated duration: " << GetEstimatedDuration().count() << "ms  (" << m_spectrumloader.GetDurationInTStates() << " TStates)" << std::endl;
         m_spectrumloader.SetOnDone([this]
-        {
-            OnDone();
-        });
+                                   {
+                                       OnDone();
+                                   });
         m_start_time = std::chrono::steady_clock::now();      // to measure duration only
         if(m_action == Action::play_audio)
         {
@@ -173,7 +184,7 @@ public:
             // Write to wav file
             auto outputfilename     = GetOutputFilename();
             std::ofstream filewrite = OpenFileToWrite(outputfilename, m_allow_overwrite);
-            SampleToWav wav_writer;
+            SampleToWav   wav_writer;
             m_spectrumloader.Attach(wav_writer);
             wav_writer.SetVolume(m_volume_left, m_volume_right).SetSampleRate(m_sample_rate);
             wav_writer.WriteToFile(filewrite);
@@ -191,12 +202,16 @@ public:
         }
     }
 
+
+
     /// Only used for fun attributes and video fun.
     void AddMemoryBlock(const MemoryBlock &p_block, uint16_t p_load_address)
     {
-        m_turboblocks.AddMemoryBlockAsTurboBlock(p_block , p_load_address);
+        m_turboblocks.AddMemoryBlockAsTurboBlock(p_block, p_load_address);
         m_turboblocks.MoveToLoader(m_spectrumloader, true, p_load_address);
     }
+
+
 
     /// Stop/cancel playing immidiately
     /// Keeps preloaded state
@@ -215,13 +230,14 @@ public:
     /// Can cause tape loading error when not calling WaitUntilDone first.
     void Reset()
     {
-        auto onDone = std::move(m_OnDone);  // keep call back
-        auto exe_path = std::move(m_exe_path);
-        SampleSender remove = std::move(m_sample_sender);   // <- Because else move assign causes problems. Dtor target not called. So ma_device_uninit not called.
-        *this = Impl();
+        auto onDone         = std::move(m_OnDone);        // keep call back
+        auto exe_path       = std::move(m_exe_path);
+        SampleSender remove = std::move(m_sample_sender); // <- Because else move assign causes problems. Dtor target not called. So ma_device_uninit not called.
+        *this      = Impl();
         m_exe_path = std::move(exe_path);
-        m_OnDone = std::move(onDone);
+        m_OnDone   = std::move(onDone);
     }
+
 
 
     /// Prepare for preloading.
@@ -229,12 +245,9 @@ public:
     {
         m_128_mode = true;
         AddZqLoader(m_normal_filename);
-        m_turboblocks.MoveToLoader(m_spectrumloader, true);     // needed?
+        m_turboblocks.MoveToLoader(m_spectrumloader, true);     // needed else 'no files added nothing to do'
         m_is_preloaded = true;
     }
-
-
-
 
 
 
@@ -256,6 +269,8 @@ public:
         Run(true);
     }
 
+
+
     void SetLoaderCopyTarget(uint16_t p_address)
     {
         m_new_loader_location = p_address;
@@ -265,17 +280,7 @@ public:
         }
     }
 
-
-
 private:
-
-
-
-
-
-
-
-
 
     // runs in miniaudio / samplesender thread
     void OnDone()
@@ -284,22 +289,18 @@ private:
         {
             m_time_needed = GetCurrentTime();
             std::cout << "Took: " << std::dec << m_time_needed.count() << " ms" << std::endl;
-            m_is_busy = false;
+            m_is_busy     = false;
         }
         if(m_OnDone)
         {
             m_OnDone();
         }
-        
+
     }
 
-    
 
 
-    
-
-
-    /// Try to find the path/to/zqloader.tap 
+    /// Try to find the path/to/zqloader.tap
     /// (when p_filename has no path yet)
     /// Throws when file not found.
     fs::path FindZqLoaderTapfile(const fs::path &p_filename = "") const
@@ -341,8 +342,8 @@ private:
         if (!std::filesystem::exists(filename))
         {
             throw std::runtime_error("ZQLoader file '" + filename.string() + "' not found. (checked: "
-            + m_exe_path.string() + ", " + std::filesystem::current_path().string() +
-            ") Please give path/to/zqloader.tap. (this is the tap file that contains the ZX Spectrum turboloader)");
+                                     + m_exe_path.string() + ", " + std::filesystem::current_path().string() +
+                                     ") Please give path/to/zqloader.tap. (this is the tap file that contains the ZX Spectrum turboloader)");
         }
         return filename;
     }
@@ -364,6 +365,7 @@ private:
     }
 
 
+
     // Add given normal speed file (tap/tzx) to m_spectrumloader
     void AddNormalSpeedFile(const fs::path &p_filename, const std::string &p_zxfilename)
     {
@@ -383,6 +385,8 @@ private:
         }
     }
 
+
+
     // Add/load zqloader.tap (to turboblocks) when not already done so.
     // throws when p_filename is not zqloader or could not be found/
     void AddZqLoader(const fs::path &p_filename)
@@ -393,6 +397,8 @@ private:
             m_turboblocks.AddZqLoader(filename);                 // zqloader.tap
         }
     }
+
+
 
     void AddTurboSpeedFile(const fs::path &p_filename, const std::string &p_zxfilename)
     {
@@ -430,7 +436,7 @@ private:
     }
 
 
-    
+
     // Add given file (tap/tzx) to given TurboBlocks so uses turbo speed.
     // (adds all blocks present in given file).
     // TLoader is TapLoader or TzxLoader.
@@ -443,9 +449,9 @@ private:
         TapToTurboBlocks tab_to_turbo_blocks{ m_turboblocks };
         Tloader tap_or_tzx_loader;
         tap_or_tzx_loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string p_zxfilename)
-        {
-            return tab_to_turbo_blocks.HandleTapBlock(std::move(p_block), p_zxfilename);
-        });
+                                              {
+                                                  return tab_to_turbo_blocks.HandleTapBlock(std::move(p_block), p_zxfilename);
+                                              });
         tap_or_tzx_loader.Load(p_filename, p_zxfilename);
         if(m_turboblocks.size() != tab_to_turbo_blocks.GetNumberLoadCode())
         {
@@ -460,6 +466,8 @@ private:
             throw std::runtime_error("No blocks present in file: '" + p_filename.string() + "' that could be turboloaded (note: can only handle code blocks, not BASIC)");
         }
     }
+
+
 
     // Add given snapshot file (z80/sna) to given TurboBlocks so uses turbo speed.
     // Finalize will already be called.
@@ -498,8 +506,6 @@ private:
 
 
 
-
-    
     void Check()
     {
         // also called when preload clicked, then 2nd file not needed to be present.
@@ -520,7 +526,6 @@ Please add a normal file and/or a turbo speed file.
 )");
         }
     }
-
 
 
 
@@ -550,21 +555,21 @@ Please add a normal file and/or a turbo speed file.
         return m_output_filename;
     }
 
-
 public:
-    SpectrumLoader                          m_spectrumloader;
-    TurboBlocks                             m_turboblocks;
-    SampleSender                            m_sample_sender;
-    bool                                    m_use_fun_attribs     = false;
-    uint32_t                                m_sample_rate         = loader_defaults::sample_rate;
-    fs::path                                m_exe_path;                    // s/a argv[0]
-    Action                                  m_action = Action::play_audio;
-    uint16_t                                m_when_done_call_usr = 0; // 0 is automatic
-    bool                                    m_when_done_return_to_basic = false;
-    bool                                    m_is_busy = false;
-    bool                                    m_is_preloaded = false;
-    DoneFun                                 m_OnDone;
-    std::chrono::milliseconds               m_time_needed{};
+
+    SpectrumLoader              m_spectrumloader;
+    TurboBlocks                 m_turboblocks;
+    SampleSender                m_sample_sender;
+    bool                        m_use_fun_attribs           = false;
+    uint32_t                    m_sample_rate               = loader_defaults::sample_rate;
+    fs::path                    m_exe_path;                           // s/a argv[0]
+    Action                      m_action                    = Action::play_audio;
+    uint16_t                    m_when_done_call_usr        = 0;      // 0 is automatic
+    bool                        m_when_done_return_to_basic = false;
+    bool                        m_is_busy                   = false;
+    bool                        m_is_preloaded              = false;
+    DoneFun                     m_OnDone;                             // callback when done
+    std::chrono::milliseconds   m_time_needed{};
 
 private:
 
@@ -577,7 +582,6 @@ private:
     fs::path                                m_output_filename;             // writing wav or tzx
 
     bool                                    m_128_mode = false;
-    bool                                    m_from_dialog;
 
     std::chrono::steady_clock::time_point   m_start_time{};
 }; // class ZQLoader::Impl
@@ -585,7 +589,7 @@ private:
 
 
 ZQLoader::ZQLoader()
-    :m_pimpl( new Impl())
+    :m_pimpl(new Impl())
 {}
 
 
@@ -595,7 +599,7 @@ ZQLoader::~ZQLoader()
 
 
 
-ZQLoader& ZQLoader::SetNormalFilename(fs::path p_filename, const std::string &p_zxfilename )
+ZQLoader& ZQLoader::SetNormalFilename(fs::path p_filename, const std::string &p_zxfilename)
 {
     m_pimpl->SetNormalFilename(std::move(p_filename), p_zxfilename);
     return *this;
@@ -649,6 +653,8 @@ ZQLoader& ZQLoader::SetZeroMax(int p_value)
     return *this;
 }
 
+
+
 ZQLoader& ZQLoader::SetIoValues(int p_io_init_value, int p_io_xor_value)
 {
     m_pimpl->m_turboblocks.SetIoValues(p_io_init_value, p_io_xor_value);
@@ -671,17 +677,22 @@ ZQLoader& ZQLoader::SetCompressionType(CompressionType p_compression_type)
     return *this;
 }
 
+
+
 ZQLoader& ZQLoader::SetDeCompressionSpeed(int p_kb_per_sec)
 {
     m_pimpl->m_turboblocks.SetDeCompressionSpeed(p_kb_per_sec);
     return *this;
 }
 
+
+
 ZQLoader& ZQLoader::SetInitialWait(std::chrono::milliseconds p_initial_wait)
 {
-    m_pimpl->m_turboblocks.SetInitialWait( p_initial_wait);
+    m_pimpl->m_turboblocks.SetInitialWait(p_initial_wait);
     return *this;
 }
+
 
 
 ZQLoader& ZQLoader::SetSpectrumClock(int p_spectrum_clock)
@@ -690,11 +701,15 @@ ZQLoader& ZQLoader::SetSpectrumClock(int p_spectrum_clock)
     return *this;
 }
 
+
+
 ZQLoader& ZQLoader::SetUseStandaardSpeedForRom(bool p_to_what)
 {
     m_pimpl->m_spectrumloader.SetUseStandaardSpeedForRom(p_to_what);
     return *this;
 }
+
+
 
 ZQLoader& ZQLoader::SetAction(Action p_what)
 {
@@ -709,6 +724,8 @@ ZQLoader& ZQLoader::SetLoaderCopyTarget(uint16_t p_address)
     m_pimpl->SetLoaderCopyTarget(p_address);
     return *this;
 }
+
+
 
 ZQLoader& ZQLoader::SetLoaderCopyTarget(LoaderLocation p_where)
 {
@@ -725,20 +742,21 @@ ZQLoader& ZQLoader::SetLoaderCopyTarget(LoaderLocation p_where)
 
 
 
-
-
 ZQLoader& ZQLoader::SetFunAttribs(bool p_value)
 {
-    m_pimpl->m_use_fun_attribs = p_value;;
+    m_pimpl->m_use_fun_attribs = p_value;
     return *this;
 }
+
+
 
 ZQLoader& ZQLoader::SetWhenDoneDo(uint16_t p_value, bool p_return_to_basic)
 {
     m_pimpl->m_when_done_return_to_basic = p_return_to_basic;
-    m_pimpl->m_when_done_call_usr = p_value;
+    m_pimpl->m_when_done_call_usr        = p_value;
     return *this;
 }
+
 
 
 ZQLoader& ZQLoader::Reset()
@@ -747,12 +765,15 @@ ZQLoader& ZQLoader::Reset()
     return *this;
 }
 
+
+
 /// Not threaded, (or wait for thread)
 ZQLoader& ZQLoader::Run()
 {
     m_pimpl->Run(false);
     return *this;
 }
+
 
 
 /// threaded (returns immidiately)
@@ -771,8 +792,9 @@ ZQLoader& ZQLoader::Stop()
 }
 
 
+
 /// Wait until all data have send.
-/// Note: at preloading fun attibutes this will probably 
+/// Note: at preloading fun attibutes this will probably
 /// wait forever.
 ZQLoader& ZQLoader::WaitUntilDone()
 {
@@ -782,15 +804,15 @@ ZQLoader& ZQLoader::WaitUntilDone()
 
 
 
-
-
 bool ZQLoader::IsBusy() const
 {
-    //return m_sample_sender.IsRunning();     // stays busy during preloading attribs
+    // return m_sample_sender.IsRunning();     // stays busy during preloading attribs
     // else not busy during fun attribs so cannot stop this.
     // else double check @ signalDone not working
     return m_pimpl->m_is_busy;
 }
+
+
 
 ZQLoader & ZQLoader::SetPreload()
 {
@@ -806,11 +828,13 @@ bool ZQLoader::IsPreLoaded() const
 }
 
 
+
 ZQLoader& ZQLoader::PlayleaderTone()
 {
     m_pimpl->PlayleaderTone();
     return *this;
 }
+
 
 
 // Time last action took
@@ -826,15 +850,21 @@ std::chrono::milliseconds ZQLoader::GetCurrentTime() const
     return m_pimpl->GetCurrentTime();
 }
 
+
+
 std::chrono::milliseconds ZQLoader::GetEstimatedDuration() const
 {
     return m_pimpl->GetEstimatedDuration();
 }
 
+
+
 int ZQLoader::GetDurationInTStates() const
 {
     return m_pimpl->m_spectrumloader.GetDurationInTStates();
 }
+
+
 
 /// path to current zqloader.exe (this program)
 /// (only to help find zqloader.tap)
@@ -844,6 +874,8 @@ ZQLoader &ZQLoader::SetExeFilename(fs::path p_filename)
     return *this;
 }
 
+
+
 /// Set callback when done.
 ZQLoader& ZQLoader::SetOnDone(DoneFun p_fun)
 {
@@ -851,10 +883,13 @@ ZQLoader& ZQLoader::SetOnDone(DoneFun p_fun)
     return *this;
 }
 
+
+
 uint32_t ZQLoader::GetDeviceSampleRate() const
 {
     return SampleSender::GetDeviceSampleRate();
 }
+
 
 
 void ZQLoader::Test()
@@ -863,11 +898,14 @@ void ZQLoader::Test()
 }
 
 
+
 ZQLoader& ZQLoader::AddMemoryBlock(const MemoryBlock &p_block, uint16_t p_load_address)
 {
     m_pimpl->AddMemoryBlock(p_block, p_load_address);
     return *this;
 }
+
+
 
 // static
 bool ZQLoader::WriteTextToAttr(DataBlock& out_attr, const std::string& p_text, std::byte p_color, bool p_center, int p_col)
@@ -875,12 +913,15 @@ bool ZQLoader::WriteTextToAttr(DataBlock& out_attr, const std::string& p_text, s
     return ::WriteTextToAttr(out_attr, p_text, p_color, p_center, p_col);
 }
 
+
+
 // File is a zqloader.tap file?
 // static
 bool ZQLoader::FileIsZqLoader(fs::path p_filename)
 {
     return ToLower(p_filename.stem().string()).find("zqloader") == 0 || p_filename.empty() || p_filename.string()[0] == '[';
 }
+
 
 
 // static

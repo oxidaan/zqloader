@@ -280,7 +280,7 @@ Dialog::Dialog(QWidget *parent)
         }
         else if( m_state == State::VideoFunFirst )
         {
-            // stop /cancel preload
+            // stop /cancel video
             ui->zxvideo->Stop();
             m_zqloader.Reset();
             SetState(State::Cancelled);
@@ -311,6 +311,7 @@ Dialog::Dialog(QWidget *parent)
         }
         else if(m_state == State::PreloadingFunAttribs )     
         {
+            // stop /cancel fun attributes after preload
             // this will stop fun attribs, but keep preloaded
             //m_zqloader.Stop();      
             SetState(State::Idle);
@@ -1001,7 +1002,6 @@ inline void Dialog::CalculateLoaderParametersFromSlider(int p_index )
 
 // Based on 'Wanted Zero Cycli'and 'Wanted One Cyclii' calculate
 // 'Zero TStates' and 'One TStates' *and put result in the dialog lineEdits*
-// Check validity first, throws when error.
 inline void Dialog::CalculateLoaderParameters(double p_wanted_zero_cyclii, int p_zero_max, double p_wanted_one_cyclii )
 {
     if(p_wanted_zero_cyclii < 1.0)

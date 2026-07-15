@@ -23,10 +23,10 @@
 #include <iostream>
 
 
-#define DONT_USE(somevar)   \
-    (void) somevar; \
-    class{} somevar;    \
-    (void) somevar;
+#define DONT_USE(somevar) \
+        (void) somevar;   \
+        class {} somevar; \
+        (void) somevar;
 
 #ifdef _MSC_VER
 #pragma warning(disable: 4458)
@@ -43,14 +43,11 @@ using namespace std::placeholders;
 
 
 
-
 class TurboBlocks::Impl
 {
-friend class TurboBlocks;
-
+    friend class TurboBlocks;
 
 public:
-
 
     /// Load given file at normal speed, typically loads zqloader.tap.
     /// Add zqloader.tap file (normal speed).
@@ -66,17 +63,20 @@ public:
 
         TapLoader loader;
         loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string)
-            {
-                return HandleZqLoaderTapBlock(std::move(p_block));
-            });
+                                   {
+                                       return HandleZqLoaderTapBlock(std::move(p_block));
+                                   });
         loader.Load(p_filename, "");
     }
+
+
 
     ///  Is ZqLoader added (with AddZqLoader above)?
     bool IsZqLoaderAdded() const
     {
         return m_zqloader_code.size() != 0;
     }
+
 
 
     // Get location to copy loader to.
@@ -107,6 +107,8 @@ public:
         return m_loader_copy_start;
     }
 
+
+
     // Check if any block overwrites our loader copied loader code (after copy)
     // cut it in two pieces before and after thus leaving space,
     // ignoring the middle part (must be screen or emtpy snapshot region)
@@ -114,7 +116,7 @@ public:
     {
         MemoryBlocks new_blocks;
         uint16_t start = p_loader_copy_start;
-        uint16_t end = p_loader_copy_start + GetLoaderCodeLength(false);
+        uint16_t end   = p_loader_copy_start + GetLoaderCodeLength(false);
         for (auto& block : p_memory_blocks)
         {
             if (Overlaps(block, start, end))
@@ -140,15 +142,17 @@ public:
         return new_blocks;
     }
 
+
+
     // Check if any block overwrites our (always copied) loader code at upper regions.
     // Check if a block overwrites our loader copied loader code (at upper) (after copy)
     // cut it in three pieces before and after thus leaving space
-     MemoryBlocks MakeSpaceForUpperLoader( MemoryBlocks p_memory_blocks)
-     {
-        MemoryBlock overwrites_loader;
+    MemoryBlocks MakeSpaceForUpperLoader(MemoryBlocks p_memory_blocks)
+    {
+        MemoryBlock  overwrites_loader;
         MemoryBlocks new_blocks;
         int start = m_symbols.GetSymbol("ASM_UPPER_START");
-        int end = start + m_symbols.GetSymbol("ASM_UPPER_LEN");
+        int end   = start + m_symbols.GetSymbol("ASM_UPPER_LEN");
         for (auto& block : p_memory_blocks)
         {
             if (Overlaps(block, start, end))
@@ -164,8 +168,8 @@ public:
                 {
                     new_blocks.push_back(std::move(first));
                 }
-                overwrites_loader = std::move(second);      // can not have size zero, also checked below again.
-                overwrites_loader.m_address = start;        // -> dest address
+                overwrites_loader           = std::move(second); // can not have size zero, also checked below again.
+                overwrites_loader.m_address = start;             // -> dest address
                 if (third.size() > 0)
                 {
                     new_blocks.push_back(std::move(third));
@@ -179,7 +183,8 @@ public:
         new_blocks.push_back(std::move(overwrites_loader));     // so last, can have size zero!
         return new_blocks;
     }
-    
+
+
 
     /// p_usr_address: when done loading all blocks end start machine code here as in RANDOMIZE USR xxxx
     /// p_clear_address: when done loading put stack pointer here, which is a bit like CLEAR xxxx
@@ -211,9 +216,9 @@ public:
             if (first.GetStartAddress() == spectrum::SCREEN_START && first.size() > spectrum::screen::SCREEN_SIZE)
             {
                 auto [screen, after] = SplitBlock(first, spectrum::SCREEN_START + spectrum::screen::SCREEN_SIZE);
-                memory_blocks.pop_front();          // kick of first and
-                memory_blocks.push_front(std::move(after));    // replace with these two;
-                memory_blocks.push_front(std::move(screen));   // with screen first
+                memory_blocks.pop_front();                   // kick of first and
+                memory_blocks.push_front(std::move(after));  // replace with these two;
+                memory_blocks.push_front(std::move(screen)); // with screen first
             }
         }
 
@@ -248,23 +253,23 @@ public:
             // patch zqloader itself
             if (p_usr_address == 0)
             {
-               // already warned earlier at BASIC parser 
-               std::cout << "<b>Warning: No machine code start address found in BASIC (USR). And loader will be moved, so will stack, but at end returns to BASIC, will almost certainly crash!</b>" << std::endl;
+                // already warned earlier at BASIC parser
+                std::cout << "<b>Warning: No machine code start address found in BASIC (USR). And loader will be moved, so will stack, but at end returns to BASIC, will almost certainly crash!</b>" << std::endl;
             }
             uint16_t copy_me_target_location = loader_copy_start + m_symbols.GetSymbol("STACK_SIZE");
 
             SetDataToZqLoaderTap("COPY_ME_SP", copy_me_target_location);        // before new copied block
             auto copy_me_source_location = m_symbols.GetSymbol("ASM_CONTROL_CODE_START");
-            auto copy_me_length = m_symbols.GetSymbol("ASM_CONTROL_CODE_LEN");
-            bool overlaps = Overlaps(copy_me_source_location, copy_me_source_location + copy_me_length, copy_me_target_location, copy_me_target_location + copy_me_length);
-            bool copy_lddr = copy_me_target_location > copy_me_source_location;
+            auto copy_me_length          = m_symbols.GetSymbol("ASM_CONTROL_CODE_LEN");
+            bool overlaps                = Overlaps(copy_me_source_location, copy_me_source_location + copy_me_length, copy_me_target_location, copy_me_target_location + copy_me_length);
+            bool copy_lddr               = copy_me_target_location > copy_me_source_location;
             if (!copy_lddr)
             {
                 // when false: use LDIR, copies from low to high
                 // when dest address is before source when overlapping
                 //   -> xxxxxxxx ->
                 //  xxxxxxxx         LDIR copy_lddr==false
-                std::cout << "Copy loader backwards (but LDIR working forwards) from " << copy_me_source_location << " to " << copy_me_target_location << " length=" << copy_me_length << " last = " << copy_me_target_location + copy_me_length - 1 << (overlaps ? " (overlaps)" : "") << '\n';
+                std::cout << "Copy loader backwards (but LDIR working forwards) from " << copy_me_source_location << " to " << copy_me_target_location << " length=" << copy_me_length << " last = " << copy_me_target_location + copy_me_length - 1 << ( overlaps ? " (overlaps)" : "" ) << '\n';
                 SetDataToZqLoaderTap("COPY_ME_DEST", copy_me_target_location);
                 SetDataToZqLoaderTap("COPY_ME_SOURCE_OFFSET", copy_me_source_location);
                 SetDataToZqLoaderTap("COPY_ME_LDDR_OR_LDIR", 0xb0ed); // LDIR! Endianness swapped
@@ -275,7 +280,7 @@ public:
                 // when dest address is after source when overlapping
                 //   <- xxxxxxxx <-
                 //          xxxxxxxx LDDR copy_lddr==true
-                std::cout << "Copy loader forwards (but LDDR working backwards) from " << copy_me_source_location << " to " << copy_me_target_location << " length=" << copy_me_length << " last = " << copy_me_target_location + copy_me_length - 1 << (overlaps ? " (overlaps)" : "") << '\n';
+                std::cout << "Copy loader forwards (but LDDR working backwards) from " << copy_me_source_location << " to " << copy_me_target_location << " length=" << copy_me_length << " last = " << copy_me_target_location + copy_me_length - 1 << ( overlaps ? " (overlaps)" : "" ) << '\n';
                 SetDataToZqLoaderTap("COPY_ME_DEST", copy_me_target_location + copy_me_length - 1);
                 SetDataToZqLoaderTap("COPY_ME_SOURCE_OFFSET", copy_me_source_location + copy_me_length - 1);
                 SetDataToZqLoaderTap("COPY_ME_LDDR_OR_LDIR", 0xb8ed); // LDDR! Endianness swapped
@@ -288,6 +293,8 @@ public:
         return m_turbo_blocks.size();
     }
 
+
+
     /// Move all earlier added turboblocks to given SpectrumLoader.
     /// Call after Finalize.
     /// p_is_fun_attribute originally used for scrolling attribute text, but more general
@@ -296,24 +303,17 @@ public:
     /// p_load_address: when given (!=0) load there first.
     void MoveToLoader(SpectrumLoader& p_spectrumloader, bool p_is_fun_attribute, uint16_t p_load_address = 0)
     {
-        // Only! for preloading, else no-op:
-        auto memory_blocks = std::move(m_memory_blocks);
-        for (auto& block : memory_blocks)
-        {
-            AddMemoryBlockAsTurboBlock(block, p_load_address);
-        }
-        std::chrono::milliseconds pause_before = 0ms;
         if (IsZqLoaderAdded())        // Add zqloader when added here. When not added here probably already preloaded.
         {
             p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_header), spectrum::tstate_quick_zero, 1750ms);
             p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_code), spectrum::tstate_quick_zero, 1500ms);
-            pause_before = m_initial_wait;
+            m_pause_before = m_initial_wait;
         }
 
 
 
         int cnt = 1;
-       
+
         for (auto& tblock : m_turbo_blocks)
         {
             auto next_pause = tblock.EstimateHowLongSpectrumWillTakeToDecompress(m_decompression_speed); // b4 because moved
@@ -321,28 +321,31 @@ public:
             if (!p_is_fun_attribute)
             {
                 std::cout << "Block #" << cnt++ << "\n";
-                if (pause_before > 0ms)
+                if (m_pause_before > 0ms)
                 {
-                    std::cout << "Pause before = " << pause_before.count() << "ms\n";
+                    std::cout << "Pause before = " << m_pause_before.count() << "ms\n";
                 }
                 tblock.DebugDump();
             }
-            std::move(tblock).MoveToLoader(p_spectrumloader, pause_before, m_zero_duration, m_one_duration, m_end_of_byte_delay);
-            pause_before = next_pause;
+            std::move(tblock).MoveToLoader(p_spectrumloader, m_pause_before, m_zero_duration, m_one_duration, m_end_of_byte_delay);
+            m_pause_before = next_pause;
         }
         m_turbo_blocks.clear();
 
     }
 
+
+
     void DebugDump() const
     {
         std::cout << "Duration of Zero/One: " << m_zero_duration << '/' << m_one_duration <<
             "; Max zero: " << m_zero_max <<
-            "; End of byte: " << m_end_of_byte_delay << 
-            "; Decompr. speed (kb/s): " << m_decompression_speed << 
+            "; End of byte: " << m_end_of_byte_delay <<
+            "; Decompr. speed (kb/s): " << m_decompression_speed <<
             "; Init. wait: " << m_initial_wait.count() << std::endl;
     }
-    
+
+
 
     /// Set durations in T states for zero and one pulses.
     /// When 0 keep defaults.
@@ -359,9 +362,8 @@ public:
             m_one_duration = p_one_duration;
         }
         m_end_of_byte_delay = p_end_of_byte_delay;      // can be zero as well
-        std::cout << "Around " << (1000ms / spectrum::tstate_dur) / ((m_zero_duration + m_one_duration) / 2) << " bps" << std::endl;
+        std::cout << "Around " << ( 1000ms / spectrum::tstate_dur ) / (( m_zero_duration + m_one_duration ) / 2 ) << " bps" << std::endl;
     }
-
 
 
 
@@ -376,19 +378,17 @@ public:
 
 
 
-
-
-
-
     // Length needed when loader code needs to be moved away from BASIC location
     uint16_t GetLoaderCodeLength(bool p_with_registers) const
     {
-        return m_symbols.GetSymbol("STACK_SIZE") +                                 // some space for stack
-            m_symbols.GetSymbol("ASM_CONTROL_CODE_LEN") +                       // our code eg decompressor
-            m_symbols.GetSymbol("ASM_UPPER_LEN") +                              // needed to reserve space when overwriting data at upper block
-            (p_with_registers ? m_symbols.GetSymbol("REGISTER_CODE_LEN") : 0u); // only needed when loading z80 snapshot
+        return m_symbols.GetSymbol("STACK_SIZE") +                                   // some space for stack
+               m_symbols.GetSymbol("ASM_CONTROL_CODE_LEN") +                         // our code eg decompressor
+               m_symbols.GetSymbol("ASM_UPPER_LEN") +                                // needed to reserve space when overwriting data at upper block
+               ( p_with_registers ? m_symbols.GetSymbol("REGISTER_CODE_LEN") : 0u ); // only needed when loading z80 snapshot
     }
-   
+
+
+
     /// Load symbols from given filename
     /// Eg zqloader.exp
     void LoadSymbolFilename(const std::filesystem::path& p_symbol_file_name)
@@ -401,9 +401,8 @@ public:
         std::cout << "Z80 loader total length = " << m_symbols.GetSymbol("TOTAL_LEN") << std::endl;
 
     }
+
 private:
-
-
 
     // Handle the tap block for zqloader.tap - so our loader itself.
     // Called when reading tap file.
@@ -430,10 +429,12 @@ private:
         return false;
     }
 
+
+
     // Get corrected address at datablock as read from zqloader.tap
     uint16_t GetZqLoaderSymbolAddress(const char* p_name) const
     {
-        uint16_t adr = 1 + m_symbols.GetSymbol(p_name); // + 1 because of start byte
+        uint16_t adr             = 1 + m_symbols.GetSymbol(p_name); // + 1 because of start byte
         uint16_t asm_upper_start = m_symbols.GetSymbol("ASM_UPPER_START");
         if (adr >= asm_upper_start)
         {
@@ -449,6 +450,7 @@ private:
     }
 
 
+
     // Convenience
     // Set a 8 bit byte or 16 bit word to the TAP block that contains ZQLoader Z80. To set parameters to ZQLoader.
     // p_block: block to modify data to, should be zqloader.tap.
@@ -462,11 +464,14 @@ private:
     void SetDataToZqLoaderTap(const char* p_name, uint16_t p_value)
     {
         uint16_t adr = GetZqLoaderSymbolAddress(p_name);
-        m_zqloader_code[adr] = std::byte(p_value & 0xff);   // z80 is little endian
-        m_zqloader_code[adr + 1] = std::byte((p_value >> 8) & 0xff);
+        m_zqloader_code[adr]     = std::byte(p_value & 0xff); // z80 is little endian
+        m_zqloader_code[adr + 1] = std::byte(( p_value >> 8 ) & 0xff);
         RecalculateChecksum(m_zqloader_code);
         std::cout << "Patching word '" << p_name << "' to: " << int(p_value) << " hex= " << std::hex << int(p_value) << std::dec << std::endl;
     }
+
+
+
     void SetDataToZqLoaderTap(const char* p_name, std::byte p_value)
     {
         uint16_t adr = GetZqLoaderSymbolAddress(p_name);
@@ -475,21 +480,23 @@ private:
         std::cout << "Patching byte '" << p_name << "' to: " << int(p_value) << " hex= " << std::hex << int(p_value) << std::dec << " bin= " << std::bitset<8>(int(p_value)) << std::endl;
     }
 
+
+
     // Move memory blocks to turboblocks.
     // Set what to do after each block eg bankswitch, CopyLoader (first), SetUsrStartAddress (last)
     // p_last_bank_to_set when <0: 48K snapshot. Dont do bank setting.
     // Called from Finalize.
     void MemoryBlocksToTurboBlocks(MemoryBlocks &&p_memory_blocks, uint16_t p_loader_copy_start, uint16_t p_usr_address, uint16_t p_clear_address, int p_last_bank_to_set)
     {
-        TurboBlock *prev = nullptr;
+        TurboBlock *prev     = nullptr;
         TurboBlock *prevprev = nullptr;
-        int prev_bank_set = -1;
+        int prev_bank_set    = -1;
         for (auto& block : p_memory_blocks)
         {
             prevprev = prev;
             if(block.size())
             {
-                if(prev && block.m_bank >= 0 && block.m_bank != prev_bank_set && p_last_bank_to_set >=0)
+                if(prev && block.m_bank >= 0 && block.m_bank != prev_bank_set && p_last_bank_to_set >= 0)
                 {
                     prev->SwitchBankTo(block.m_bank);
                     prev_bank_set = block.m_bank;
@@ -497,21 +504,21 @@ private:
                 uint16_t load_address = 0;
                 if(&block == &p_memory_blocks.back())
                 {
-                    // Last block when size != 0 is always the the block that overwrites our loader at upper. 
+                    // Last block when size != 0 is always the the block that overwrites our loader at upper.
                     // Set load-address. Dest address already ok.
                     if(p_loader_copy_start)
                     {
-                        load_address =  p_loader_copy_start + m_symbols.GetSymbol("STACK_SIZE") + m_symbols.GetSymbol("ASM_CONTROL_CODE_LEN");
+                        load_address = p_loader_copy_start + m_symbols.GetSymbol("STACK_SIZE") + m_symbols.GetSymbol("ASM_CONTROL_CODE_LEN");
                     }
                     else
                     {
                         load_address = m_symbols.GetSymbol("ASM_UPPER_START_OFFSET");
                     }
-                }        
+                }
                 prev = &AddMemoryBlockAsTurboBlock(block, load_address);
             }
         }
-        if(prevprev && p_last_bank_to_set >=0 && p_last_bank_to_set != prev_bank_set)
+        if(prevprev && p_last_bank_to_set >= 0 && p_last_bank_to_set != prev_bank_set)
         {
             prevprev->SwitchBankTo(p_last_bank_to_set);
         }
@@ -537,6 +544,7 @@ private:
     }
 
 
+
     // Add given memoryblock as turbo block
     // to end of list of turboblocks.
     // So convert to TurboBlock.
@@ -551,7 +559,7 @@ private:
             // (note: this can not be a screen)
             if (Overlaps(p_block, spectrum::PROG, m_symbols.GetSymbol("CLEAR")))
             {
-                TurboBlock empty;      
+                TurboBlock empty;
                 m_turbo_blocks.push_back(std::move(empty));
             }
         }
@@ -569,6 +577,7 @@ private:
     }
 
 
+
     static void RecalculateChecksum(DataBlock& p_block)
     {
         p_block[p_block.size() - 1] = 0_byte;       // Checksum, recalculate (needs to be zero b4 CalculateChecksum)
@@ -576,42 +585,39 @@ private:
     }
 
 private:
-    DataBlock                     m_zqloader_header;               // standard zx header for zqloader
-    DataBlock                     m_zqloader_code;                 // block with entire code for zqloader
-    MemoryBlocks                  m_memory_blocks;
-    std::list<TurboBlock>         m_turbo_blocks;                  // turbo blocks to load
-    Symbols                       m_symbols;                       // named symbols as read from EXP file
-    uint16_t                      m_loader_copy_start = 0;         // start of free space were our loader can be copied to, begins with stack, then Control code copied from basic
-    CompressionType               m_compression_type        = loader_defaults::compression_type;
-    int                           m_zero_duration           = loader_defaults::zero_duration;
-    int                           m_one_duration            = loader_defaults::one_duration;
-    int                           m_end_of_byte_delay       = loader_defaults::end_of_byte_delay;
-    int                           m_bit_loop_max            = loader_defaults::bit_loop_max;        // aka ONE_MAX, the wait for edge loop counter until timeout  
-    int                           m_zero_max                = loader_defaults::zero_max;            // aka ZERO_MAX sees a 'one' when waited more than this number of cycli at wait for edge
-    int                           m_io_init_value           = loader_defaults::io_init_value;       // aka ONE_MAX, the wait for edge loop counter until timeout
-    int                           m_io_xor_value            = loader_defaults::io_xor_value;        // aka ZERO_MAX sees a 'one' when waited more than this number of cycli at wait for edge
-    int                           m_decompression_speed     = loader_defaults::decompression_speed; // kb/second time spectrum needsto decompress before sending next block
-    std::chrono::milliseconds     m_initial_wait            = loader_defaults::initial_wait;        // pause after loading ZQLoader itself, give basic some time.
-    bool                          m_skip_pilots             = false;
-}; // class TurboBlocks
 
-
-
-
-
+    DataBlock                   m_zqloader_header;                 // standard zx header for zqloader
+    DataBlock                   m_zqloader_code;                   // block with entire code for zqloader
+    MemoryBlocks                m_memory_blocks;                   // blocks to load
+    std::list<TurboBlock>       m_turbo_blocks;                    // turbo blocks to load
+    Symbols                     m_symbols;                         // named symbols as read from EXP file
+    uint16_t                    m_loader_copy_start   = 0;         // start of free space were our loader can be copied to, begins with stack, then Control code copied from basic
+    CompressionType             m_compression_type    = loader_defaults::compression_type;
+    int                         m_zero_duration       = loader_defaults::zero_duration;
+    int                         m_one_duration        = loader_defaults::one_duration;
+    int                         m_end_of_byte_delay   = loader_defaults::end_of_byte_delay;
+    int                         m_bit_loop_max        = loader_defaults::bit_loop_max;        // aka ONE_MAX, the wait for edge loop counter until timeout
+    int                         m_zero_max            = loader_defaults::zero_max;            // aka ZERO_MAX sees a 'one' when waited more than this number of cycli at wait for edge
+    int                         m_io_init_value       = loader_defaults::io_init_value;       // aka ONE_MAX, the wait for edge loop counter until timeout
+    int                         m_io_xor_value        = loader_defaults::io_xor_value;        // aka ZERO_MAX sees a 'one' when waited more than this number of cycli at wait for edge
+    int                         m_decompression_speed = loader_defaults::decompression_speed; // kb/second time spectrum needsto decompress before sending next block
+    std::chrono::milliseconds   m_initial_wait        = loader_defaults::initial_wait;        // pause after loading ZQLoader itself, give basic some time.
+    std::chrono::milliseconds   m_pause_before        = 0ms;
+    bool                        m_skip_pilots         = false;
+};                                                                                            // class TurboBlocks
 
 
 
 TurboBlocks::TurboBlocks() :
-    m_pimpl( new Impl() )
+    m_pimpl(new Impl() )
 {}
 
 TurboBlocks::~TurboBlocks() = default;
 
 
-TurboBlocks::TurboBlocks(TurboBlocks &&) noexcept               = default;
+TurboBlocks::TurboBlocks(TurboBlocks &&) noexcept              = default;
 
-TurboBlocks & TurboBlocks::operator = (TurboBlocks &&) noexcept = default;
+TurboBlocks & TurboBlocks::operator =(TurboBlocks &&) noexcept = default;
 
 
 
@@ -621,15 +627,20 @@ TurboBlocks& TurboBlocks::AddZqLoader(const std::filesystem::path& p_filename)
     return *this;
 }
 
+
+
 bool TurboBlocks::IsZqLoaderAdded() const
 {
     return m_pimpl->IsZqLoaderAdded();
 }
 
+
+
 size_t TurboBlocks::size() const
 {
-    return m_pimpl->m_memory_blocks.size(); 
+    return m_pimpl->m_memory_blocks.size();
 }
+
 
 
 TurboBlocks& TurboBlocks::AddMemoryBlock(MemoryBlock p_block)
@@ -638,16 +649,22 @@ TurboBlocks& TurboBlocks::AddMemoryBlock(MemoryBlock p_block)
     return *this;
 }
 
+
+
 TurboBlocks& TurboBlocks::AddMemoryBlockAsTurboBlock(const MemoryBlock &p_block,  uint16_t p_load_address)
 {
     m_pimpl->AddMemoryBlockAsTurboBlock(p_block, p_load_address);
     return *this;
 }
 
+
+
 size_t TurboBlocks::Finalize(uint16_t p_usr_address, uint16_t p_clear_address, int p_last_bank_to_set)
 {
     return m_pimpl->Finalize(p_usr_address, p_clear_address, p_last_bank_to_set);
 }
+
+
 
 TurboBlocks & TurboBlocks::MoveToLoader(SpectrumLoader& p_spectrumloader, bool p_is_fun_attribute, uint16_t p_load_address)
 {
@@ -655,11 +672,15 @@ TurboBlocks & TurboBlocks::MoveToLoader(SpectrumLoader& p_spectrumloader, bool p
     return *this;
 }
 
+
+
 TurboBlocks& TurboBlocks::SetDurations(int p_zero_duration, int p_one_duration, int p_end_of_byte_delay)
 {
     m_pimpl->SetDurations(p_zero_duration, p_one_duration, p_end_of_byte_delay);
     return *this;
 }
+
+
 
 TurboBlocks& TurboBlocks::SetBitLoopMax(int p_value)
 {
@@ -670,6 +691,8 @@ TurboBlocks& TurboBlocks::SetBitLoopMax(int p_value)
     return *this;
 }
 
+
+
 TurboBlocks& TurboBlocks::SetZeroMax(int p_value)
 {
     if(p_value)
@@ -679,18 +702,24 @@ TurboBlocks& TurboBlocks::SetZeroMax(int p_value)
     return *this;
 }
 
+
+
 TurboBlocks& TurboBlocks::SetIoValues(int p_io_init_value, int p_io_xor_value)
 {
     m_pimpl->m_io_init_value = p_io_init_value;
-    m_pimpl->m_io_xor_value = (p_io_xor_value | 0b01000000);      // edge needs to be xored always (dialog does this too)
+    m_pimpl->m_io_xor_value  = ( p_io_xor_value | 0b01000000 );   // edge needs to be xored always (dialog does this too)
     return *this;
 }
+
+
 
 TurboBlocks& TurboBlocks::SetCompressionType(CompressionType p_compression_type)
 {
     m_pimpl->m_compression_type = p_compression_type;
     return *this;
 }
+
+
 
 TurboBlocks& TurboBlocks::SetDeCompressionSpeed(int p_kb_per_sec)
 {
@@ -701,11 +730,15 @@ TurboBlocks& TurboBlocks::SetDeCompressionSpeed(int p_kb_per_sec)
     return *this;
 }
 
+
+
 TurboBlocks& TurboBlocks::SetInitialWait(std::chrono::milliseconds p_initial_wait)
 {
     m_pimpl->m_initial_wait = p_initial_wait;
     return *this;
 }
+
+
 
 TurboBlocks& TurboBlocks::CopyLoaderTo(uint16_t p_value)
 {
@@ -713,12 +746,15 @@ TurboBlocks& TurboBlocks::CopyLoaderTo(uint16_t p_value)
     return *this;
 }
 
+
+
 /// Set start of free space to copy loader including space for sp.
-TurboBlocks&  TurboBlocks::SetLoaderCopyTarget(uint16_t p_value )
+TurboBlocks&  TurboBlocks::SetLoaderCopyTarget(uint16_t p_value)
 {
     m_pimpl->m_loader_copy_start = p_value;
     return *this;
 }
+
 
 
 /// Convenience public read access to Symbols as loaded by CTOR.
@@ -728,7 +764,8 @@ const Symbols& TurboBlocks::GetSymbols() const
 }
 
 
-uint16_t TurboBlocks::GetLoaderCodeLength(bool p_with_registers ) const
+
+uint16_t TurboBlocks::GetLoaderCodeLength(bool p_with_registers) const
 {
     return m_pimpl->GetLoaderCodeLength(p_with_registers);
 }
@@ -738,25 +775,13 @@ uint16_t TurboBlocks::GetLoaderCodeLength(bool p_with_registers ) const
 TurboBlocks &TurboBlocks::DebugDump() const
 {
     m_pimpl->DebugDump();
-    return *const_cast<TurboBlocks*>(this);
+    return *const_cast<TurboBlocks*>( this );
 }
+
+
 
 TurboBlocks& TurboBlocks::SetSkipPilots(bool p_to_what)
 {
     m_pimpl->m_skip_pilots = p_to_what;
     return *this;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
