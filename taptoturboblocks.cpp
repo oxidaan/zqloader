@@ -16,7 +16,7 @@
 
 
 /// call back
-/// Handle loaded/incoming data block:
+/// Handle loaded/incoming data block (while reading tap or tzx):
 /// p_block includes type and checksum but not the length.
 /// When header: check name; store as last header.
 /// When data: based on last header header:
@@ -180,7 +180,10 @@ inline uint16_t TapToTurboBlocks::TryReadNumberFromBasic(const DataBlock& p_basi
 }
 
 
-
+// Try to find one ore more numbers in given BASIC block.
+// CheckFun/p_check_fun must return true when matching a certain pattern to search for (depending on what to search for)
+// then looks for the number that follows.
+// Used by TryFindUsr / TryFindClear / TryFindLoadCode.
 inline std::vector<uint16_t> TapToTurboBlocks::TryFindInBasic(const DataBlock& p_basic_block, const CheckFun &p_check_fun)
 {
     std::vector<uint16_t> retval;

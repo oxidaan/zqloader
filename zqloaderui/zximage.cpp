@@ -32,7 +32,7 @@ using enum spectrum::screen::PaletteColor;
 // Spectrum colors considered 'dark'
 constexpr int spectrum_dark_colors[] = { black , blue, red };
 // Spectrum colors considered 'light'
-constexpr int spectrum_light_colors[] = { magenta, green, cyan, yellow, white, br_magenta, br_green, br_cyan, br_yellow, br_white};
+constexpr int spectrum_light_colors[] = { green, cyan, yellow, white, br_magenta, br_green, br_cyan, br_yellow, br_white};
 
 constexpr int spectrum_gray_colors[] = { black, white, br_black, br_white };
 
@@ -167,7 +167,7 @@ public:
     static spectrum::screen::Screen ImageToSpectrumScreen(const QImage &p_image, AlgorithmParameters p_how)
     {
         spectrum::screen::Screen spectrum_screen;
-        // 1) Scale down to spectrum resolution (256x192)
+        // 1) Scale down to spectrum resolution (256x192) and center
         QImage image256x192 = CenterScale(p_image, spectrum::screen::SCREEN_WIDTH, spectrum::screen::SCREEN_HEIGHT);
 
         // 2) Determine color attribute using the scaled image
