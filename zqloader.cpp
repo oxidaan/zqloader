@@ -208,7 +208,7 @@ public:
     void AddMemoryBlock(const MemoryBlock &p_block, uint16_t p_load_address)
     {
         m_turboblocks.AddMemoryBlockAsTurboBlock(p_block, p_load_address);
-        m_turboblocks.MoveToLoader(m_spectrumloader, true, p_load_address);
+        m_turboblocks.MoveToLoader(m_spectrumloader, true);
     }
 
 

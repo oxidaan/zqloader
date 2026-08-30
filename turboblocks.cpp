@@ -301,7 +301,7 @@ public:
     /// for a continues stream of (small) blocks. (can skip pilot, dont log)
     /// no-op when there are no blocks.
     /// p_load_address: when given (!=0) load there first.
-    void MoveToLoader(SpectrumLoader& p_spectrumloader, bool p_is_fun_attribute, uint16_t p_load_address = 0)
+    void MoveToLoader(SpectrumLoader& p_spectrumloader, bool p_is_fun_attribute)
     {
         if (IsZqLoaderAdded())        // Add zqloader when added here. When not added here probably already preloaded.
         {
@@ -666,9 +666,9 @@ size_t TurboBlocks::Finalize(uint16_t p_usr_address, uint16_t p_clear_address, i
 
 
 
-TurboBlocks & TurboBlocks::MoveToLoader(SpectrumLoader& p_spectrumloader, bool p_is_fun_attribute, uint16_t p_load_address)
+TurboBlocks & TurboBlocks::MoveToLoader(SpectrumLoader& p_spectrumloader, bool p_is_fun_attribute)
 {
-    m_pimpl->MoveToLoader(p_spectrumloader, p_is_fun_attribute, p_load_address);
+    m_pimpl->MoveToLoader(p_spectrumloader, p_is_fun_attribute);
     return *this;
 }
 

@@ -36,7 +36,8 @@ constexpr const char *DefaultZxFilename = "[Optional first name as in LOAD \"som
 constexpr const char *DefaultTurboFilename = "[Select a file to speed load here, a game for example.]";
 constexpr const char *DefaultOutputFilename = "[To write an output file instead of playing sound enter a .wav or .tzx output file here. Leave empty for normal usage (playing audio)]";
 constexpr const char *DefaultVideoFile = "[To have 'live' (...) video on ZX spectrum. Enter a filename here or 'camera' for webcam.]";
-constexpr const char *DefaultImageDir = "[To have images as dia show on ZX spectrum. Not working yet.]";
+constexpr const char *DefaultImageDir = "[To have images as dia show on ZX spectrum.]";
+constexpr const char* DefaultSampleRate = "[Device default]";
 
 inline void MakeBlack(QLineEdit *p_line_edit)
 {
@@ -413,7 +414,7 @@ Dialog::Dialog(QWidget *parent)
     ConnectLineEditFocus(ui->lineEditOutputFile, DefaultOutputFilename);
     ConnectLineEditFocus(ui->lineEditVideoFile,  DefaultVideoFile);
     ConnectLineEditFocus(ui->lineEditImageDir,   DefaultImageDir);
-    ConnectLineEditFocus(ui->lineEditSampleRate, "[Device default]");
+    ConnectLineEditFocus(ui->lineEditSampleRate, DefaultSampleRate);
 
 
 
@@ -643,8 +644,8 @@ inline void Dialog::Go()
                 // start video or image fun
                 m_zqloader.Reset();
                 fs::path filename1 = ui->lineEditNormalFile->text().toStdString();
-                m_zqloader.SetNormalFilename(filename1).SetPreload();       // should be zqloader or empty
                 SetZqLoaderParameters();
+                m_zqloader.SetNormalFilename(filename1).SetPreload();       // should be zqloader or empty
                 m_zqloader.Start();
                 if(!video_url.empty() && video_url[0] != '[')
                 {

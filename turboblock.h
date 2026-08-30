@@ -176,11 +176,6 @@ public:
     }
 
 
-    TurboBlock& SetSkipPilot(bool p_to_what)
-    {
-        m_skip_pilot = p_to_what;
-        return *this;
-    }
 
     AfterBlock GetAfterBlockDo() const
     {
@@ -201,7 +196,7 @@ public:
         {
             PausePulser(p_loader.GetTstateDuration()).SetLength(p_pause_before).MoveToLoader(p_loader);           // pause before
         }
-        TonePulser(p_loader.GetTstateDuration()).SetPattern(500, 500).SetLength(m_skip_pilot ? 20ms : 200ms).MoveToLoader(p_loader);    // leader; best to have even number of edges
+        TonePulser(p_loader.GetTstateDuration()).SetPattern(500, 500).SetLength(m_pilot_length).MoveToLoader(p_loader);    // leader; best to have even number of edges
         TonePulser(p_loader.GetTstateDuration()).SetPattern(250, 499).SetLength(1).MoveToLoader(p_loader);        // sync + 499=minisync!
 
 
@@ -227,7 +222,10 @@ public:
 
     TurboBlock& DebugDump(int p_max = 0) const;
 
-
+    TurboBlock& SetPilotLength(std::chrono::milliseconds p_duration)
+    {
+        m_pilot_length = p_duration;
+    }
 private:
 
     // See https://wikiti.brandonw.net/index.php?title=Z80_Optimization#Looping_with_16_bit_counter
@@ -293,7 +291,7 @@ private:
 private:
 
     size_t      m_data_size{};               // size of (uncompressed/final) data exl. header. Note: Spectrum does not need this.
-    bool        m_skip_pilot = false;        // has (long or short) pilot tone + sync
+    std::chrono::milliseconds m_pilot_length = 200ms;
     DataBlock   m_data;                      // the data as send to Spectrum, starts with header
 }; // class TurboBlock
 

@@ -171,13 +171,13 @@ next_block:
     exx
 
     // Intialize edge plus border color -> C
-    // So get intial value from port->C
+    // So get intial value->C
     // Initialize H to C XOR-value.
     // https://worldofspectrum.org/faq/reference/48kreference.htm#PortFE
     // E=ear, M=mic, K-keyboard, B = bordercolor
     //            7  6  5  4  3  2  1  0
     // in(0xfe):  0  E  0  K  K  K  K  K    
-    // out(0xfe): d  d  d  E !M  B  B  B  
+    // out(0xfe): d  d  d  E !M  B  B  B    (->C)
     // Note: removed initializing edge at IN. Not really needed.
 IO_INIT_VALUE+*: ld C, 0b00001010 // ear zero border red 010 <-> 101 cyan + also set mic (and/or ear)
                                   // initialize c with result: 0E001010 see WAIT_FOR_EDGE #2
@@ -482,6 +482,7 @@ COPY_ME_END_JUMP+*:     jp SCREEN_23RD + STACK_SIZE             // Continue at n
 // HL' storage location-1, must be header location-1.
 // DE': # bytes to load must be size of header.
 // C: last IN at WAIT_FOR_EDGE; border color.
+// E: EAR mask value after IN so 0b01000000
 // H: XOR value for C.
 // C': Checksum init value must also be sizeof header.
 // Out:
@@ -548,7 +549,7 @@ wait_for_first_edge:
     // When fails from now on do not try again.
     // call PRINT_DEBUG            // @DEBUG
 
-    ld    A, C                  //  00001010 or 
+    ld    A, C                  //  C=0E001010  
     xor   0b00000011            //  Toggle border 001 blue <-> 110 yellow from now on
     ld    C, A                  //  C=0E001001    H is still 01000111
 
@@ -583,6 +584,7 @@ wait_for_first_edge:
 // HL' storage location, this is modified (walks to end)
 // BC': # bytes to load  (walks down to zero)
 // C: to check changes at last IN ; border color: 0E001001.
+// E: EAR mask value after IN so 0b01000000
 // H: the C xor value, must be 0b01000111 (or 0b01011111) so toggles last edge + border. Does not change.
 // E': Checksum init value must be sizeof header.
 // Out:
@@ -694,7 +696,7 @@ WAIT_FOR_EDGE:
     //ld A,$7F 	                // Maybe not needed. Read from port 0x7FFE, read EAR. 49 + 16 since prev. IN is 59 
     in A,($FE)                  // bit 0 is !BREAK, bit 6 is ear
     xor C                       // detect change at ear (also reset carry)
-    and 0b01000000              // mask ear 
+    and E   //0b01000000        // mask ear 
     jr z, wait_for_edge_loop1    
 
     // -- Once here: change seen --

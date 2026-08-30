@@ -84,7 +84,7 @@ public:
     /// Call after Finalize.
     /// to given SpectrumLoader.
     /// no-op when there are no blocks.
-    TurboBlocks& MoveToLoader(SpectrumLoader& p_spectrumloader, bool p_is_fun_attribute = false, uint16_t p_load_address = 0);
+    TurboBlocks& MoveToLoader(SpectrumLoader& p_spectrumloader, bool p_is_fun_attribute = false);
 
 
     /// Set durations in T states for zero and one pulses.

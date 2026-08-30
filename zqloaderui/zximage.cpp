@@ -163,7 +163,6 @@ public:
     }
 
     /// Convert given QImage to spectrum screen
-    /// Can run in miniaudio thread
     static spectrum::screen::Screen ImageToSpectrumScreen(const QImage &p_image, AlgorithmParameters p_how)
     {
         spectrum::screen::Screen spectrum_screen;
