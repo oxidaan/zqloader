@@ -65,9 +65,6 @@ public:
     /// Add given memory block, make it a turboblock immidiately.
     TurboBlocks& AddMemoryBlockAsTurboBlock(const MemoryBlock &p_block, uint16_t p_load_address = 0);
 
-    /// p_usr_address: when done loading all blocks end start machine code here as in RANDOMIZE USR xxxx
-    /// p_clear_address: when done loading put stack pointer here, which is a bit like CLEAR xxxx
-    /// To be called after last block was added.
     /// Make sure:
     ///     to add upperblock (overwriting loader) as last in the chain.
     ///     patch loader code.
@@ -80,15 +77,12 @@ public:
     size_t Finalize(uint16_t p_usr_address, uint16_t p_clear_address = 0, int p_last_bank_to_set = -1);
     
 
-    /// Move all added turboblocks to SpectrumLoader as given at CTOR.
+    /// Move all added turboblocks to given SpectrumLoader as given at CTOR.
     /// Call after Finalize.
-    /// to given SpectrumLoader.
     /// no-op when there are no blocks.
     TurboBlocks& MoveToLoader(SpectrumLoader& p_spectrumloader, bool p_is_fun_attribute = false);
 
 
-    /// Set durations in T states for zero and one pulses.
-    /// When 0 keep defaults.
     /// Set durations in T states for zero and one pulses.
     /// When 0 keep defaults.
     TurboBlocks& SetDurations(int p_zero_duration, int p_one_duration, int p_end_of_byte_delay);
@@ -118,8 +112,6 @@ public:
 
 
 
-    /// Add just a header with a 'copy to screen' command (no data)
-    /// Mainly for debugging!
     /// Add just a header with a 'copy to screen' command (no data)
     /// Mainly for debugging!
     TurboBlocks& CopyLoaderTo(uint16_t p_value);
