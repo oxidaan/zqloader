@@ -32,6 +32,7 @@ public:
         ReturnToBasic   = 0x3 << 8,       // return to basic (H=3 at z80)
         BankSwitch      = 0x4 << 8,       // zx spectrum 128 bank switch command (H=4)
         // all other values are like RANDOMIZE USR xxxxx so start MC there (and this was last block)
+        // (See union below)
     };
 
 private:
@@ -49,10 +50,6 @@ private:
             uint16_t   m_usr_start_address{};
             AfterBlock m_after_block; // 8-9
         };
-        // When LoadNext: more blocks follow. This is the default.
-        // When CopyLoader is 'copy loader' command, more blocks follow.
-        // When ReturnToBasic end & return to basic, do not start MC.
-        // Else start MC code here as USR. Then this must be last block.
 
         union
         {
@@ -204,24 +201,25 @@ public:
         DataBlock header(m_data.begin(), m_data.begin() + sizeof(Header));      // split (eg for minisync)
         DataBlock payload(m_data.begin() + sizeof(Header), m_data.end());
 
-        MoveToLoader(p_loader, std::move(header), p_zero_duration, p_one_duration, p_end_of_byte_delay);     // header
+        MoveToLoader(p_loader, std::move(header), p_zero_duration, p_one_duration, p_end_of_byte_delay);             // header
         if (payload.size() != 0)
         {
-            TonePulser(p_loader.GetTstateDuration()).SetPattern(501).SetLength(1).MoveToLoader(p_loader);       //  501=minisync!
+            TonePulser(p_loader.GetTstateDuration()).SetPattern(501).SetLength(1).MoveToLoader(p_loader);            //  501=minisync!
            // PausePulser(p_loader.GetTstateDuration()).SetLength(500).SetEdge(Edge::toggle).MoveToLoader(p_loader); //  minisync!
-            MoveToLoader(p_loader, std::move(payload), p_zero_duration, p_one_duration, p_end_of_byte_delay);     // data
+            MoveToLoader(p_loader, std::move(payload), p_zero_duration, p_one_duration, p_end_of_byte_delay);        // data
         }
     }
 
 
 
-   // After loading a compressed block ZX spectrum needs some time to
-   // decompress before it can accept next block. Will wait this long after sending block.
+    /// After loading a compressed block ZX spectrum needs some time to
+    /// decompress before it can accept next block. Will wait this long after sending block.
     std::chrono::milliseconds EstimateHowLongSpectrumWillTakeToDecompress(int p_decompression_speed) const;
 
 
     TurboBlock& DebugDump(int p_max = 0) const;
 
+    /// Set pilot tone length
     TurboBlock& SetPilotLength(std::chrono::milliseconds p_duration)
     {
         m_pilot_length = p_duration;
