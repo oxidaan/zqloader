@@ -83,8 +83,8 @@ inline void FocusOut(QLineEdit *p_line_edit, const char *p_tip_text)
 }
 
 
-///  Yes!
-/// Runs in miniaudio thread
+/// Sent scrolling fun text to ZX-spectrum. After preloaded.
+/// Runs in miniaudio thread.
 void WriteFunText(ZQLoader &p_zq_loader, bool p_first)
 {
     static int col = 32;
@@ -368,6 +368,46 @@ Dialog::Dialog(QWidget *parent)
         m_zqloader.Test();
     });
 
+    connect(ui->checkBoxUseFloydSteinberg, &QCheckBox::checkStateChanged, [this]
+    {
+         auto ap = ui->zximage->GetAlgorithmParameters();
+         ap.m_use_floyd_steinberg = ui->checkBoxUseFloydSteinberg->isChecked();
+         ui->zximage->SetAlgorithmParameters(std::move(ap));
+    });
+    connect(ui->checkBoxUseGrayScale, &QCheckBox::checkStateChanged, [this]
+    {
+        auto ap = ui->zximage->GetAlgorithmParameters();
+        ap.m_use_distance_to_black_white = ui->checkBoxUseGrayScale->isChecked();
+        ui->zximage->SetAlgorithmParameters(std::move(ap));
+    });
+    connect(ui->checkBoxUseMagenta, &QCheckBox::checkStateChanged, [this]
+    {
+        auto ap = ui->zximage->GetAlgorithmParameters();
+        if( ui->checkBoxUseMagenta->isChecked() )
+        {
+            ap.m_dark_colors.insert(spectrum::screen::magenta);
+            ap.m_light_colors.insert(spectrum::screen::magenta);
+        }
+        else
+        {
+            ap.m_dark_colors.erase(spectrum::screen::magenta);
+            ap.m_light_colors.erase(spectrum::screen::magenta);
+        }
+        ui->zximage->SetAlgorithmParameters(std::move(ap));
+    });
+    connect(ui->checkBoxSimpleColorDistance, &QCheckBox::checkStateChanged, [this]
+    {
+        auto ap = ui->zximage->GetAlgorithmParameters();
+        ap.m_use_simple_count = ui->checkBoxSimpleColorDistance->isChecked();
+        ui->zximage->SetAlgorithmParameters(std::move(ap));
+    });
+    connect(ui->checkBoxUAttrDarkLight, &QCheckBox::checkStateChanged, [this]
+    {
+        auto ap = ui->zximage->GetAlgorithmParameters();
+        ap.m_use_dark_and_light = ui->checkBoxUAttrDarkLight->isChecked();
+        ui->zximage->SetAlgorithmParameters(std::move(ap));
+    });
+
     // Called when zqloader is done.
     m_zqloader.SetOnDone([this]
     {
@@ -426,7 +466,6 @@ Dialog::Dialog(QWidget *parent)
     {
         UpdateUI();
     });
-
     timer->start();
 
     // commandline file parameter given, start immidiately
@@ -965,6 +1004,7 @@ inline bool Dialog::Read(QSettings& p_settings, QObject *p_for_what)
 }
 
 
+#if 0
 // Convert Tstate value to # polling cycles at ZQloader z80 code.
 // (currently not (yet) used anymore)
 inline double TStateToCycle(int p_tstate)
@@ -972,6 +1012,8 @@ inline double TStateToCycle(int p_tstate)
    double retval = double(p_tstate -  loader_tstates::bit_loop_duration) / loader_tstates::wait_for_edge_loop_duration;
    return retval >= 0 ? retval : 0;
 }
+#endif
+
 // Convert # polling cycles to Tstate value that will take that ZQloader z80 code.
 inline int CycleToTstate(double p_cyclii)
 {

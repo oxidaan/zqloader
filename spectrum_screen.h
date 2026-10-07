@@ -30,12 +30,20 @@ constexpr uint16_t ATTR_23RD = ATTR_BEGIN + 512;
 
 
 
-/// Defines all 16 color names (index in palette), including bright, can be used as int
+/// Defines all 16 color names (index in palette), including bright, can be used as int/index
 enum PaletteColor : uint8_t
 {
     black, blue, red, magenta, green, cyan, yellow, white,
     br_black, br_blue, br_red, br_magenta, br_green, br_cyan, br_yellow, br_white,
 };
+
+// color categories
+// Spectrum colors considered 'dark'
+constexpr std::initializer_list<int> spectrum_dark_colors = { black , blue, red };
+// Spectrum colors considered 'light'
+constexpr std::initializer_list<int> spectrum_light_colors = { green, cyan, yellow, white, br_magenta, br_green, br_cyan, br_yellow, br_white };
+
+constexpr std::initializer_list<int> spectrum_gray_colors = { black, white, br_black, br_white };
 
 
 

@@ -22,31 +22,12 @@
 
 namespace fs = std::filesystem;
 
-
-
-
-
-// color categories
 using enum spectrum::screen::PaletteColor;  
-
-// Spectrum colors considered 'dark'
-constexpr int spectrum_dark_colors[] = { black , blue, red };
-// Spectrum colors considered 'light'
-constexpr int spectrum_light_colors[] = { green, cyan, yellow, white, br_magenta, br_green, br_cyan, br_yellow, br_white};
-
-constexpr int spectrum_gray_colors[] = { black, white, br_black, br_white };
-
 
 using Attributes = std::vector<spectrum::screen::Attr>;
 
 
-struct AlgorithmParameters
-{
-    bool m_use_distance_to_black_white = true;
-    bool m_use_floyd_steinberg = true;
-    std::span<const int> m_dark_colors = spectrum_dark_colors;
-    std::span<const int> m_light_colors = spectrum_light_colors;
-};
+
 
 class ZxImage::Impl
 {
@@ -57,6 +38,8 @@ public:
         m_this(p_this)
     {
         m_thread = std::thread([this] {ThreadFun(); });
+        m_algorithm_parameters.m_dark_colors = spectrum::screen::spectrum_dark_colors;
+        m_algorithm_parameters.m_dark_colors = spectrum::screen::spectrum_light_colors;
     }
 
 
@@ -87,6 +70,11 @@ public:
         }
     }
 
+    void SetAlgorithmParameters(AlgorithmParameters p_algorithm_parameters)
+    {
+        std::unique_lock lock(m_mutex);
+        m_algorithm_parameters = std::move(p_algorithm_parameters);
+    }
 
 
 
@@ -110,7 +98,9 @@ public:
     }
 
     // Runs in miniaudio thread
-    // Return spectrum screen that can be sent as data to Spectrum
+    // Return (last loaded) spectrum screen that can be sent as data to Spectrum
+    // Note: there is no test a screen was alrady loaded. This asumes the loading thread is (much) faster as 
+    // sending it to the ZX Spectrum.
     spectrum::screen::Screen GetLastLoadedScreen()
     {
         spectrum::screen::Screen screen;
@@ -137,9 +127,12 @@ public:
         }
     }
 
+    // Runs in ThreadFun thread
+    // Loads next Image, put in m_screen
     void LoadNext()
     {
         fs::path image_filename;
+        AlgorithmParameters algorithm_parameters{};
         {
             std::unique_lock lock(m_mutex);
             image_filename = m_filenames[m_index];
@@ -148,22 +141,22 @@ public:
             {
                 m_index = 0;
             }
+            algorithm_parameters = m_algorithm_parameters;
             std::cout << m_index << ' ' << image_filename << std::endl;
         }
         QImage image(QString::fromStdString(image_filename.string()));
-        AlgorithmParameters how;
-        auto screen = ImageToSpectrumScreen(image, how);
+        auto screen = ImageToSpectrumScreen(image, algorithm_parameters);
 
         {
             std::unique_lock lock(m_mutex);
-            m_image = std::move(image);
-            m_screen = std::move(screen);
+            m_image = std::move(image);         // loaded original
+            m_screen = std::move(screen);       // spectrum screen
         }
         m_this->update();       // -> paintEvent
     }
 
     /// Convert given QImage to spectrum screen
-    static spectrum::screen::Screen ImageToSpectrumScreen(const QImage &p_image, AlgorithmParameters p_how)
+    static spectrum::screen::Screen ImageToSpectrumScreen(const QImage &p_image, const AlgorithmParameters &p_how)
     {
         spectrum::screen::Screen spectrum_screen;
         // 1) Scale down to spectrum resolution (256x192) and center
@@ -174,7 +167,9 @@ public:
         {
             for (int attrx = 0; attrx < 32; attrx++)
             {
-                spectrum::screen::Attr attr = DetermineAttributeForCell(image256x192, attrx, attry, p_how);
+                spectrum::screen::Attr attr = p_how.m_use_dark_and_light ? 
+                                                    DetermineAttributeForCell(image256x192, attrx, attry, p_how) :
+                                                    DetermineAttributeForCell2(image256x192, attrx, attry, p_how);
                 //attr.attr.ink = spectrum::Screen::AttributeColor::black;
                 //attr.attr.paper = spectrum::Screen::AttributeColor::white;
                 spectrum_screen.SetAttribute(attrx, attry, attr);
@@ -259,16 +254,17 @@ private:
     // p_attr_x,  p_attr_y are attribute (32x24) coordinates thus corresponding to top left pixel
     // (as QRgb) of an 8x8 cell at a QImage.
     // For each 8x8 (=64) pixels of that cell determine:
-    // nearest spectrum color considered dark and nearest spectrum color considered light
+    // nearest spectrum color considered 'dark' and nearest spectrum color considered 'light'
     // and count them both. Lower distances to nearest color count heavier.
     // Then find the indexes for the most used spectrum color considered dark and light,
     // return those as spectrum attibute: dark for ink and light for paper.
     // The used the light color also determines bright flag.
     // (At spectrum bright flag has barely effect on dark colors).
-    static spectrum::screen::Attr DetermineAttributeForCell(const QImage &p_image, int p_attr_x, int p_attr_y, AlgorithmParameters p_how)
+    static spectrum::screen::Attr DetermineAttributeForCell(const QImage &p_image, int p_attr_x, int p_attr_y, const AlgorithmParameters &p_how)
     {
         int count_dark[16]{};
         int count_light[16]{};
+        const auto& simple_count = p_how.m_use_simple_count;
 
         for(int y = 0; y < 8; y++)
         {
@@ -279,22 +275,22 @@ private:
                 {
                     auto [dist_dark,  index_dark]  = GetNearestColor(rgb, spectrum::screen::palette, {black});
                     auto [dist_light, index_light] = GetNearestColor(rgb, spectrum::screen::palette, {white, br_white});
-                    count_dark [index_dark]       += (( 256 * 256 * 3 ) - dist_dark );
-                    count_light[index_light]      += (( 256 * 256 * 3 ) - dist_light );
+                    count_dark [index_dark]       += simple_count ? 1 : (( 256 * 256 * 3 ) - dist_dark );
+                    count_light[index_light]      += simple_count ? 1 : (( 256 * 256 * 3 ) - dist_light );
                 }
                 else if(IsAlmostSkin(rgb))
                 {
                     auto [dist_dark,  index_dark]  = GetNearestColor(rgb, spectrum::screen::palette, p_how.m_dark_colors);
                     auto [dist_light, index_light] = GetNearestColor(rgb, spectrum::screen::palette, { white, br_white});
-                    count_dark [index_dark]       += (( 256 * 256 * 3 ) - dist_dark );
-                    count_light[index_light]      += (( 256 * 256 * 3 ) - dist_light );
+                    count_dark [index_dark]       += simple_count ? 1 : (( 256 * 256 * 3 ) - dist_dark );
+                    count_light[index_light]      += simple_count ? 1 : (( 256 * 256 * 3 ) - dist_light );
                 }
                 else
                 {
                     auto [dist_dark,  index_dark]  = GetNearestColor(rgb, spectrum::screen::palette, p_how.m_dark_colors);
                     auto [dist_light, index_light] = GetNearestColor(rgb, spectrum::screen::palette, p_how.m_light_colors);
-                    count_dark [index_dark]       += (( 256 * 256 * 3 ) - dist_dark );
-                    count_light[index_light]      += (( 256 * 256 * 3 ) - dist_light );
+                    count_dark [index_dark]       += simple_count ? 1 :  (( 256 * 256 * 3 ) - dist_dark );
+                    count_light[index_light]      += simple_count ? 1 : (( 256 * 256 * 3 ) - dist_light );
                 }
             }
         }
@@ -302,25 +298,19 @@ private:
         auto FindMax = [](const int p_values[])
         {
             int idx_max    = 0;
-            int idx_2ndmax = -1;
 
             for (int i = 1; i < 16; i++)
             {
                 if (p_values[i] >= p_values[idx_max])
                 {
-                    idx_2ndmax = idx_max;
                     idx_max    = i;
                 }
-                else if (idx_2ndmax == -1 || p_values[i] > p_values[idx_2ndmax])
-                {
-                    idx_2ndmax = i;
-                }
             }
-            return std::pair<int, int>{idx_max, idx_2ndmax};
+            return idx_max;
         };
 
-        auto dark_color = FindMax(count_dark).first;     // black, blue, red so 0, 1 or 2
-        auto light_color = FindMax(count_light).first;    // so magenta(3) -- bright white (15)
+        auto dark_color = FindMax(count_dark);     // black, blue, red so 0, 1 or 2
+        auto light_color = FindMax(count_light);    // so magenta(3) -- bright white (15)
         spectrum::screen::Attr attr{};
         attr.attr.ink    = static_cast<spectrum::screen::Attr::Color>(dark_color % 8);
         attr.attr.paper  = static_cast<spectrum::screen::Attr::Color>(light_color % 8);
@@ -333,17 +323,14 @@ private:
     // p_attr_x,  p_attr_y are attribute (32x24) coordinates thus corresponding to top left pixel
     // (as QRgb) of an 8x8 cell at a QImage.
     // For each 8x8 (=64) pixels of that cell determine:
-    // nearest spectrum color considered dark and nearest spectrum color considered light
-    // and count them both. Lower distances to nearest color count heavier.
-    // Then find the indexes for the most used spectrum color considered dark and light,
-    // return those as spectrum attibute: dark for ink and light for paper.
-    // The used the light color also determines bright flag.
-    // (At spectrum bright flag has barely effect on dark colors).
-    static spectrum::screen::Attr DetermineAttributeForCell2(const QImage &p_image, int p_attr_x, int p_attr_y, AlgorithmParameters p_how)
+    //  1) If the majority of the colors is bright.
+    //  2) Determine nearest spectrum color (bright or not) and 2nd nearest color and count. Lower distances to nearest color count heavier.
+    // Use he first most used color for ink and 2nd most used color for paper.
+    static spectrum::screen::Attr DetermineAttributeForCell2(const QImage &p_image, int p_attr_x, int p_attr_y, const AlgorithmParameters &p_how)
     {
         int count_all[16]{};
         int cnt_bright = 0;
-        (void)p_how;
+        const auto& simple_count = p_how.m_use_simple_count;
         // determine bright
         for(int y = 0; y < 8; y++)
         {
@@ -368,18 +355,18 @@ private:
                 QRgb rgb = p_image.pixel(p_attr_x * 8 + x, p_attr_y * 8 + y);
                 if(IsAlmostGray(rgb))
                 {
-                    constexpr int gray_bright_colors[] = { br_black, br_white };
-                    constexpr int gray_normal_colors[] = { black, white};
-                    auto [dist_all,  index_all]  = GetNearestColor(rgb, spectrum::screen::palette, is_bright ? gray_bright_colors : gray_normal_colors);
-                    count_all [index_all]       += (( 256 * 256 * 3 ) - dist_all );
+                    std::initializer_list<int> gray_bright_colors = { br_black, br_white };
+                    std::initializer_list<int> gray_normal_colors = { black, white };
+                    auto [dist,  index]  = GetNearestColor(rgb, spectrum::screen::palette, is_bright ? gray_bright_colors : gray_normal_colors);
+                    count_all [index]       += simple_count ? 1 : (( 256 * 256 * 3 ) - dist);
 
                 }
                 else
                 {
-                    constexpr int normal_colors[] = { black, blue, red, magenta, green, cyan, yellow, white };
-                    constexpr int bright_colors[] = { br_black, br_blue, br_red, br_magenta, br_green, br_cyan, br_yellow, br_white };
-                    auto [dist_all,  index_all]  = GetNearestColor(rgb, spectrum::screen::palette, is_bright ? bright_colors : normal_colors);
-                    count_all [index_all]        = (( 256 * 256 * 3 ) - dist_all );
+                    std::initializer_list<int> normal_colors = { black, blue, red, magenta, green, cyan, yellow, white };
+                    std::initializer_list<int> bright_colors = { br_black, br_blue, br_red, br_magenta, br_green, br_cyan, br_yellow, br_white };
+                    auto [dist,  index]  = GetNearestColor(rgb, spectrum::screen::palette, is_bright ? bright_colors : normal_colors);
+                    count_all [index]        = simple_count ? 1 : (( 256 * 256 * 3 ) - dist);
                 }
             }
         }
@@ -404,10 +391,10 @@ private:
             return std::pair<int, int>{idx_max, idx_2ndmax};
         };
 
-        auto [dark_color, light_color]  = FindMax(count_all);
+        auto [idx_max, idx_2ndmax]  = FindMax(count_all);
         spectrum::screen::Attr attr{};
-        attr.attr.ink    = static_cast<spectrum::screen::Attr::Color>(dark_color % 8);
-        attr.attr.paper  = static_cast<spectrum::screen::Attr::Color>(light_color % 8);
+        attr.attr.ink    = static_cast<spectrum::screen::Attr::Color>(idx_max % 8);
+        attr.attr.paper  = static_cast<spectrum::screen::Attr::Color>(idx_2ndmax % 8);
         attr.attr.bright = is_bright;
         return attr;
     }
@@ -462,15 +449,17 @@ private:
     }
 
 private:
-    std::vector<fs::path> m_filenames;
-    bool m_must_stop = false;
-    std::binary_semaphore m_sem{ 0 };
-    int m_index = 0;
-    ZxImage * m_this;
-    QImage    m_image;      // original image as loaded from file
-    spectrum::screen::Screen m_screen;
+    friend class ZxImage;
+    ZxImage* m_this;                        // backpointer
+    std::vector<fs::path> m_filenames;      // iimage files (directory) to load
+    int m_index = 0;                        // current image file index at m_filenames
+    std::binary_semaphore m_sem{ 0 };       // to signal a new image is needed
+    QImage    m_image;                      // original image as loaded from file
+    spectrum::screen::Screen m_screen;      // screen data can be sent to ZX spectrum
     mutable std::mutex m_mutex;
-    std::thread m_thread;
+    std::thread m_thread;                   // a thread to load image and convert to spectrum screen data
+    std::atomic<bool> m_must_stop = false;  // must thread stop?
+    AlgorithmParameters m_algorithm_parameters;
 }; // class ZxImage::Impl
 
 
@@ -490,9 +479,21 @@ void ZxImage::paintEvent(QPaintEvent* event)
     m_pimpl->paintEvent(event);
 }
 
-void ZxImage::SetDirectory(const fs::path &p_dir)
+ZxImage& ZxImage::SetAlgorithmParameters(AlgorithmParameters p_algorithm_parameters)
+{
+    m_pimpl->SetAlgorithmParameters(std::move(p_algorithm_parameters));
+    return *this;
+}
+
+AlgorithmParameters ZxImage::GetAlgorithmParameters() const
+{
+    return m_pimpl->m_algorithm_parameters;
+}
+
+ZxImage& ZxImage::SetDirectory(const fs::path &p_dir)
 {
     m_pimpl->SetDirectory(p_dir);
+    return *this;
 }
 
 const spectrum::screen::Screen ZxImage::GetLastLoadedScreen()

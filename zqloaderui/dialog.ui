@@ -26,7 +26,7 @@
    <item row="3" column="0">
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Close|QDialogButtonBox::RestoreDefaults</set>
+      <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Close|QDialogButtonBox::StandardButton::RestoreDefaults</set>
      </property>
     </widget>
    </item>
@@ -36,19 +36,19 @@
       <number>0</number>
      </property>
      <property name="alignment">
-      <set>Qt::AlignCenter</set>
+      <set>Qt::AlignmentFlag::AlignCenter</set>
      </property>
      <property name="textVisible">
       <bool>true</bool>
      </property>
      <property name="orientation">
-      <enum>Qt::Horizontal</enum>
+      <enum>Qt::Orientation::Horizontal</enum>
      </property>
      <property name="invertedAppearance">
       <bool>false</bool>
      </property>
      <property name="textDirection">
-      <enum>QProgressBar::TopToBottom</enum>
+      <enum>QProgressBar::Direction::TopToBottom</enum>
      </property>
      <property name="format">
       <string>%p%</string>
@@ -100,8 +100,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>927</width>
-            <height>544</height>
+            <width>923</width>
+            <height>546</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_3">
@@ -126,7 +126,7 @@
            <item row="7" column="1" colspan="8">
             <widget class="Line" name="line_2">
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Orientation::Horizontal</enum>
              </property>
             </widget>
            </item>
@@ -140,7 +140,7 @@
            <item row="11" column="1" colspan="8">
             <widget class="Line" name="line_4">
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Orientation::Horizontal</enum>
              </property>
             </widget>
            </item>
@@ -154,7 +154,7 @@
              </property>
             </widget>
            </item>
-           <item row="4" column="3" alignment="Qt::AlignVCenter">
+           <item row="4" column="3" alignment="Qt::AlignmentFlag::AlignVCenter">
             <widget class="Dial" name="dialVolumeLeft">
              <property name="maximumSize">
               <size>
@@ -238,7 +238,7 @@
               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;Volume. Use negative values to invert channel. Use the 'Tune' button for an endless leader tone. Then adjust volume and cables until you see red/cyan stripes.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="textFormat">
-              <enum>Qt::RichText</enum>
+              <enum>Qt::TextFormat::RichText</enum>
              </property>
              <property name="wordWrap">
               <bool>true</bool>
@@ -269,7 +269,7 @@
            <item row="3" column="1" colspan="8">
             <widget class="Line" name="line">
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Orientation::Horizontal</enum>
              </property>
             </widget>
            </item>
@@ -293,7 +293,7 @@
            <item row="4" column="5">
             <widget class="QLineEdit" name="lineEditVolumeRight"/>
            </item>
-           <item row="13" column="8" alignment="Qt::AlignBottom">
+           <item row="13" column="8" alignment="Qt::AlignmentFlag::AlignBottom">
             <widget class="QPushButton" name="pushButtonClean">
              <property name="enabled">
               <bool>false</bool>
@@ -326,7 +326,7 @@
            <item row="13" column="1" colspan="8">
             <widget class="QTextBrowser" name="textBrowserOutput">
              <property name="sizeAdjustPolicy">
-              <enum>QAbstractScrollArea::AdjustToContents</enum>
+              <enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustToContents</enum>
              </property>
              <property name="readOnly">
               <bool>true</bool>
@@ -338,11 +338,11 @@ p, li { white-space: pre-wrap; }
 hr { height: 1px; border-width: 0; }
 li.unchecked::marker { content: &quot;\2610&quot;; }
 li.checked::marker { content: &quot;\2612&quot;; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Cantarell'; font-size:11pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-family:'Segoe UI'; font-size:9pt;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Segoe UI'; font-size:9pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="textInteractionFlags">
-              <set>Qt::LinksAccessibleByKeyboard|Qt::LinksAccessibleByMouse|Qt::TextBrowserInteraction|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+              <set>Qt::TextInteractionFlag::LinksAccessibleByKeyboard|Qt::TextInteractionFlag::LinksAccessibleByMouse|Qt::TextInteractionFlag::TextBrowserInteraction|Qt::TextInteractionFlag::TextSelectableByKeyboard|Qt::TextInteractionFlag::TextSelectableByMouse</set>
              </property>
             </widget>
            </item>
@@ -407,8 +407,8 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>907</width>
-            <height>702</height>
+            <width>911</width>
+            <height>712</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_421">
@@ -497,7 +497,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <item row="42" column="1">
             <spacer name="verticalSpacer_2">
              <property name="orientation">
-              <enum>Qt::Vertical</enum>
+              <enum>Qt::Orientation::Vertical</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>
@@ -524,7 +524,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <item row="25" column="1" colspan="6">
             <widget class="Line" name="line_3">
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Orientation::Horizontal</enum>
              </property>
             </widget>
            </item>
@@ -547,7 +547,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <item row="6" column="1" colspan="6">
             <widget class="Line" name="line_7">
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Orientation::Horizontal</enum>
              </property>
             </widget>
            </item>
@@ -719,7 +719,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
               <number>1</number>
              </property>
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Orientation::Horizontal</enum>
              </property>
             </widget>
            </item>
@@ -733,7 +733,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <item row="35" column="1" colspan="6">
             <widget class="Line" name="line_6">
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Orientation::Horizontal</enum>
              </property>
             </widget>
            </item>
@@ -760,7 +760,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
               <string>Fast</string>
              </property>
              <property name="alignment">
-              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+              <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
              </property>
              <property name="margin">
               <number>0</number>
@@ -779,7 +779,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
               <string>Slow</string>
              </property>
              <property name="alignment">
-              <set>Qt::AlignRight|Qt::AlignTop|Qt::AlignTrailing</set>
+              <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTop|Qt::AlignmentFlag::AlignTrailing</set>
              </property>
             </widget>
            </item>
@@ -884,7 +884,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <item row="2" column="1" colspan="6">
             <widget class="Line" name="line_5">
              <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+              <enum>Qt::Orientation::Horizontal</enum>
              </property>
             </widget>
            </item>
@@ -953,8 +953,8 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>927</width>
-            <height>544</height>
+            <width>941</width>
+            <height>534</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_44">
@@ -973,41 +973,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <property name="spacing">
             <number>4</number>
            </property>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_29">
-             <property name="text">
-              <string>Video file:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="LineEdit" name="lineEditVideoFile"/>
-           </item>
-           <item row="1" column="1">
-            <widget class="LineEdit" name="lineEditImageDir"/>
-           </item>
-           <item row="0" column="2">
-            <widget class="QPushButton" name="pushButtonBrowseVideoFile">
-             <property name="text">
-              <string>Browse...</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_30">
-             <property name="text">
-              <string>Image Directory:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="2">
-            <widget class="QPushButton" name="pushButtonBrowseImageDir">
-             <property name="text">
-              <string>Browse...</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1">
+           <item row="3" column="0" colspan="8">
             <widget class="QWidget" name="widget" native="true">
              <layout class="QVBoxLayout" name="verticalLayout">
               <property name="spacing">
@@ -1051,6 +1017,75 @@ li.checked::marker { content: &quot;\2612&quot;; }
              </layout>
             </widget>
            </item>
+           <item row="1" column="1" colspan="6">
+            <widget class="LineEdit" name="lineEditImageDir"/>
+           </item>
+           <item row="0" column="7">
+            <widget class="QPushButton" name="pushButtonBrowseVideoFile">
+             <property name="text">
+              <string>Browse...</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_30">
+             <property name="text">
+              <string>Image Directory:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="3">
+            <widget class="QCheckBox" name="checkBoxUAttrDarkLight">
+             <property name="text">
+              <string>Use dark and light color for attribute</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_29">
+             <property name="text">
+              <string>Video file:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QCheckBox" name="checkBoxUseFloydSteinberg">
+             <property name="text">
+              <string>Use Floyd-Steinberg</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="7">
+            <widget class="QPushButton" name="pushButtonBrowseImageDir">
+             <property name="text">
+              <string>Browse...</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QCheckBox" name="checkBoxUseGrayScale">
+             <property name="text">
+              <string>Floyd-Steinberg on grayscale</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1" colspan="6">
+            <widget class="LineEdit" name="lineEditVideoFile"/>
+           </item>
+           <item row="2" column="5">
+            <widget class="QCheckBox" name="checkBoxUseMagenta">
+             <property name="text">
+              <string>Use magenta</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="4">
+            <widget class="QCheckBox" name="checkBoxSimpleColorDistance">
+             <property name="text">
+              <string>Use simple color distance</string>
+             </property>
+            </widget>
+           </item>
           </layout>
          </widget>
         </widget>
@@ -1087,8 +1122,8 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>927</width>
-            <height>544</height>
+            <width>923</width>
+            <height>546</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_4">
@@ -1117,7 +1152,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <item row="2" column="1">
             <spacer name="verticalSpacer_3">
              <property name="orientation">
-              <enum>Qt::Vertical</enum>
+              <enum>Qt::Orientation::Vertical</enum>
              </property>
              <property name="sizeHint" stdset="0">
               <size>

@@ -244,8 +244,8 @@ private:
     {
 
         using enum spectrum::screen::PaletteColor;
-        constexpr int spectrum_normal_colors[] = { black, blue, red, magenta, green, cyan, yellow, white };
-        constexpr int spectrum_bright_colors[] = { br_black, br_blue, br_red, br_magenta, br_green, br_cyan, br_yellow, br_white };
+        std::initializer_list<int> spectrum_normal_colors = { black, blue, red, magenta, green, cyan, yellow, white };
+        std::initializer_list<int> spectrum_bright_colors = { br_black, br_blue, br_red, br_magenta, br_green, br_cyan, br_yellow, br_white };
 
 
         auto [mindist_norm_paper,   found_norm_paper]   = GetNearestColor(p_color_paper, spectrum::screen::palette,  spectrum_normal_colors);

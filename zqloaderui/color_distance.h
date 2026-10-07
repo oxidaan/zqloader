@@ -15,6 +15,7 @@
 #include <span>
 
 /// Distance to mean, squared.
+/// max 256 * 256 * 3
 inline int ColorDistanceRgb(QRgb p_color1, QRgb p_color2)
 {
     int r1 = qRed(p_color1);
@@ -71,23 +72,23 @@ inline bool IsAlmostSkin(QRgb p_rgb)
 /// Eg to use filter out 'dark' and 'light' colors.
 /// Generic - so not spectrum specific.
 inline std::pair<int, int> GetNearestColor(const QRgb &p_color,
-    std::span<const uint32_t>p_palette, std::span<const int> p_which_colors = {} )
+    std::span<const uint32_t>p_palette, const std::set<int> &p_which_colors = {} )
 {
     int mindist{};
     int found_index{};
     bool first = true;
-    for(int n = 0; n < p_palette.size(); n++)
+    for(int c = 0; c < p_palette.size(); c++)
     {
         // c++23 if(std::ranges::contains(p_which_colors, n))
-        if(p_which_colors.size() == 0 || std::ranges::find(p_which_colors, n) != p_which_colors.end())
+        if(p_which_colors.size() == 0 || std::ranges::find(p_which_colors, c) != p_which_colors.end())
         {
 
-            int dist = ColorDistanceRgb(p_color, p_palette[n]);
+            int dist = ColorDistanceRgb(p_color, p_palette[c]);
 
             if(( dist < mindist ) || first)
             {
                 mindist     = dist;
-                found_index = n;
+                found_index = c;
                 first = false;
             }
         }
@@ -95,16 +96,5 @@ inline std::pair<int, int> GetNearestColor(const QRgb &p_color,
     return { mindist, found_index };
 }
 
-
-inline std::pair<int, int> GetNearestColor(
-    const QRgb& p_color,
-    std::span<const uint32_t> p_palette,
-    std::initializer_list<int> colors)
-{
-    return GetNearestColor(
-        p_color,
-        p_palette,
-        std::span<const int>(colors.begin(), colors.size()));
-}
 
 
