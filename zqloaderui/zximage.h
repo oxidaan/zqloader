@@ -15,6 +15,7 @@
 
 #include <memory>
 #include <vector>
+#include <set>
 #include <QWidget>
 #include <filesystem>
 #include "spectrum_screen.h"
@@ -30,8 +31,8 @@ struct AlgorithmParameters
     bool m_use_simple_count = false;                // for color distance count nearest color directly or take distance into account.
     bool m_use_dark_and_light = true;               // when calculating attributes use a light and dark color from subsets below
 
-    std::set<int> m_dark_colors;// = spectrum_dark_colors;
-    std::set<int> m_light_colors;// = spectrum_light_colors;
+    std::set<int> m_dark_colors  = spectrum::screen::spectrum_dark_colors;
+    std::set<int> m_light_colors = spectrum::screen::spectrum_light_colors;
 };
 
 class ZxImage : public QWidget

@@ -275,7 +275,7 @@ Dialog::Dialog(QWidget *parent)
     {
         if( m_state == State::Playing || m_state == State::Tuning)
         {
-            // Stop pressed (canceled) (pushButtonGo is now cancel)
+            // Stop pressed (canceled) (pushButtonGo is now 'stop')
             SetState((m_state != State::Playing)  ? State::Idle : State::Cancelled);
             m_zqloader.Reset();
         }
@@ -283,7 +283,7 @@ Dialog::Dialog(QWidget *parent)
         {
             // stop /cancel video
             ui->zxvideo->Stop();
-            m_zqloader.Reset();
+            m_zqloader.Reset();         // can cause tape loading error
             SetState(State::Cancelled);
         }
         else if( m_state == State::VideoFunNext || m_state == State::ImageFun)
@@ -291,7 +291,7 @@ Dialog::Dialog(QWidget *parent)
             // Stop pressed (canceled) (pushButtonGo is now cancel)
             ui->zxvideo->Stop();
             SetState(State::Idle);
-            m_zqloader.WaitUntilDone();
+            m_zqloader.WaitUntilDone();     // else tape loading error
             m_zqloader.Reset();
         }
         else
@@ -368,44 +368,27 @@ Dialog::Dialog(QWidget *parent)
         m_zqloader.Test();
     });
 
+
+    UiToZxImage();
     connect(ui->checkBoxUseFloydSteinberg, &QCheckBox::checkStateChanged, [this]
     {
-         auto ap = ui->zximage->GetAlgorithmParameters();
-         ap.m_use_floyd_steinberg = ui->checkBoxUseFloydSteinberg->isChecked();
-         ui->zximage->SetAlgorithmParameters(std::move(ap));
+        UiToZxImage();
     });
     connect(ui->checkBoxUseGrayScale, &QCheckBox::checkStateChanged, [this]
     {
-        auto ap = ui->zximage->GetAlgorithmParameters();
-        ap.m_use_distance_to_black_white = ui->checkBoxUseGrayScale->isChecked();
-        ui->zximage->SetAlgorithmParameters(std::move(ap));
+        UiToZxImage();
     });
     connect(ui->checkBoxUseMagenta, &QCheckBox::checkStateChanged, [this]
     {
-        auto ap = ui->zximage->GetAlgorithmParameters();
-        if( ui->checkBoxUseMagenta->isChecked() )
-        {
-            ap.m_dark_colors.insert(spectrum::screen::magenta);
-            ap.m_light_colors.insert(spectrum::screen::magenta);
-        }
-        else
-        {
-            ap.m_dark_colors.erase(spectrum::screen::magenta);
-            ap.m_light_colors.erase(spectrum::screen::magenta);
-        }
-        ui->zximage->SetAlgorithmParameters(std::move(ap));
+        UiToZxImage();
     });
     connect(ui->checkBoxSimpleColorDistance, &QCheckBox::checkStateChanged, [this]
     {
-        auto ap = ui->zximage->GetAlgorithmParameters();
-        ap.m_use_simple_count = ui->checkBoxSimpleColorDistance->isChecked();
-        ui->zximage->SetAlgorithmParameters(std::move(ap));
+        UiToZxImage();
     });
     connect(ui->checkBoxUAttrDarkLight, &QCheckBox::checkStateChanged, [this]
     {
-        auto ap = ui->zximage->GetAlgorithmParameters();
-        ap.m_use_dark_and_light = ui->checkBoxUAttrDarkLight->isChecked();
-        ui->zximage->SetAlgorithmParameters(std::move(ap));
+        UiToZxImage();
     });
 
     // Called when zqloader is done.
@@ -481,6 +464,30 @@ Dialog::Dialog(QWidget *parent)
 
 }
 
+
+void Dialog::UiToZxImage()
+{
+    auto ap = ui->zximage->GetAlgorithmParameters();
+
+    ap.m_use_floyd_steinberg = ui->checkBoxUseFloydSteinberg->isChecked();
+    ap.m_use_distance_to_black_white = ui->checkBoxUseGrayScale->isChecked();
+    ap.m_use_simple_count = ui->checkBoxSimpleColorDistance->isChecked();
+    ap.m_use_dark_and_light = ui->checkBoxUAttrDarkLight->isChecked();
+
+    if( ui->checkBoxUseMagenta->isChecked() )
+    {
+        ap.m_dark_colors.insert(spectrum::screen::magenta);
+        ap.m_light_colors.insert(spectrum::screen::magenta);
+    }
+    else
+    {
+        ap.m_dark_colors.erase(spectrum::screen::magenta);
+        ap.m_light_colors.erase(spectrum::screen::magenta);
+    }
+
+    ui->zximage->SetAlgorithmParameters(std::move(ap));
+}
+
 Dialog::~Dialog()
 {
     // disable cout to textEditOutput
@@ -508,19 +515,19 @@ inline void Dialog::UpdateUI()
 // runs in miniaudio thread!
 inline void Dialog::OnDone()
 {
-    if(m_state == State::Preloading)
+    switch(m_state)
     {
+    case State::Preloading:
         std::cout << "Preloading done! Select a turbo file and press Go!..." << std::endl;
         m_state = State::PreloadingFunAttribs;
         WriteFunText(m_zqloader, true);     // true=first (wipe screen)
-    }
-    else if( m_state == State::PreloadingFunAttribs)
-    {
+        break;
+    case State::PreloadingFunAttribs:
         // next fun attributes (scroll text)
         WriteFunText(m_zqloader, false);
         std::cout << '*' << std::flush;
-    }
-    else if( m_state == State::VideoFunFirst)
+        break;
+    case State::VideoFunFirst:
     {
         DataBlock block;
         // send bar pattern to spectrum screen
@@ -541,8 +548,9 @@ inline void Dialog::OnDone()
             m_state = State::Cancelled;
             //SetState(State::Cancelled);
         }
+        break;
     }
-    else if( m_state == State::VideoFunNext)
+    case State::VideoFunNext:
     {
         Attributes all_attr = ui->zxvideo->GetAttributes();
         // cast Attributes -> to DataBlock
@@ -553,17 +561,22 @@ inline void Dialog::OnDone()
             m_zqloader.SetCompressionType(CompressionType::automatic);
             m_zqloader.AddMemoryBlock({std::move(attrs), spectrum::screen::ATTR_BEGIN}, 40000);
         }
-        
+        break;
     }
-    else if( m_state == State::ImageFun)
+    case State::ImageFun:
     {
         const auto screen = ui->zximage->GetLastLoadedScreen();
         m_zqloader.SetCompressionType(CompressionType::automatic);
         m_zqloader.AddMemoryBlock({screen.GetDataBlock().Clone(), spectrum::SCREEN_START}, 40000);
+        break;
     }
-    else if(m_state != State::Idle)     // eg playing
-    {
-        emit signalDone();      // swap to ui thread ->
+    case State::Playing:
+    case State::Tuning:
+    case State::Cancelled:
+        emit signalDone();      // swap to ui thread -> Set state to Idle
+        break;
+    case State::Idle:
+        break;
     }
 }
 

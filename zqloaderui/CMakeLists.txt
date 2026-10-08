@@ -15,7 +15,9 @@ project(zqloaderui VERSION 0.1 LANGUAGES CXX)
 
 
 
-find_package(QT NAMES Qt6 Qt5      COMPONENTS Widgets Multimedia)
+# Needs qt6. Eg QVideoSink.
+# At Linux use: sudo apt install qt6-base-dev qt6-multimedia-dev
+find_package(QT NAMES Qt6          COMPONENTS Widgets Multimedia)
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets Multimedia)
 
 

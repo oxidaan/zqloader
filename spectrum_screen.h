@@ -39,11 +39,11 @@ enum PaletteColor : uint8_t
 
 // color categories
 // Spectrum colors considered 'dark'
-constexpr std::initializer_list<int> spectrum_dark_colors = { black , blue, red };
+constexpr std::initializer_list<int> spectrum_dark_colors  = { black , blue, red };
 // Spectrum colors considered 'light'
 constexpr std::initializer_list<int> spectrum_light_colors = { green, cyan, yellow, white, br_magenta, br_green, br_cyan, br_yellow, br_white };
 
-constexpr std::initializer_list<int> spectrum_gray_colors = { black, white, br_black, br_white };
+constexpr std::initializer_list<int> spectrum_gray_colors  = { black, white, br_black, br_white };
 
 
 

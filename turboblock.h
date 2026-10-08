@@ -223,6 +223,7 @@ public:
     TurboBlock& SetPilotLength(std::chrono::milliseconds p_duration)
     {
         m_pilot_length = p_duration;
+        return *this;
     }
 private:
 

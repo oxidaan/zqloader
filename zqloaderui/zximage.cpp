@@ -39,7 +39,7 @@ public:
     {
         m_thread = std::thread([this] {ThreadFun(); });
         m_algorithm_parameters.m_dark_colors = spectrum::screen::spectrum_dark_colors;
-        m_algorithm_parameters.m_dark_colors = spectrum::screen::spectrum_light_colors;
+        m_algorithm_parameters.m_light_colors = spectrum::screen::spectrum_light_colors;
     }
 
 

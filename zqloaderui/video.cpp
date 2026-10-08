@@ -12,7 +12,7 @@
 #include "video.h"
 #include <QWidget>
 #include <QMediaPlayer>
-#include <QVideoSink>
+#include <QVideoSink>       // Needs qt 6.
 #include <QVideoFrame>
 #include <filesystem>
 #include <QCamera>

@@ -13,6 +13,7 @@
 
 #include <QColor>
 #include <span>
+#include <set>
 
 /// Distance to mean, squared.
 /// max 256 * 256 * 3
@@ -77,18 +78,17 @@ inline std::pair<int, int> GetNearestColor(const QRgb &p_color,
     int mindist{};
     int found_index{};
     bool first = true;
-    for(int c = 0; c < p_palette.size(); c++)
+    for(int col_idx = 0; col_idx < p_palette.size(); col_idx++)
     {
         // c++23 if(std::ranges::contains(p_which_colors, n))
-        if(p_which_colors.size() == 0 || std::ranges::find(p_which_colors, c) != p_which_colors.end())
+        if(p_which_colors.empty() || p_which_colors.contains(col_idx))
         {
-
-            int dist = ColorDistanceRgb(p_color, p_palette[c]);
+            int dist = ColorDistanceRgb(p_color, p_palette[col_idx]);
 
             if(( dist < mindist ) || first)
             {
                 mindist     = dist;
-                found_index = c;
+                found_index = col_idx;
                 first = false;
             }
         }
