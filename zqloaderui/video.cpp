@@ -73,7 +73,7 @@ public:
 
 
     // can run in midiaudio thread
-    // play from file/stream or from camera.
+    // Start playing from file/stream or from camera.
     // p_url: "camera": play from camera.
     bool Play( const std::string &p_url )
     {

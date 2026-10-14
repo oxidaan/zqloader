@@ -8,18 +8,14 @@
 //==============================================================================
 
 
-
-
 #pragma once
 
 
-
-#include <memory>
+#include <memory>           // unique_ptr
 #include <string>
 
 #include <QObject>
 class QImage;
-
 
 /// Video player
 /// Plays froms stream, file or camera hardware.

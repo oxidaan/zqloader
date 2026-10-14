@@ -24,7 +24,8 @@ class QPaintEvent;
 
 
 //using ColorAttr = std::byte;
-using Attributes = std::vector<spectrum::screen::Attr> ;
+//using Attributes = std::vector<spectrum::screen::Attr> ;
+using Attributes = DataBlock;
 
 // By using horizontal or vertical blocks the spectrum can show these
 // resulutions without color clash. ZQLoader only needs to send attribute blocks.
@@ -43,7 +44,10 @@ public:
     ~ZxVideo();
 
     void paintEvent(QPaintEvent* event) override;
+    
     Attributes GetAttributes() const;
+    DataBlock GetPattern() const;
+
     ZxVideo &SetWidthAndHeight(WidthAndHeight p_width_and_height);
 
     ZxVideo &Play(const std::string &p_url);

@@ -39,6 +39,7 @@ constexpr const char *DefaultVideoFile = "[To have 'live' (...) video on ZX spec
 constexpr const char *DefaultImageDir = "[To have images as dia show on ZX spectrum.]";
 constexpr const char* DefaultSampleRate = "[Device default]";
 
+// Make given QLineEdit black en normal font
 inline void MakeBlack(QLineEdit *p_line_edit)
 {
     QFont f = p_line_edit->font();
@@ -49,6 +50,7 @@ inline void MakeBlack(QLineEdit *p_line_edit)
     p_line_edit->setPalette(p);
 };
 
+// Make given QLineEdit gray en italic
 inline void MakeGray(QLineEdit *p_line_edit)
 {
     QFont f = p_line_edit->font();
@@ -59,6 +61,7 @@ inline void MakeGray(QLineEdit *p_line_edit)
     p_line_edit->setPalette(p);
 };
 
+// When start editing: make black
 inline void FocusIn(QLineEdit *p_line_edit)
 {
     if(p_line_edit->text().isEmpty() || p_line_edit->text()[0] == '[')
@@ -68,7 +71,7 @@ inline void FocusIn(QLineEdit *p_line_edit)
     }
 }
 
-// Set tip-text when empty
+// Set tip-text when empty and make gray
 inline void FocusOut(QLineEdit *p_line_edit, const char *p_tip_text)
 {
     if(p_line_edit->text().isEmpty() || p_line_edit->text()[0] == '[')
@@ -291,7 +294,7 @@ Dialog::Dialog(QWidget *parent)
             // Stop pressed (canceled) (pushButtonGo is now cancel)
             ui->zxvideo->Stop();
             SetState(State::Idle);
-            m_zqloader.WaitUntilDone();     // else tape loading error
+            // m_zqloader.WaitUntilDone();     // else tape loading error
             m_zqloader.Reset();
         }
         else
@@ -370,23 +373,35 @@ Dialog::Dialog(QWidget *parent)
 
 
     UiToZxImage();
-    connect(ui->checkBoxUseFloydSteinberg, &QCheckBox::checkStateChanged, [this]
+    connect(ui->checkBoxUseFloydSteinberg, &QCheckBox::toggled, [this]
     {
         UiToZxImage();
     });
-    connect(ui->checkBoxUseGrayScale, &QCheckBox::checkStateChanged, [this]
+    connect(ui->checkBoxUseGrayScale, &QCheckBox::toggled, [this]
     {
         UiToZxImage();
     });
-    connect(ui->checkBoxUseMagenta, &QCheckBox::checkStateChanged, [this]
+    connect(ui->checkBoxUseMagenta, &QCheckBox::toggled, [this]
     {
         UiToZxImage();
     });
-    connect(ui->checkBoxSimpleColorDistance, &QCheckBox::checkStateChanged, [this]
+    connect(ui->checkBoxSimpleColorDistance, &QCheckBox::toggled, [this]
     {
         UiToZxImage();
     });
-    connect(ui->checkBoxUAttrDarkLight, &QCheckBox::checkStateChanged, [this]
+    connect(ui->checkBoxUAttrDarkLight, &QCheckBox::toggled, [this]
+    {
+        UiToZxImage();
+    });
+    connect(ui->radioButton32x24, &QRadioButton::toggled, [this]
+    {
+        UiToZxImage();
+    });
+    connect(ui->radioButton64x24, &QRadioButton::toggled, [this]
+    {
+        UiToZxImage();
+    });
+    connect(ui->radioButton32x48, &QRadioButton::toggled, [this]
     {
         UiToZxImage();
     });
@@ -472,20 +487,35 @@ void Dialog::UiToZxImage()
     ap.m_use_floyd_steinberg = ui->checkBoxUseFloydSteinberg->isChecked();
     ap.m_use_distance_to_black_white = ui->checkBoxUseGrayScale->isChecked();
     ap.m_use_simple_count = ui->checkBoxSimpleColorDistance->isChecked();
-    ap.m_use_dark_and_light = ui->checkBoxUAttrDarkLight->isChecked();
+    ap.m_use_dark_and_light_attr = ui->checkBoxUAttrDarkLight->isChecked();
 
     if( ui->checkBoxUseMagenta->isChecked() )
     {
-        ap.m_dark_colors.insert(spectrum::screen::magenta);
+      //  ap.m_dark_colors.insert(spectrum::screen::magenta);       // ugly
         ap.m_light_colors.insert(spectrum::screen::magenta);
+        ap.m_light_colors.insert(spectrum::screen::br_magenta);
     }
     else
     {
-        ap.m_dark_colors.erase(spectrum::screen::magenta);
+        ap.m_dark_colors.erase(spectrum::screen::magenta);  
         ap.m_light_colors.erase(spectrum::screen::magenta);
+        ap.m_light_colors.erase(spectrum::screen::br_magenta);
     }
 
     ui->zximage->SetAlgorithmParameters(std::move(ap));
+
+    if (ui->radioButton32x24->isChecked())
+    {
+        ui->zxvideo->SetWidthAndHeight(WidthAndHeight::wh_32x24);
+    }
+    else if (ui->radioButton64x24->isChecked())
+    {
+        ui->zxvideo->SetWidthAndHeight(WidthAndHeight::wh_64x24);
+    }
+    else if (ui->radioButton32x48->isChecked())
+    {
+        ui->zxvideo->SetWidthAndHeight(WidthAndHeight::wh_32x48);
+    }
 }
 
 Dialog::~Dialog()
@@ -529,38 +559,17 @@ inline void Dialog::OnDone()
         break;
     case State::VideoFunFirst:
     {
-        DataBlock block;
-        // send bar pattern to spectrum screen
-        for(int n = 0; n < spectrum::screen::SCREEN_PIXEL_SIZE; n++)
-        {
-            block.push_back(0x0f_byte);
-        }
+        // send bar pattern to spectrum screen for 64x24 res
         m_zqloader.SetCompressionType(CompressionType::automatic);
-        m_zqloader.AddMemoryBlock({std::move(block), spectrum::SCREEN_START}, 0);
-        try
-        {
-            ui->zxvideo->Play(ui->lineEditVideoFile->text().toStdString());
-            m_state = State::VideoFunNext;
-        }
-        catch(const std::exception &e)
-        {
-            std::cout << "<b>" << e.what() << "</b>" << std::endl;
-            m_state = State::Cancelled;
-            //SetState(State::Cancelled);
-        }
+        m_zqloader.AddMemoryBlock({ ui->zxvideo->GetPattern(), spectrum::SCREEN_START}, 0);
+        m_state = State::VideoFunNext;
         break;
     }
     case State::VideoFunNext:
     {
-        Attributes all_attr = ui->zxvideo->GetAttributes();
-        // cast Attributes -> to DataBlock
-        auto* raw = reinterpret_cast<std::byte*>(all_attr.data());
-        DataBlock attrs(raw, raw + all_attr.size());
-        if(attrs.size() == spectrum::screen::ATTR_SIZE)
-        {
-            m_zqloader.SetCompressionType(CompressionType::automatic);
-            m_zqloader.AddMemoryBlock({std::move(attrs), spectrum::screen::ATTR_BEGIN}, 40000);
-        }
+        Attributes attributes = ui->zxvideo->GetAttributes();
+        m_zqloader.SetCompressionType(CompressionType::automatic);
+        m_zqloader.AddMemoryBlock({std::move(attributes), spectrum::screen::ATTR_BEGIN}, 40000);
         break;
     }
     case State::ImageFun:
@@ -702,6 +711,16 @@ inline void Dialog::Go()
                 if(!video_url.empty() && video_url[0] != '[')
                 {
                     SetState(State::VideoFunFirst);
+                    try
+                    {
+                        ui->zxvideo->Play(ui->lineEditVideoFile->text().toStdString());
+                    }
+                    catch (const std::exception& e)
+                    {
+                        std::cout << "<b>" << e.what() << "</b>" << std::endl;
+                        SetState(State::Cancelled);
+                    }
+
                 }
                 else
                 {
@@ -888,6 +907,14 @@ inline void Dialog::Write(QSettings& p_settings, const QObject *p_for_what) cons
             p_settings.setValue(for_what->objectName(), for_what->isChecked());
         }
     }
+    {
+        // save radiobuttons
+        auto for_what = dynamic_cast<const QRadioButton*>(p_for_what);
+        if (for_what)
+        {
+            p_settings.setValue(for_what->objectName(), for_what->isChecked());
+        }
+    }
     for(const QObject* child : p_for_what->children())
     {
         Write(p_settings, child);        // recusive
@@ -997,6 +1024,22 @@ inline bool Dialog::Read(QSettings& p_settings, QObject *p_for_what)
         {
             QVariant value = p_settings.value(for_what->objectName());
             if(!value.isNull())
+            {
+                for_what->setChecked(value.toBool());
+            }
+            else
+            {
+                return false;
+            }
+        }
+    }
+    {
+        // load radiobuttons
+        auto for_what = dynamic_cast<QRadioButton*>(p_for_what);
+        if (for_what)
+        {
+            QVariant value = p_settings.value(for_what->objectName());
+            if (!value.isNull())
             {
                 for_what->setChecked(value.toBool());
             }

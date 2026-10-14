@@ -100,6 +100,11 @@ inline auto AttrInkToRgbColor(const Attr &p_attr)
 /// Used for image fun.
 class Screen
 {
+    // Copy ctor private. See Clone
+    Screen(const Screen& p_other) :
+        m_datablock(p_other.m_datablock.Clone())
+    {
+    }
 public:
 
     Screen()
@@ -109,6 +114,10 @@ public:
     Screen(Screen &&) = default;
     Screen &operator = (Screen &&) = default;
 
+    Screen Clone() const
+    {
+        return *this;
+    }
 
     /// Set pixel. Codes the infamous spectrum screen layout.
     void SetPixel(int x, int y, bool p_value)

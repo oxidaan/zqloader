@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>951</width>
-    <height>692</height>
+    <width>1073</width>
+    <height>680</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -100,8 +100,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>923</width>
-            <height>546</height>
+            <width>1045</width>
+            <height>534</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_3">
@@ -407,7 +407,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>911</width>
+            <width>1033</width>
             <height>712</height>
            </rect>
           </property>
@@ -953,7 +953,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>941</width>
+            <width>1045</width>
             <height>534</height>
            </rect>
           </property>
@@ -973,7 +973,44 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <property name="spacing">
             <number>4</number>
            </property>
-           <item row="3" column="0" colspan="8">
+           <item row="3" column="0">
+            <widget class="QCheckBox" name="checkBoxUseFloydSteinberg">
+             <property name="text">
+              <string>Use Floyd-Steinberg</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QRadioButton" name="radioButton64x24">
+             <property name="text">
+              <string>64 x 24</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+             <attribute name="buttonGroup">
+              <string notr="true">buttonGroup</string>
+             </attribute>
+            </widget>
+           </item>
+           <item row="0" column="6">
+            <widget class="QPushButton" name="pushButtonBrowseVideoFile">
+             <property name="text">
+              <string>Browse...</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="6">
+            <widget class="QPushButton" name="pushButtonBrowseImageDir">
+             <property name="text">
+              <string>Browse...</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="0" colspan="7">
             <widget class="QWidget" name="widget" native="true">
              <layout class="QVBoxLayout" name="verticalLayout">
               <property name="spacing">
@@ -1017,27 +1054,10 @@ li.checked::marker { content: &quot;\2612&quot;; }
              </layout>
             </widget>
            </item>
-           <item row="1" column="1" colspan="6">
-            <widget class="LineEdit" name="lineEditImageDir"/>
-           </item>
-           <item row="0" column="7">
-            <widget class="QPushButton" name="pushButtonBrowseVideoFile">
-             <property name="text">
-              <string>Browse...</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
+           <item row="2" column="0">
             <widget class="QLabel" name="label_30">
              <property name="text">
               <string>Image Directory:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="3">
-            <widget class="QCheckBox" name="checkBoxUAttrDarkLight">
-             <property name="text">
-              <string>Use dark and light color for attribute</string>
              </property>
             </widget>
            </item>
@@ -1048,41 +1068,63 @@ li.checked::marker { content: &quot;\2612&quot;; }
              </property>
             </widget>
            </item>
-           <item row="2" column="0">
-            <widget class="QCheckBox" name="checkBoxUseFloydSteinberg">
+           <item row="1" column="1">
+            <widget class="QRadioButton" name="radioButton32x48">
              <property name="text">
-              <string>Use Floyd-Steinberg</string>
+              <string>32 x 48</string>
              </property>
+             <attribute name="buttonGroup">
+              <string notr="true">buttonGroup</string>
+             </attribute>
             </widget>
            </item>
-           <item row="1" column="7">
-            <widget class="QPushButton" name="pushButtonBrowseImageDir">
+           <item row="1" column="2">
+            <widget class="QRadioButton" name="radioButton32x24">
              <property name="text">
-              <string>Browse...</string>
+              <string>32 x 24</string>
              </property>
+             <attribute name="buttonGroup">
+              <string notr="true">buttonGroup</string>
+             </attribute>
             </widget>
            </item>
-           <item row="2" column="1">
+           <item row="0" column="1" colspan="5">
+            <widget class="LineEdit" name="lineEditVideoFile"/>
+           </item>
+           <item row="2" column="1" colspan="5">
+            <widget class="LineEdit" name="lineEditImageDir"/>
+           </item>
+           <item row="3" column="1">
             <widget class="QCheckBox" name="checkBoxUseGrayScale">
              <property name="text">
               <string>Floyd-Steinberg on grayscale</string>
              </property>
-            </widget>
-           </item>
-           <item row="0" column="1" colspan="6">
-            <widget class="LineEdit" name="lineEditVideoFile"/>
-           </item>
-           <item row="2" column="5">
-            <widget class="QCheckBox" name="checkBoxUseMagenta">
-             <property name="text">
-              <string>Use magenta</string>
+             <property name="checked">
+              <bool>true</bool>
              </property>
             </widget>
            </item>
-           <item row="2" column="4">
+           <item row="3" column="2">
+            <widget class="QCheckBox" name="checkBoxUAttrDarkLight">
+             <property name="text">
+              <string>Use dark and light color for attribute</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="3">
             <widget class="QCheckBox" name="checkBoxSimpleColorDistance">
              <property name="text">
               <string>Use simple color distance</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="4">
+            <widget class="QCheckBox" name="checkBoxUseMagenta">
+             <property name="text">
+              <string>Use magenta</string>
              </property>
             </widget>
            </item>
@@ -1122,8 +1164,8 @@ li.checked::marker { content: &quot;\2612&quot;; }
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>923</width>
-            <height>546</height>
+            <width>1045</width>
+            <height>534</height>
            </rect>
           </property>
           <layout class="QGridLayout" name="gridLayout_4">
@@ -1251,11 +1293,12 @@ li.checked::marker { content: &quot;\2612&quot;; }
   <tabstop>pushButtonCalculate</tabstop>
   <tabstop>tabWidget</tabstop>
   <tabstop>lineEditVideoFile</tabstop>
-  <tabstop>pushButtonBrowseVideoFile</tabstop>
-  <tabstop>pushButtonBrowseImageDir</tabstop>
   <tabstop>lineEditImageDir</tabstop>
   <tabstop>pushButtonTest</tabstop>
  </tabstops>
  <resources/>
  <connections/>
+ <buttongroups>
+  <buttongroup name="buttonGroup"/>
+ </buttongroups>
 </ui>

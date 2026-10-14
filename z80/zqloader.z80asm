@@ -25,11 +25,12 @@
  IFDEF BANKSWITCH128
     DEFINE tape_file_name    "zqloader128.tap"      // main output is a TAP file
     DISPLAY "-- Creating 128k version with bankswitch code"
+    DEFINE basic_name        "ZQLOADER"             // name for tap file ZX spectrum will see
  ELSE
     DEFINE tape_file_name    "zqloader48.tap"         // main output is a TAP file
     DISPLAY "-- Creating 48k version without bankswitch code"
- ENDIF
     DEFINE basic_name        "zqloader"             // name for tap file ZX spectrum will see
+ ENDIF
 
 
 //----------------------------------------------------------------------------
