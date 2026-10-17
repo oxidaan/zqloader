@@ -145,7 +145,11 @@
             </widget>
            </item>
            <item row="8" column="2" colspan="5">
-            <widget class="LineEdit" name="lineEditOutputFile"/>
+            <widget class="LineEdit" name="lineEditOutputFile">
+             <property name="toolTip">
+              <string>To write an output file instead of playing sound enter .wav or .tzx output file here. Leave emtpy for normal usage (playing audio) If you enter *.wav or *.txt the * will be automatically replaced by the base name of the 'Turbo speed file'</string>
+             </property>
+            </widget>
            </item>
            <item row="0" column="1">
             <widget class="QLabel" name="label">
@@ -276,7 +280,7 @@
            <item row="8" column="1">
             <widget class="QLabel" name="label_10">
              <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;To write an output fil instead of playing sound enter .wav or .tzx output file here. Leave emtpy for normal usage (playing audio)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string/>
              </property>
              <property name="text">
               <string>Output file:</string>

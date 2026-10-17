@@ -125,6 +125,10 @@ public:
         return *this;
     }
 
+    uint32_t GetSampleRate() const
+    {
+        return m_sample_rate;
+    }
 
     /// Get (final) wav file size (logging only)
     size_t GetSize() const

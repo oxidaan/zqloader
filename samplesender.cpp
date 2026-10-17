@@ -149,7 +149,7 @@ uint32_t SampleSender::GetDeviceSampleRate()
 inline void SampleSender::Reset()
 {
     m_done_cnt = 0;
-    m_edge = false;
+    m_output_value = false;
     //        m_edge = true;      // Does NOT work
     m_sample_time = 0ms;
     m_event.Reset();
@@ -221,15 +221,15 @@ inline float SampleSender::GetNextSample(bool &out_done)
         Edge edge = GetEdge();
         if (edge == Edge::toggle)
         {
-            m_edge = !m_edge;
+            m_output_value = !m_output_value;
         }
         else if (edge == Edge::one)
         {
-            m_edge = true;
+            m_output_value = true;
         }
         else if (edge == Edge::zero)
         {
-            m_edge = false;
+            m_output_value = false;
         }
         // catch up. Causes sound to be irregular.
         // Even leader tone is noticable (hearable) irregular.
@@ -238,5 +238,5 @@ inline float SampleSender::GetNextSample(bool &out_done)
         m_sample_time = 0s;
         out_done = NextSample(); // true when at end.
     }
-    return m_edge ? 1.0f : -1.0f;
+    return m_output_value ? 1.0f : -1.0f;
 }

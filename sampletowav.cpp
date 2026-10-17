@@ -50,6 +50,8 @@ SampleToWav &SampleToWav::Run()
     Doublesec sample_period = 1s / double(m_sample_rate);
     // static Doublesec prev {};
     bool done               = CheckDone();
+    SampleType value_left{};
+    SampleType value_right{};
     while(!done)
     {
         Doublesec time_to_wait = GetDurationWait();
@@ -81,15 +83,22 @@ SampleToWav &SampleToWav::Run()
             OnNextSample();
             done = CheckDone();
         }
-        SampleType value       = m_edge ? std::numeric_limits<SampleType>::max() :
-                                 std::numeric_limits<SampleType>::min();
-        SampleType value_left  = SampleType(float(value) * m_volume_left);
-        SampleType value_right = SampleType(float(value) * m_volume_right);
+        // "16-bit samples are stored as 2's-complement signed integers, ranging from -32768 to 32767."
+        constexpr auto max = float(std::numeric_limits<SampleType>::max());
+        constexpr auto min = float(std::numeric_limits<SampleType>::min());
+        float value       = m_edge ? max : min;
+        value_left  = SampleType(std::clamp(value * m_volume_left, min, max));
+        value_right = SampleType(std::clamp(value * m_volume_right,min, max));
         AddSample(value_left);
         AddSample(value_right);
     }
-    AddSample(0);       // fixes loading in ZXSpin
-    AddSample(0);       // fixes loading in ZXSpin
+    
+    // Add some extra samples else last is just a spike, fixes loading in ZXSpin
+    for (int n = 0; n < 20; n++)
+    {
+        AddSample(value_left);        
+        AddSample(value_right);   
+    }
     WriteHeader();
     return *this;
 }

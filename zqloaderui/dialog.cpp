@@ -686,6 +686,7 @@ inline void Dialog::RestoreDefaults()
     ui->lineEditUSR->setText("");
     // ui->lineEditOutputFile->setText("");      // no leave even when pressed restore defaults
     // ui->lineEditOutputFile->signalFocusOut();    
+    std::cout << "Restored defaults." << std::endl;
 }
 
 
@@ -737,7 +738,7 @@ inline void Dialog::Go()
         fs::path output_filename = ui->lineEditOutputFile->text().toStdString();
         fs::path turbo_filename = ui->lineEditTurboFile->text().toStdString();
 
-        // Auto determine output filename from turbo_filename
+        // Auto determine output filename from turbo_filename when given as *.wav or *.tzx
         if(output_filename.stem() == "*" && !turbo_filename.empty())
         {
             fs::path tmp = output_filename;

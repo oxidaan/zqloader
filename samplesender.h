@@ -130,7 +130,7 @@ public:
     /// Get (last) edge / mainly for debugging
     bool GetLastEdge() const
     {
-        return m_edge;
+        return m_output_value;
     }
 
     static uint32_t GetDeviceSampleRate();
@@ -205,7 +205,7 @@ private:
     Event                        m_event;                   // for WaitUntilDone
     int                          m_done_cnt     = 0;        
     static constexpr int         m_done_cnt_max = 10;       // see https://github.com/mackron/miniaudio/discussions/490
-    bool                         m_edge         = false;    // output value toggles between 1/0
+    bool                         m_output_value = false;    // output value toggles between 1/0
     Doublesec                    m_sample_time  = 0ms;      // time since last edge change
 
     NextSampleFun                m_OnNextSample;

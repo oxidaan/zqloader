@@ -155,7 +155,7 @@ public:
     void Run(bool p_threaded)
     {
         Check();
-        m_turboblocks.DebugDump();
+        m_turboblocks.DebugDump();      // "Duration of Zero/One ... etc
         std::cout << "Estimated duration: " << GetEstimatedDuration().count() << "ms  (" << m_spectrumloader.GetDurationInTStates() << " TStates)" << std::endl;
         m_spectrumloader.SetOnDone([this]
                                    {
@@ -188,7 +188,7 @@ public:
             m_spectrumloader.Attach(wav_writer);
             wav_writer.SetVolume(m_volume_left, m_volume_right).SetSampleRate(m_sample_rate);
             wav_writer.WriteToFile(filewrite);
-            std::cout << "Written " << outputfilename << " with size: " << wav_writer.GetSize() << " and duration: " << wav_writer.GetDuration().count() << "s" << std::endl;
+            std::cout << "Written " << outputfilename << " with size: " << wav_writer.GetSize() << " and duration: " << wav_writer.GetDuration().count() << "s (Samplerate = " << wav_writer.GetSampleRate() << ")" << std::endl;
             Reset();
         }
         else if (m_action == Action::write_tzx)

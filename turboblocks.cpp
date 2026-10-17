@@ -55,7 +55,7 @@ public:
     /// Also loads symbol file (has same base name).
     void AddZqLoader(const std::filesystem::path& p_filename)
     {
-        std::cout << "Processing zqloader file: " << p_filename << " (normal speed)" << std::endl;
+        std::cout << "Processing zqloader file: " << p_filename << " (normal speed)\n";
 
         fs::path filename_exp = p_filename;
         filename_exp.replace_extension("exp");          // zqloader48.exp or zqloader128.exp (symbols)
@@ -99,7 +99,7 @@ public:
                         "). Will copy loader to screen at " <<
                         loader_copy_start + m_symbols.GetSymbol("STACK_SIZE") <<
                         " (loader will use block: start = " << loader_copy_start <<
-                        " end = " << loader_copy_start + GetLoaderCodeLength(false) - 1 << ")" << std::endl;
+                        " end = " << loader_copy_start + GetLoaderCodeLength(false) - 1 << ")\n";
                     return loader_copy_start;
                 }
             }
@@ -121,7 +121,7 @@ public:
         {
             if (Overlaps(block, start, end))
             {
-                std::cout << "Block overlaps the copied loader code. Will split in two." << std::endl;
+                std::cout << "Block overlaps the copied loader code. Will split in two.\n";
                 auto [first, second, third] = SplitBlock3(block, start, end);
                 if (first.size() > 0)
                 {
@@ -162,7 +162,7 @@ public:
                     // Note: Should not be possible because of Compact().
                     throw std::runtime_error("Already found a block loading to loader-overlapped region, blocks overlap");
                 }
-                std::cout << "Block overlaps loader at upper memory region (at " << start << "). Adding extra block..." << std::endl;
+                std::cout << "Block overlaps loader at upper memory region (at " << start << "). Adding extra block...\n";
                 auto [first, second, third] = SplitBlock3(block, start, end);
                 if (first.size() > 0)
                 {
@@ -245,7 +245,7 @@ public:
 
         if (loader_copy_start && !IsZqLoaderAdded())
         {
-            std::cout << "ZQLoader already (pre) loaded or not present, cannot patch loader copy code, will use screen to move loader to." << std::endl;
+            std::cout << "ZQLoader already (pre) loaded or not present, cannot patch loader copy code, will use screen to move loader to.\n";
         }
         if (loader_copy_start && IsZqLoaderAdded())
         {
@@ -362,7 +362,7 @@ public:
             m_one_duration = p_one_duration;
         }
         m_end_of_byte_delay = p_end_of_byte_delay;      // can be zero as well
-        std::cout << "Around " << ( 1000ms / spectrum::tstate_dur ) / (( m_zero_duration + m_one_duration ) / 2 ) << " bps" << std::endl;
+        // std::cout << "Around " << ( 1000ms / spectrum::tstate_dur ) / (( m_zero_duration + m_one_duration ) / 2 ) << " bps" << std::endl;
     }
 
 
@@ -398,7 +398,7 @@ public:
         {
             throw std::runtime_error("TurboBlock::Header length mismatch with zqloader.z80asm");
         }
-        std::cout << "Z80 loader total length = " << m_symbols.GetSymbol("TOTAL_LEN") << std::endl;
+        std::cout << "Z80 loader total length = " << m_symbols.GetSymbol("TOTAL_LEN") << "\n";
 
     }
 
@@ -467,7 +467,7 @@ private:
         m_zqloader_code[adr]     = std::byte(p_value & 0xff); // z80 is little endian
         m_zqloader_code[adr + 1] = std::byte(( p_value >> 8 ) & 0xff);
         RecalculateChecksum(m_zqloader_code);
-        std::cout << "Patching word '" << p_name << "' to: " << int(p_value) << " hex= " << std::hex << int(p_value) << std::dec << std::endl;
+        std::cout << "Patching word '" << p_name << "' to: " << int(p_value) << " hex= " << std::hex << int(p_value) << std::dec << "\n";
     }
 
 
@@ -477,7 +477,7 @@ private:
         uint16_t adr = GetZqLoaderSymbolAddress(p_name);
         m_zqloader_code[adr] = p_value;
         RecalculateChecksum(m_zqloader_code);
-        std::cout << "Patching byte '" << p_name << "' to: " << int(p_value) << " hex= " << std::hex << int(p_value) << std::dec << " bin= " << std::bitset<8>(int(p_value)) << std::endl;
+        std::cout << "Patching byte '" << p_name << "' to: " << int(p_value) << " hex= " << std::hex << int(p_value) << std::dec << " bin= " << std::bitset<8>(int(p_value)) << "\n";
     }
 
 
