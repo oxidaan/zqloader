@@ -113,7 +113,7 @@ public:
             screen = m_spectrum_screen.Clone();
         }
         m_sem.release();            // wakeup loading load next
-        std::cout << "*" << std::flush;
+        // std::cout << "*" << std::flush;
         return screen;
     }
 
@@ -136,6 +136,7 @@ private:
     void LoadNext()
     {
         fs::path image_filename;
+        auto index = m_index;
         {
             std::unique_lock lock(m_mutex); // protect m_filenames, m_algorithm_parameters, m_orginal_image, m_spectrum_screen
             image_filename = m_filenames[m_index];
@@ -149,7 +150,7 @@ private:
             m_orginal_image = std::move(image);          // loaded original
             m_spectrum_screen = std::move(screen);       // spectrum screen
         }
-        std::cout << m_index << ' ' << image_filename << std::endl;
+        std::cout << (index + 1) << ' ' << image_filename << std::endl;
         m_this->update();       // -> paintEvent
     }
 

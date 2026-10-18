@@ -83,6 +83,10 @@ public:
         {
             m_action = Action::write_wav;
         }
+        else if (ToLower(p_outputfilename.extension().string()) != "")
+        {
+            throw std::runtime_error("Invalid output filename extension (must be .tzx or .wav)");
+        }
         m_allow_overwrite = p_allow_overwrite;
         m_output_filename = std::move(p_outputfilename);
     }
@@ -288,10 +292,10 @@ private:
         if(m_is_busy)
         {
             m_time_needed = GetCurrentTime();
-            std::cout << "Took: " << std::dec << m_time_needed.count() << " ms" << std::endl;
+            std::cout << "Took: " << std::dec << m_time_needed.count() << " ms\n" << std::endl;
             m_is_busy     = false;
         }
-        if(m_OnDone)
+        if(m_OnDone && m_action == Action::play_audio)
         {
             m_OnDone();
         }
@@ -529,7 +533,7 @@ Please add a normal file and/or a turbo speed file.
 
 
 
-    // Determine output (wav/tzx) filename to write.
+    // Determine output (wav/tzx) filename to write using earlier set action.
     // Can auto create output file name out-off turbo filename.
     fs::path GetOutputFilename() const
     {

@@ -44,7 +44,7 @@ private:
     static bool IsPulserSpectrumData(const Pulser &p_pulser);
     static bool IsPulserTurboData(const Pulser &p_pulser);
     static bool IsZqLoaderTurboData(const Pulser &p_pulser);
-    static void WriteAsStandardSpectrum (std::ostream& p_stream, const TonePulser &p_leader, const TonePulser &p_sync, const DataPulser &p_data);
+    static void WriteAsStandardSpectrum (std::ostream& p_stream, const DataPulser &p_data);
     static void WriteAsTurboData        (std::ostream &p_stream, const TonePulser &p_leader, const TonePulser &p_sync, const DataPulser &p_data);
     static void WriteAsZqLoaderTurboData(std::ostream &p_stream, const TonePulser *p_leader, const TonePulser &p_sync, const DataPulser &p_data);
 private:

@@ -347,6 +347,7 @@ Dialog::Dialog(QWidget *parent)
             // start tune
             m_zqloader.Reset();
             SetZqLoaderParameters();
+            ui->pushButtonClean->setEnabled(true);
             m_zqloader.PlayleaderTone();
             SetState(State::Tuning);
         }
@@ -358,7 +359,7 @@ Dialog::Dialog(QWidget *parent)
         CalculateLoaderParametersFromSlider(value);
     });
 
-    // Clean button pressed
+    // Clear button pressed
     connect(ui->pushButtonClean,&QPushButton::pressed, [this]
     {
         ui->textBrowserOutput->clear();
@@ -696,6 +697,7 @@ inline void Dialog::Go()
 {
     try
     {
+        ui->pushButtonClean->setEnabled(true);
         if(ui->tabWidget->currentIndex() == 2)  // fun! tab. Eg video fun
         {
             std::string video_url =  ui->lineEditVideoFile->text().toStdString();
@@ -767,7 +769,7 @@ inline void Dialog::Go()
             }
         }
 
-        ui->pushButtonClean->setEnabled(true);
+        
         std::cout << "\n" << std::endl;
 
         SetZqLoaderParameters();

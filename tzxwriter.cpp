@@ -96,7 +96,7 @@ inline bool TzxWriter::IsZqLoaderTurboData(const Pulser &p_pulser)
 void TzxWriter::WriteBegin(std::ostream& p_stream)
 {
     p_stream << "ZXTape!";
-    std::cout << "ZXTape!" << std::endl;
+    std::cout << "Start writing TZX file (ZXTape!)" << std::endl;
     WriteBinary(p_stream, std::byte{ 0x1A });
     WriteBinary(p_stream, std::byte{ 1 });
     WriteBinary(p_stream, std::byte{ 20 });
@@ -126,7 +126,7 @@ void TzxWriter::WritePulsers(const Pulsers& p_pulsers, std::ostream& p_stream,  
            prev && IsPulserSync(*prev) &&
            IsPulserSpectrumData(*current))
         {
-            WriteAsStandardSpectrum(p_stream, *dynamic_cast<const TonePulser *>(prevprev), *dynamic_cast<const TonePulser *>(prev), *dynamic_cast<const DataPulser *>(current));
+            WriteAsStandardSpectrum(p_stream, *dynamic_cast<const DataPulser *>(current));
             prev = nullptr;
             current = nullptr;
         }
@@ -441,10 +441,8 @@ void TzxWriter::WriteAsTzxBlock(const DataPulser &p_pulser, std::ostream& p_stre
 
 // Write as ID 0x10 - StandardSpeedDataBlock.
 // Has predefined pilot and sync so these parameters are not used.
-void TzxWriter::WriteAsStandardSpectrum(std::ostream& p_stream, const TonePulser &p_pilot, const TonePulser &p_sync, const DataPulser &p_data)
+void TzxWriter::WriteAsStandardSpectrum(std::ostream& p_stream, const DataPulser &p_data)
 {
-    (void)p_pilot;
-    (void)p_sync;
     auto len = p_data.GetTotalSize();
     std::cout << "StandardSpeedDataBlock, data length = " << len << std::endl;
     WriteBinary(p_stream, TzxBlockType::StandardSpeedDataBlock);

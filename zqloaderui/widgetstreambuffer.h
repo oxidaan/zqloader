@@ -37,8 +37,8 @@ public:
                 std::swap(buffer, m_buffer);        // get and empty buffer
             }
             buffer.replace("\n", "<br>");
-            m_output->insertHtml(buffer);
             m_output->moveCursor(QTextCursor::End);
+            m_output->insertHtml(buffer);
             
         }, Qt::QueuedConnection);               // QueuedConnection makes this *much* faster
     }

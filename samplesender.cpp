@@ -55,7 +55,7 @@ SampleSender& SampleSender::Init()
         {
             throw std::runtime_error("Failed to initialize the device.");
         }
-        std::cout << "Sample rate = " << device->sampleRate << std::endl;
+        std::cout << "Start playing with sample rate = " << device->sampleRate << std::endl;
         m_sample_period = 1s / double(device->sampleRate);
         m_device = std::move(device);
     }
