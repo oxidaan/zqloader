@@ -1,7 +1,7 @@
 //==============================================================================
 // PROJECT:         zqloader (ui)
 // FILE:            zxvideo.h
-// DESCRIPTION:     Video fun!
+// DESCRIPTION:     Image fun!
 // 
 // Copyright (c) 2026 Daan Scherft [Oxidaan]
 // This project uses the MIT license. See LICENSE.txt for details.
