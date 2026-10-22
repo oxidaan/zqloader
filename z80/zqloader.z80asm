@@ -515,7 +515,7 @@ wait_for_first_edge:
 
     ld L, LEADER_MIN_EDGES      // (eg 200) > 200 correct edges needed
 .leader_loop1:    
-    ld B, LEADER_MAX            // # counts = max acceptable time between edges
+    ld B, LEADER_MAX            // # counts = max acceptable time between edges = (LEADER_MAX*40) + 59  T states (eg 539)
     call WAIT_FOR_EDGE          // #IN's done =  1 + B-in - B-out, so 1 + LEADER_MAX - B-out
     jr z, try_again             // T/O no edge (note B is 0 when T/O)
 
@@ -676,15 +676,17 @@ load_done:
 // WAIT_FOR_EDGE
 // Note: B is decreased after IN.
 // Before before IN: 0 T states excl. call excl. IN itself (in is first instruction)     
-// Since last IN: 62 T States including IN itself and ret
-// Cycle time between IN's : 43 T
-// Immidiate edge seen: (1 IN) 62 T states, excl. call incl. ret; B not changed  
-// 1 cycle (2 IN's):               43 + 62 = 105 T states B = B-1
-// n cycle (n+1 IN's):         (n*43) + 62       T states B = B-n
-// timeout done B IN's       (B-1)*42 + 62       T States B = 0         
+// Since last IN: 59 T States including IN itself and ret
+// Cycle time between IN's : 40 T
+// Immidiate edge seen: (1 IN) 59 T states, excl. call incl. ret; B not changed  
+// 1 cycle (2 IN's):               40 + 59 =  99 T states B = B-1
+// n cycle (n+1 IN's):         (n*40) + 59       T states B = B-n
+// timeout done B IN's       (B-1)*40 + 59       T States B = 0         
 // C is last edge plus border color, flips when changed: 0E001BBB #2
+// E is ear mask should be 0b01000000
 // H the C xor value, must be 0b01000111 (or 0b01011111)
-// B in is max counter out: counts left.
+// B in: max counter (=max # IN's done before t/o);
+//   out: counts left. #IN's done when no t/o is (B-in - B-out) + 1
 // #IN's done =  1 + B-in - B-out
 // DE, HL not touched
 // Return:

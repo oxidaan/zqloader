@@ -19,6 +19,7 @@ size_t SampleToWav::GetDataByteSize() const
 
 
 
+
 // Write wav header, needs data to be written first, because needs GetDataByteSize
 // http://tiny.systems/software/soundProgrammer/WavFormatDocs.pdf
 void SampleToWav::WriteHeader()
