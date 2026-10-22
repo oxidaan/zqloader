@@ -20,6 +20,7 @@ size_t SampleToWav::GetDataByteSize() const
 
 
 // Write wav header, needs data to be written first, because needs GetDataByteSize
+// http://tiny.systems/software/soundProgrammer/WavFormatDocs.pdf
 void SampleToWav::WriteHeader()
 {
     auto bits_per_sample = sizeof(SampleType) * 8;
@@ -35,7 +36,7 @@ void SampleToWav::WriteHeader()
     GetHeader().AudioFormat   = 1;      // PCM
     GetHeader().NumChannels   = uint16_t(num_channels);
     GetHeader().SampleRate    = m_sample_rate;
-    GetHeader().ByteRate      = uint32_t(m_sample_rate * num_channels * bits_per_sample);
+    GetHeader().ByteRate      = uint32_t(m_sample_rate * num_channels * bits_per_sample / 8);
     GetHeader().BlockAlign    = uint16_t(num_channels * bits_per_sample / 8);
     GetHeader().BitsPerSample = uint16_t(bits_per_sample);
     memcpy(GetHeader().Subchunk2ID, "data", 4);
