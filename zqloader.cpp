@@ -10,6 +10,7 @@
 // ==============================================================================
 // uses pimpl
 
+#include "pulsers.h"
 #include "zqloader.h"
 #include "tools.h"
 #include "spectrum_loader.h"
@@ -200,7 +201,7 @@ public:
             // Write to tzx file
             auto outputfilename     = GetOutputFilename();
             std::ofstream filewrite = OpenFileToWrite(outputfilename, m_allow_overwrite);
-            m_spectrumloader.WriteTzxFile(filewrite);
+            m_spectrumloader.WriteTzxFile(filewrite, m_sample_rate);
             std::cout << "Written " << outputfilename << std::endl;
             Reset();
         }
