@@ -15,6 +15,9 @@
 #include "spectrum_consts.h"      // spectrum::tstate_one etc at IsPulserSpectrumData
 #include <string>
 #include <sstream>
+#include <cmath>
+#include <cstdint>
+#include <utility>
 
 
 inline void DebugLog(const char *p_str)
@@ -103,12 +106,133 @@ void TzxWriter::WriteBegin(std::ostream& p_stream)
 }
 
 // convenience
-void TzxWriter::WriteTzxFile(const Pulsers& p_pulsers, std::ostream& p_stream,  Doublesec p_tstate_dur)
+void TzxWriter::WriteTzxFile(Pulsers& p_pulsers, std::ostream& p_stream,
+                             Doublesec p_tstate_dur, uint32_t p_sample_rate)
 {
+    if(!std::isfinite(p_tstate_dur.count()) || p_tstate_dur.count() <= 0)
+        throw std::runtime_error("TZX requires a positive finite T-state duration");
     WriteBegin(p_stream);
     extern const char *GetVersion();
     WriteInfo(p_stream, std::string("File written by ZQLoader version ") + GetVersion());
-    WritePulsers(p_pulsers, p_stream, p_tstate_dur);
+
+    // Pulsers describe a wait followed by an edge. TZX symbols describe the
+    // level DURING a wait. Preserve that distinction across bytes and pauses.
+    using Run = std::pair<WORD, bool>;
+    std::vector<Run> runs;
+    bool level = false;
+    double remainder = 0;
+    bool first = true;
+    auto append = [&](double ticks)
+    {
+        ticks += remainder;
+        if(!std::isfinite(ticks) || ticks < 0 || ticks >= double(UINT64_MAX))
+            throw std::runtime_error("TZX pulse duration is out of range");
+        auto count = uint64_t(std::floor(ticks));
+        remainder = ticks - double(count);
+        while(count)
+        {
+            if(!runs.empty() && runs.back().second == level && runs.back().first < 65535)
+            {
+                auto n = std::min<uint64_t>(count, 65535 - runs.back().first);
+                runs.back().first += WORD(n);
+                count -= n;
+            }
+            else
+            {
+                auto n = std::min<uint64_t>(count, 65535);
+                runs.emplace_back(WORD(n), level);
+                count -= n;
+            }
+        }
+    };
+    for(const auto &pulser : p_pulsers)
+    {
+        if(auto tone = dynamic_cast<const TonePulser *>(pulser.get()))
+        {
+            if(tone->IsInfinite())
+                throw std::runtime_error("Cannot export an unbounded tone");
+            if(tone->GetMaxPulses() == 0 || tone->GetPattern().empty()) continue;
+        }
+        if(auto data = dynamic_cast<const DataPulser *>(pulser.get()))
+            if(data->GetTotalSize() == 0) continue;
+        do
+        {
+            auto wait = pulser->GetDurationWait();
+            if(!std::isfinite(wait.count()) || wait.count() < 0)
+                throw std::runtime_error("TZX pulse duration must be finite and non-negative");
+            if(p_sample_rate)
+            {
+                // Explicit WAV-equivalence mode: mirror SampleToWav's strict
+                // comparison and per-edge time reset, not cumulative rounding.
+                auto sample_count = wait.count() * p_sample_rate;
+                if(!std::isfinite(sample_count) || sample_count >= double(UINT64_MAX))
+                    throw std::runtime_error("TZX sampled pulse duration is out of range");
+                auto period = 1s / double(p_sample_rate);
+                Doublesec elapsed{};
+                uint64_t samples = 0;
+                do { elapsed += period; ++samples; } while(elapsed <= wait);
+                if(first) --samples;
+                append(double(samples) / double(p_sample_rate) / spectrum::tstate_dur.count());
+            }
+            else
+            {
+                append(std::round(wait / spectrum::tstate_dur));
+            }
+            first = false;
+            switch(pulser->GetEdge())
+            {
+                case Edge::toggle: level = !level; break;
+                case Edge::zero: level = false; break;
+                case Edge::one: level = true; break;
+                default: break;
+            }
+        } while(!pulser->Next());
+    }
+    if(first) // No pulse events: only the TZX header and comment.
+    {
+        if(!p_stream) throw std::runtime_error("Failed to write TZX header");
+        return;
+    }
+    // Close the final edge. WAV writes its final sample plus twenty tail samples.
+    append(p_sample_rate ? 21.0 / p_sample_rate / spectrum::tstate_dur.count() : 1.0);
+
+    // Pack explicit held levels into data symbols. Every block has real data;
+    // unused alphabet entries are never referenced and have valid pulse lengths.
+    for(size_t begin = 0; begin < runs.size();)
+    {
+        std::vector<Run> alphabet;
+        std::vector<BYTE> data;
+        auto end = begin;
+        for(; end < runs.size() && data.size() < 65536; ++end)
+        {
+            auto found = std::find(alphabet.begin(), alphabet.end(), runs[end]);
+            if(found == alphabet.end())
+            {
+                if(alphabet.size() == 256) break;
+                alphabet.push_back(runs[end]);
+                data.push_back(BYTE(alphabet.size() - 1));
+            }
+            else data.push_back(BYTE(found - alphabet.begin()));
+        }
+        GeneralizedDataBlock block{};
+        block.totd = DWORD(data.size());
+        block.npd = 1;
+        block.asd = 0; // 256 symbols, eight bits per symbol.
+        block.block_length = DWORD(block.GetBlockLength(data.size()));
+        WriteBinary(p_stream, TzxBlockType::GeneralizedDataBlock);
+        WriteBinary(p_stream, block);
+        for(size_t i = 0; i < 256; ++i)
+        {
+            auto run = i < alphabet.size() ? alphabet[i] : Run{1, false};
+            GeneralizedDataBlock::SymDef symbol{};
+            symbol.m_edge = run.second ? Edge::one : Edge::zero;
+            WriteBinary(p_stream, symbol);
+            WriteBinary(p_stream, run.first);
+        }
+        for(auto index : data) WriteBinary(p_stream, index);
+        begin = end;
+    }
+    if(!p_stream) throw std::runtime_error("Failed to write TZX waveform");
 }
 
 void TzxWriter::WritePulsers(const Pulsers& p_pulsers, std::ostream& p_stream,  Doublesec p_tstate_dur)

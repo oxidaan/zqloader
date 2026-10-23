@@ -97,6 +97,19 @@ sjasmplus --fullpath     \
    --lst --syntax=abf --color=on       \
    path/to/zqloader/z80/zqloader\z80\zqloader.z80asm  
 ```   
+Testing the TZX exporter
+---
+With Python 3 available, CMake enables a portable waveform test:
+```
+cmake -S . -B build -DBUILD_TESTING=ON
+cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure
+```
+The test independently decodes the exported TZX and compares sampled waveforms
+against the actual WAV writer. It covers levels, byte delays, pauses, long holds,
+block boundaries, the fixed TZX timebase, empty inputs and invalid durations.
+It does not require Fuse, libspectrum, an assembler or an audio device.
+
 Installing
 ---
 **Windows**  
@@ -172,6 +185,18 @@ More options can be given with syntax:
 A number between -100 and 100: sets volume for left or right sound (stereo) channel. Default 100 (max). A negative value eg -100 inverts this channel. When both are negative both channels are inverted.
 * samplerate = value  
    Sample rate for audio. Default 0 meaning take device native sample rate. S/a miniaudio documentation.
+   For TZX output, 0 preserves exact nominal T-state durations. An explicit positive
+   rate (for example `samplerate=48000`) instead matches the WAV writer's per-pulse
+   sample rounding at that rate, using normal signal polarity. This can be slower
+   than nominal timing: it is an explicit waveform-equivalence mode, not a speed fix.
+   The TZX exporter consumes pulse cursors and writes explicit held levels in
+   generalized-data blocks; files may be larger than the previous compact encoding.
+The exporter writes TZX durations using the format's fixed 3.5 MHz timebase,
+including when pulse generators use a different clock. Sample rounding can change
+both individual bits and the extra processing time at byte boundaries; changing
+sample rate is not equivalent to selecting a loader bit rate. Pulse durations
+and decoding thresholds must be tuned together.
+
 * zero_tstates = value
 * one_tstates = value  
      The number of TStates a zero / one pulse will take when using the ZQloader/turboloader. Not giving this (or 0) uses a default that worked for me. (118/293)
