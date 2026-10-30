@@ -92,9 +92,9 @@ SpectrumLoader& SpectrumLoader::AddPause(std::chrono::milliseconds p_duration)
 
 
 ///  Write as tzx file to given stream
-SpectrumLoader& SpectrumLoader::WriteTzxFile(std::ostream& p_filewrite)
+SpectrumLoader& SpectrumLoader::WriteTzxFile(std::ostream& p_filewrite, uint32_t p_sample_rate)
 {
-    TzxWriter::WriteTzxFile(m_standby_pulsers, p_filewrite, m_tstate_dur);
+    TzxWriter::WriteTzxFile(m_standby_pulsers, p_filewrite, m_tstate_dur, p_sample_rate);
     return *this;
 }
 

@@ -101,7 +101,8 @@ More options can be given with syntax: option=value, or just 'option value' or o
                             Default 100 (max). A negative value eg -100 inverts this channel.
                             When both are negative both channels are inverted.
     samplerate = value      Sample rate for audio. Default 0 meaning take device native sample rate.
-                            S/a miniaudio documentation.
+                            For TZX, 0 preserves exact T-states; a positive rate explicitly
+                            matches WAV pulse rounding at that rate (normal polarity).
     usescreen or -s         When loading a snapshot, normally it will try to find empty space for
                             the loader. Only when not found it uses the lower 2/3 of screen for 
                             that. With this option it will allways use the screen.
@@ -197,6 +198,7 @@ int main(int argc, char** argv)
 
 
         ZQLoader zqloader;
+        zqloader.SetSampleRate(cmdline.GetParameter<uint32_t>("samplerate", 0));
 
         // When outputfile="path/to/filename" or -w or -wav given: 
         // Convert to wav file instead of outputting sound

@@ -107,7 +107,7 @@ public:
 
 
     /// Write all added pulsers data as a TZX file.
-    SpectrumLoader& WriteTzxFile(std::ostream& p_file);
+    SpectrumLoader& WriteTzxFile(std::ostream& p_file, uint32_t p_sample_rate = 0);
 
     // Set the call backs
     // TSampleSender is SampleSender or SampleToWav

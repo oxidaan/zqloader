@@ -133,6 +133,23 @@ endif()
 add_executable(${TARGET_EXE}  ${SOURCE_EXE}  )
 target_link_libraries(${TARGET_EXE} ${TARGET_LIB})
 
+include(CTest)
+if(BUILD_TESTING)
+    find_package(Python3 COMPONENTS Interpreter QUIET)
+    if(Python3_Interpreter_FOUND)
+        # Compile internal writer code directly: these classes are not part of
+        # the exported Windows DLL API. No audio device/backend is needed.
+        add_executable(tzx_writer_fixture tzx_writer_fixture.cpp tzxwriter.cpp
+            pulsers.cpp spectrum_loader.cpp sampletowav.cpp enumstreamer.cpp)
+        target_compile_features(tzx_writer_fixture PRIVATE cxx_std_20)
+        find_package(Threads REQUIRED)
+        target_link_libraries(tzx_writer_fixture PRIVATE Threads::Threads)
+        add_test(NAME tzx_waveform
+            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/tzx_waveform.py
+                    $<TARGET_FILE:tzx_writer_fixture>)
+    endif()
+endif()
+
 
 #installation
 include(GNUInstallDirs)

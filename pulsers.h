@@ -267,6 +267,10 @@ public:
     {
         return m_max_pulses;
     }
+    bool IsInfinite() const
+    {
+        return m_forever;
+    }
 protected:
 
     int GetTstate() const override

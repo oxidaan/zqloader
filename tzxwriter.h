@@ -22,8 +22,9 @@ public:
 
 public:
     TzxWriter() = delete;
-    ///  Writer
-    static void WriteTzxFile(const Pulsers &p_pulsers, std::ostream& p_stream , Doublesec p_tstate_dur);
+    /// Consume the pulse cursors, like audio output. Zero sample rate preserves
+    /// exact T-state timing; nonzero explicitly matches WAV output at that rate.
+    static void WriteTzxFile(Pulsers &p_pulsers, std::ostream& p_stream , Doublesec p_tstate_dur, uint32_t p_sample_rate = 0);
 
     static void WriteBegin(std::ostream& p_stream);
     static void WritePulsers(const Pulsers &p_pulsers, std::ostream& p_stream , Doublesec p_tstate_dur);
