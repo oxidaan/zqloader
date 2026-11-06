@@ -55,7 +55,7 @@ SampleSender& SampleSender::Init()
         {
             throw std::runtime_error("Failed to initialize the device.");
         }
-        std::cout << "Start playing with sample rate = " << device->sampleRate << std::endl;
+        std::cout << "Start playing with sample rate = " << device->sampleRate << (m_catch_up ? " (Catch-up)" : "") << std::endl;
         m_sample_period = 1s / double(device->sampleRate);
         m_device = std::move(device);
     }
@@ -234,8 +234,14 @@ inline float SampleSender::GetNextSample(bool &out_done)
         // catch up. Causes sound to be irregular.
         // Even leader tone is noticable (hearable) irregular.
         // But this makes loading take a little longer than expected (s/a SpectrumLoader::GetDuration)
-        // m_sample_time -= time_to_wait ;
-        m_sample_time = 0s;
+        if (m_catch_up)
+        {
+            m_sample_time -= time_to_wait;
+        }
+        else
+        {
+            m_sample_time = 0s;
+        }
         out_done = NextSample(); // true when at end.
     }
     return m_output_value ? 1.0f : -1.0f;

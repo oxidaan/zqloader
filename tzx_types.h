@@ -94,7 +94,7 @@ struct GeneralizedDataBlock
 
     DWORD   totp;           // Total number of symbols in pilot / sync block(can be 0) (eg 2 for a leader, then a sync)
     BYTE    npp;            // Maximum number of pulses per pilot/sync symbol (= #pulse_lengths at pulse-symdef)
-    BYTE    asp;            // Total number of pilot/sync symbols in the alphabet table (0=256) (= #pulse-symdef-s)
+    BYTE    asp;            // Number of pilot/sync symbols in the alphabet table (0=256) (= #pulse-symdef-s)
 
     DWORD   totd;           // Total number of symbols in data stream (can be 0)    (when asd==2 this is # bits in data)
     BYTE    npd;            // Maximum number of pulses per data symbol             (= #pulse_lengths at data-symdef)
@@ -152,10 +152,10 @@ struct GeneralizedDataBlock
                //  << " pause = " << p_block.pause
                  << " totp = "  << p_block.totp 
                  << " npp = "   << int(p_block.npp)
-                 << " asp = "   << int(p_block.asp)
+                 << " asp = "   << int(p_block.asp) << (int(p_block.asp) == 0 ? "(=256)" : "")
                  << " totd = "  << p_block.totd 
                  << " npd = "   << int(p_block.npd)
-                 << " asd = "   << int(p_block.asd);
+                 << " asd = "   << int(p_block.asd) << (int(p_block.asd) == 0 ? "(=256)" : "");
         return p_stream; 
     }
 

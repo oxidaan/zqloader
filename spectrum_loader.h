@@ -107,7 +107,8 @@ public:
 
 
     /// Write all added pulsers data as a TZX file.
-    SpectrumLoader& WriteTzxFile(std::ostream& p_file, uint32_t p_sample_rate = 0);
+    SpectrumLoader& WriteTzxFile(std::ostream& p_file);
+    SpectrumLoader& WriteTzxFile(std::ostream& p_file, uint32_t p_sample_rate);
 
     // Set the call backs
     // TSampleSender is SampleSender or SampleToWav
@@ -143,8 +144,7 @@ public:
 
 
     /// Get expected duration (from all standby pulsers)
-    /// Not 100% accurate because discrepancy between miniaudio sample rate and time we actually need.
-    Doublesec GetEstimatedDuration() const;
+    Doublesec GetDurationInSeconds() const;
     int GetDurationInTStates() const;
 
     SpectrumLoader &SetTstateDuration(Doublesec p_to_what) 

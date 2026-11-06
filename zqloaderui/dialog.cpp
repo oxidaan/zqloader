@@ -654,8 +654,9 @@ inline void Dialog::RestoreDefaults()
     ui->comboBoxLoaderLocation->setCurrentIndex(0);     // automatic.
     ui->lineEditLoaderAddress->setText(QString::number(spectrum::screen::SCREEN_23RD));
 
-    ui->lineEditSampleRate->setText("");
-    ui->lineEditSampleRate->signalFocusOut();       // also gives correct tip-text
+    ui->lineEditSampleRate->setText("");            // = device default
+    ui->lineEditSampleRate->setText("");            // = device default
+    ui->checkBoxCatchUp->setChecked(loader_defaults::catch_up);
     // no defaults for volume
   //  ui->lineEditVolumeLeft->setText(QString::number(loader_defaults::volume_left));
   //  ui->dialVolumeLeft->setValue(loader_defaults::volume_left);
@@ -853,6 +854,7 @@ void Dialog::SetZqLoaderParameters()
 
     m_zqloader.SetFunAttribs(ui->checkBoxFunAttribs->isChecked());
     m_zqloader.SetSampleRate(ui->lineEditSampleRate->text().toInt());       // 0 so automatic when conversion faild
+    m_zqloader.SetCatchUp(ui->checkBoxCatchUp->isChecked());       // 0 so automatic when conversion faild
     m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());
 
 }
@@ -1081,8 +1083,17 @@ inline int CycleToTstate(double p_cyclii)
 
 inline void Dialog::CalculateLoaderParametersFromSlider(int p_index )
 {
-    double wanted_zero_cyclii= 1.0;
-    double wanted_one_cyclii = wanted_zero_cyclii + 3.0;
+    double wanted_zero_cyclii= loader_defaults::wanted_zero_cyclii;
+    double wanted_one_cyclii = loader_defaults::wanted_one_cyclii;
+    for (int n = 0; n < p_index; n++)
+    {
+        wanted_one_cyclii += 0.5;
+        if (n % 2 == 1)
+        {
+            wanted_zero_cyclii += 0.5;
+        }
+    }
+#if 0
     int addhalf = 0;
     for(int n = 0;  n <= p_index ; n++)
     {
@@ -1095,6 +1106,7 @@ inline void Dialog::CalculateLoaderParametersFromSlider(int p_index )
             wanted_one_cyclii = wanted_zero_cyclii + 3.0;
         }
     }
+#endif
     int zero_max= static_cast<int>((wanted_zero_cyclii + wanted_one_cyclii + 0.5) / 2);
 //    int zero_max= (wanted_zero_cyclii + wanted_one_cyclii)/2;
 //    return {wanted_zero_cyclii, zero_max, wanted_one_cyclii};

@@ -126,6 +126,12 @@ public:
         return *this;
     }
 
+    /// Set catch-up mode on/of
+    SampleSender& SetCatchUp(bool p_to_what)
+    {
+        m_catch_up = p_to_what;
+        return *this;
+    }
 
     /// Get (last) edge / mainly for debugging
     bool GetLastEdge() const
@@ -201,7 +207,6 @@ private:
 private:
     std::unique_ptr<ma_device>   m_device;
 
-
     Event                        m_event;                   // for WaitUntilDone
     int                          m_done_cnt     = 0;        
     static constexpr int         m_done_cnt_max = 10;       // see https://github.com/mackron/miniaudio/discussions/490
@@ -216,6 +221,7 @@ private:
     float                        m_volume_left  = 1.0f;     // -1.0 .. 1.0
     float                        m_volume_right = 1.0f;     // -1.0 .. 1.0
     uint32_t                     m_sample_rate  = 0;        // Set to 0 to use the device's native sample rate.
+    bool                         m_catch_up = false;
     Doublesec                    m_sample_period{};
 
 }; // class SampleSender

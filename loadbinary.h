@@ -37,29 +37,39 @@ TData LoadBinary(std::istream& p_stream, size_t p_len)
 
 /// Write data binary to given stream.
 template <class TData>
-void WriteBinary(std::ostream& p_stream, const TData &p_data)
+void WriteBinary(std::ostream& p_stream, const TData &p_data, bool p_debug_dump = true)
 {
 #ifdef DEBUG_TZX
-    const char *ptr = reinterpret_cast<const char *>(&p_data);
-    for(int n = 0; n < sizeof(TData); n++)
+    static int hex_count = 0;
+    if(p_debug_dump)
     {
-        std::cout << std::hex << int(*ptr & 0xff) << ' ';
-        ptr++;
+        const char *ptr = reinterpret_cast<const char *>(&p_data);
+        for(int n = 0; n < sizeof(TData); n++)
+        {
+            std::cout << std::hex << int(*ptr & 0xff) << ' ';
+            ptr++;
+            hex_count++;
+        }
+        if constexpr(std::is_same_v<TData, uint8_t>)
+        {
+            std::cout << std::dec << '(' << p_data << ')' << ' ';
+        }
+        else if constexpr(std::is_same_v<TData, uint16_t>)
+        {
+            std::cout << std::dec << '(' << p_data << ')' << ' ';
+        }
+        else if constexpr(std::is_same_v<TData, uint32_t>)
+        {
+            std::cout << std::dec << '(' << p_data << ')' << ' ';
+        }
+        std::cout << std::dec;
+        if(hex_count % 16 == 0)
+        {
+            std::cout << '\n';
+        }
     }
-    if constexpr(std::is_same_v<TData, uint8_t>)
-    {
-        std::cout << std::dec << '(' << p_data << ')' << ' ';
-    }
-    else if constexpr(std::is_same_v<TData, uint16_t>)
-    {
-        std::cout << std::dec << '(' << p_data << ')' << ' ';
-    }
-    else if constexpr(std::is_same_v<TData, uint32_t>)
-    {
-        std::cout << std::dec << '(' << p_data << ')' << ' ';
-    }
-    std::cout << std::dec;
 #endif
+    (void)p_debug_dump;
     p_stream.write(reinterpret_cast<const char*>(&p_data), sizeof(TData));
 }
 

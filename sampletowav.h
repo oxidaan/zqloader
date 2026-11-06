@@ -125,6 +125,14 @@ public:
         return *this;
     }
 
+    /// Set catch-up mode on/of
+    SampleToWav& SetCatchUp(bool p_to_what)
+    {
+        m_catch_up = p_to_what;
+        return *this;
+    }
+
+
     uint32_t GetSampleRate() const
     {
         return m_sample_rate;
@@ -232,7 +240,7 @@ private:
 //    uint32_t m_sample_rate = 44100;                       // CD standard
 //    uint32_t m_sample_rate = 70000;                       // spectrum clock 3500000/50
     uint32_t         m_sample_rate  = 48000;                // s/a miniaudio
-
+    bool             m_catch_up = false;
     float            m_volume_left  = 1.0f;                 // -1.0 .. 1.0
     float            m_volume_right = 1.0f;                 // -1.0 .. 1.0
 

@@ -117,7 +117,9 @@ public:
     /// See remark at  SampleSender::GetNextSample
     std::chrono::milliseconds GetEstimatedDuration() const
     {
-        return std::chrono::duration_cast<std::chrono::milliseconds>(m_spectrumloader.GetEstimatedDuration());
+        return m_catch_up ? 
+                std::chrono::duration_cast<std::chrono::milliseconds>( m_spectrumloader.GetDurationInSeconds()) :
+                std::chrono::duration_cast<std::chrono::milliseconds>(1.2 * m_spectrumloader.GetDurationInSeconds());
     }
 
 
@@ -149,7 +151,7 @@ public:
 
         m_spectrumloader.AddEndlessLeader();
         m_spectrumloader.Attach(m_sample_sender);
-        m_sample_sender.SetVolume(m_volume_left, m_volume_right).SetSampleRate(m_sample_rate);
+        m_sample_sender.SetVolume(m_volume_left, m_volume_right).SetSampleRate(m_sample_rate).SetCatchUp(m_catch_up);
         m_sample_sender.Start();            // Play!
         m_is_busy = true;
     }
@@ -162,6 +164,7 @@ public:
         Check();
         m_turboblocks.DebugDump();      // "Duration of Zero/One ... etc
         std::cout << "Estimated duration: " << GetEstimatedDuration().count() << "ms  (" << m_spectrumloader.GetDurationInTStates() << " TStates)" << std::endl;
+        //                       "; Sample rate: " << m_sample_rate << "; Catch up: " << m_catch_up << std::endl;
         m_spectrumloader.SetOnDone([this]
                                    {
                                        OnDone();
@@ -171,7 +174,7 @@ public:
         {
             // normal, so play as sound
             m_spectrumloader.Attach(m_sample_sender);
-            m_sample_sender.SetVolume(m_volume_left, m_volume_right).SetSampleRate(m_sample_rate);
+            m_sample_sender.SetVolume(m_volume_left, m_volume_right).SetSampleRate(m_sample_rate).SetCatchUp(m_catch_up);
             if(p_threaded)
             {
                 m_is_busy = true;
@@ -191,9 +194,9 @@ public:
             std::ofstream filewrite = OpenFileToWrite(outputfilename, m_allow_overwrite);
             SampleToWav   wav_writer;
             m_spectrumloader.Attach(wav_writer);
-            wav_writer.SetVolume(m_volume_left, m_volume_right).SetSampleRate(m_sample_rate);
+            wav_writer.SetVolume(m_volume_left, m_volume_right).SetSampleRate(m_sample_rate).SetCatchUp(m_catch_up);
             wav_writer.WriteToFile(filewrite);
-            std::cout << "Written " << outputfilename << " with size: " << wav_writer.GetSize() << " and duration: " << wav_writer.GetDuration().count() << "s (Samplerate = " << wav_writer.GetSampleRate() << ")" << std::endl;
+            std::cout << "Written " << (outputfilename.is_absolute() ? outputfilename : std::filesystem::current_path() / outputfilename) << " with size: " << wav_writer.GetSize() << " and duration: " << wav_writer.GetDuration().count() << "s (Samplerate = " << wav_writer.GetSampleRate() << "; Catch up = " << m_catch_up << ")" << std::endl;
             Reset();
         }
         else if (m_action == Action::write_tzx)
@@ -201,8 +204,16 @@ public:
             // Write to tzx file
             auto outputfilename     = GetOutputFilename();
             std::ofstream filewrite = OpenFileToWrite(outputfilename, m_allow_overwrite);
-            m_spectrumloader.WriteTzxFile(filewrite, m_sample_rate);
-            std::cout << "Written " << outputfilename << std::endl;
+            if (m_catch_up)
+            {
+                m_spectrumloader.WriteTzxFile(filewrite, m_sample_rate);
+            }
+            else
+            {
+                m_spectrumloader.WriteTzxFile(filewrite);
+            }
+            //            m_spectrumloader.WriteTzxFile(filewrite);
+            std::cout << "Written " << (outputfilename.is_absolute() ? outputfilename : std::filesystem::current_path() / outputfilename) << " (Samplerate = " << m_sample_rate << "; Catch up = " << m_catch_up << ")"  << std::endl;
             Reset();
         }
     }
@@ -523,7 +534,7 @@ Else the ZX Spectrum will not do anything after loading the turbo loader,
 except waiting.
     )");
         }
-        if(m_spectrumloader.GetEstimatedDuration() == 0ms)
+        if(m_spectrumloader.GetDurationInTStates() == 0)
         {
             throw std::runtime_error(1 + &*R"(
 No files added. Nothing to do.
@@ -567,6 +578,7 @@ public:
     SampleSender                m_sample_sender;
     bool                        m_use_fun_attribs           = false;
     uint32_t                    m_sample_rate               = loader_defaults::sample_rate;
+    bool                        m_catch_up                  = loader_defaults::catch_up;
     fs::path                    m_exe_path;                           // s/a argv[0]
     Action                      m_action                    = Action::play_audio;
     uint16_t                    m_when_done_call_usr        = 0;      // 0 is automatic
@@ -639,6 +651,12 @@ ZQLoader& ZQLoader::SetVolume(int p_volume_left, int p_volume_right)
 ZQLoader& ZQLoader::SetSampleRate(uint32_t p_sample_rate)
 {
     m_pimpl->m_sample_rate = p_sample_rate;
+    return *this;
+}
+
+ZQLoader& ZQLoader::SetCatchUp(bool p_catch_up)
+{
+    m_pimpl->m_catch_up = p_catch_up;
     return *this;
 }
 

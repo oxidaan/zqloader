@@ -63,7 +63,7 @@ SampleToWav &SampleToWav::Run()
         //      std::cout << prev.count() << ' ';
         //  }
         m_sample_time += sample_period;
-        if (m_sample_time > time_to_wait)
+        if (m_sample_time >= time_to_wait)
         {
             // Get value what edge needs to become
             Edge edge = GetEdge();
@@ -79,9 +79,15 @@ SampleToWav &SampleToWav::Run()
             {
                 m_edge = false;
             }
-            // m_sample_time = time_to_wait - m_sample_time;
-            m_sample_time = 0s;
-//            m_sample_time -= time_to_wait;
+            // See SampleSender
+            if (m_catch_up)
+            {
+                m_sample_time -= time_to_wait;
+            }
+            else
+            {
+                m_sample_time = 0s;
+            }
             OnNextSample();
             done = CheckDone();
         }

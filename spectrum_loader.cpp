@@ -89,9 +89,8 @@ SpectrumLoader& SpectrumLoader::AddPause(std::chrono::milliseconds p_duration)
     return *this;
 }
 
-
-
-///  Write as tzx file to given stream
+/// Write as tzx file to given stream
+/// Alternate algorithm witten by Fredrick Meunier
 SpectrumLoader& SpectrumLoader::WriteTzxFile(std::ostream& p_filewrite, uint32_t p_sample_rate)
 {
     TzxWriter::WriteTzxFile(m_standby_pulsers, p_filewrite, m_tstate_dur, p_sample_rate);
@@ -99,12 +98,20 @@ SpectrumLoader& SpectrumLoader::WriteTzxFile(std::ostream& p_filewrite, uint32_t
 }
 
 
-
-/// Get expected duration (from all standby pulsers)
-/// Not 100% accurate because discrepancy between miniaudio sample rate and time we actually need.
-Doublesec SpectrumLoader::GetEstimatedDuration() const
+/// Write as tzx file to given stream
+/// Classic algorithm
+SpectrumLoader& SpectrumLoader::WriteTzxFile(std::ostream& p_filewrite)
 {
-    return GetDurationInTStates() * m_tstate_dur * 1.2;  // 1.2: see remark at  SampleSender::GetNextSample
+    TzxWriter::WriteTzxFile(m_standby_pulsers, p_filewrite, m_tstate_dur);
+    return *this;
+}
+
+
+
+/// Get expected duration (from all standby pulsers) in seconds
+Doublesec SpectrumLoader::GetDurationInSeconds() const
+{
+    return GetDurationInTStates() * m_tstate_dur;
 }
 
 /// Get duration in TStates.

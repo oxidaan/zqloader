@@ -180,7 +180,7 @@ next_block:
     // in(0xfe):  0  E  0  K  K  K  K  K    
     // out(0xfe): d  d  d  E !M  B  B  B    (->C)
     // Note: removed initializing edge at IN. Not really needed.
-IO_INIT_VALUE+*: ld C, 0b00001010 // ear zero border red 010 <-> 101 cyan + also set mic (and/or ear)
+IO_INIT_VALUE+*: ld C, 0b10001010 // ear zero border red 010 <-> 101 cyan + also set mic (and/or ear)
                                   // initialize c with result: 0E001010 see WAIT_FOR_EDGE #2
                                   // TODO set bit 7? ***7)
 IO_XOR_VALUE+*: ld H, 0b01000111  // The C xor value, see WAIT_FOR_EDGE #3 so toggles border bits + last edge
@@ -499,8 +499,8 @@ LOAD_HEADER_PLUS_DATA:
 // Note value of B is not really relevant at first.
 try_again:
 wait_for_first_edge:     
-    ld A,$BF 	                // Read from port 0xBFFE, read ENTER to break
-    in A,($FE)                  // bit 0 is !ENTER
+    ld A,$7F 	                // Read from port 0x7FFE, read SPACE to break
+    in A,($FE)                  // bit 0 is !SPACE. Note this IN is contended. Reading ENTER instead would not be so.
     rrca                        // check for key pressed, when C: no key
     ret nc
     call WAIT_FOR_EDGE
@@ -587,7 +587,7 @@ wait_for_first_edge:
 // In:
 // HL' storage location, this is modified (walks to end)
 // BC': # bytes to load  (walks down to zero)
-// C: to check changes at last IN ; border color: 0E001001.
+// C: to check changes at last IN ; border color: 1E001001. Bit 7 must be set to avoid contended input.
 // E: EAR mask value after IN so 0b01000000
 // H: the C xor value, must be 0b01000111 (or 0b01011111) so toggles last edge + border. Does not change.
 // E': Checksum init value must be sizeof header.
@@ -617,25 +617,26 @@ LOAD_BYTES:
 BIT_LOOP_MAX+*:     ld D, ONE_MAX               // eg 12 can also be set from C++ code
  
     ld B, 200                   // Minisync
-    call WAIT_FOR_EDGE          // Minisync 62T states since last in
-    ret z                       // Minisync 5 T states
-    nop                         // makes it bit cycle time exactly (78T). 4 T states -> 71 T
+    call WAIT_FOR_EDGE          // Minisync 59T states since last in
+    ret z                       // Minisync 5 T states += 64
+    nop                         // makes it next_bit cycle time exactly (75T vs 78T). 4 T states -> 71 T
 
 // wait_for_edge_loop2: 43T
 // (Orginally bit loop was unrolled (8x) and used call to WAIT_FOR_EDGE.)
 // This version has copied inline code avoiding call to WAIT_FOR_EDGE - but no loop unroll.
 // Does not detect keypress - can end with timeout if no edges are seen (eg sound stops).
 
-.next_byte  
+.next_byte                      // byte-loop: 159T  -> byte_loop_loop_duration
     ld L, 1                     // end marker 7T
-.next_bit                       // bit-loop: 91 T
+.next_bit                       // bit-loop: 91 T   -> bit_loop_duration
     ld B, D                     // ONE_MAX # counts until timeout eg 12  Note: B is decreased before IN unlike WAIT_FOR_EDGE
+    // xor A                       // to avoid Contended Input
 
-.wait_for_edge_loop2:           // wait-loop: 43T
+.wait_for_edge_loop2:           // wait-loop: 40T   -> wait_for_edge_loop_duration
     dec B                       // Dec. cycle count (carry not touched) 43 since in
     ret z                       // 5/11T t/o, note carry still not set    (c=0 z=1)
-    // ld A,$7F 	            // Maybe not needed (dont need keyboard). Read from port 0x7FFE, read EAR. 49 + 16 since prev. IN is 59 
-    // ld A, C                  // TODO to avoid Contended Input must have C ***7)
+    // ld A,$7F 	              // Maybe not needed (dont need keyboard). Read from port 0x7FFE, read EAR. 49 + 16 since prev. IN is 59 
+    // ld A, C                    // to avoid Contended Input must have C bit 7 set ***7)
     in A,($FE)                  // bit 6 is ear
     xor C                       // detect change at ear (also reset carry)
     and E                       // E=mask to keep ear 
@@ -685,7 +686,7 @@ load_done:
 // 1 cycle (2 IN's):               40 + 59 =  99 T states B = B-1
 // n cycle (n+1 IN's):         (n*40) + 59       T states B = B-n
 // timeout done B IN's       (B-1)*40 + 59       T States B = 0         
-// C is last edge plus border color, flips when changed: 0E001BBB #2
+// C is last edge plus border color, flips when changed: 1E001BBB #2
 // E is ear mask should be 0b01000000
 // H the C xor value, must be 0b01000111 (or 0b01011111)
 // B in: max counter (=max # IN's done before t/o);
@@ -701,6 +702,7 @@ wait_for_edge_loop1:
     ret z                       // 5/11T t/o, note carry still not set    (c=0 z=1, B=0)
 WAIT_FOR_EDGE:        
     //ld A,$7F 	                // Maybe not needed. Read from port 0x7FFE, read EAR. 49 + 16 since prev. IN is 59 
+    // ld A, C                     // avoid contended input
     in A,($FE)                  // bit 0 is !BREAK, bit 6 is ear
     xor C                       // detect change at ear (also reset carry)
     and E   //0b01000000        // mask ear 

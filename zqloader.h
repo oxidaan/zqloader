@@ -76,6 +76,9 @@ public:
 
     /// Set miniaudio sample rate. 0 = device default. 
     ZQLoader& SetSampleRate(uint32_t p_sample_rate);
+    
+    /// Set catchup mode
+    ZQLoader& SetCatchUp(bool p_catch_up);
 
     ///  Set zqloader duration parameters.
     ZQLoader& SetBitLoopMax(int p_value);

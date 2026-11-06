@@ -301,6 +301,18 @@ uint16_t Test(TurboBlocks& p_blocks, const fs::path &p_filename)
 
     return uint16_t(start);
 #endif
+#if 0
+    // Just 1 byte!
+    (void)p_filename;
+    p_blocks.SetCompressionType(CompressionType::none);
+    // screen pattern
+    DataBlock block;
+    block.push_back(0xf0_byte);
+    std::cout << "Size = " << block.size() << std::endl;
+    //  TurboBlocks tblocks(p_loader_length, CompressionType::none);
+    p_blocks.AddMemoryBlock({std::move(block), uint16_t(16384)});
+    return 0;
+#endif
 #if 1
     (void)p_filename;
     p_blocks.SetCompressionType(CompressionType::none);

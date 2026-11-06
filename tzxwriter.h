@@ -24,7 +24,9 @@ public:
     TzxWriter() = delete;
     /// Consume the pulse cursors, like audio output. Zero sample rate preserves
     /// exact T-state timing; nonzero explicitly matches WAV output at that rate.
-    static void WriteTzxFile(Pulsers &p_pulsers, std::ostream& p_stream , Doublesec p_tstate_dur, uint32_t p_sample_rate = 0);
+    static void WriteTzxFile(Pulsers &p_pulsers, std::ostream& p_stream , Doublesec p_tstate_dur);
+    // Alternate algorithm, Fred
+    static void WriteTzxFile(Pulsers& p_pulsers, std::ostream& p_stream, Doublesec p_tstate_dur, uint32_t p_sample_rate );
 
     static void WriteBegin(std::ostream& p_stream);
     static void WritePulsers(const Pulsers &p_pulsers, std::ostream& p_stream , Doublesec p_tstate_dur);
@@ -39,6 +41,7 @@ private:
 
 
     static void WriteInfo(std::ostream& p_stream, const std::string &p_text);
+    static void WriteCustomInfo(std::ostream& p_stream, const std::string& p_id, const std::string& p_text);
 
     static bool IsPulserLeader(const Pulser &p_pulser);
     static bool IsPulserSync(const Pulser &p_pulser);
