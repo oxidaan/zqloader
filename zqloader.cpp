@@ -139,12 +139,13 @@ public:
 &nbsp;&nbsp;(Just turn one dial fully to the left)
 &nbsp;&nbsp;In other cases, a mono cable may give better results.
 &nbsp;&nbsp;(See also, for example <a href="https://retrocomputing.stackexchange.com/questions/773/loading-zx-spectrum-tape-audio-in-a-post-cassette-world">here...</a>.)
+- On the ZX Spectrum next, use a stereo cable, connect it to EAR/MIC, and set one of the volume dials (left probably) to zero.
 )";
 #ifdef _WIN32
         std::cout << 1 + &*R"(
 - At Windows make sure <b>Audio Enhancements</b> are switched off.
-  Eg at <i>Settings -> System -> Sound -> Speakers -> Advanced</i>
-  Switch off <i>Audio Enhancements</i> there.
+&nbsp;&nbsp;Eg at <i>Settings -> System -> Sound -> Speakers -> Advanced</i>
+&nbsp;&nbsp;Switch off <i>Audio Enhancements</i> there.
         )";
 #endif
         std::cout << "When all is good you get the familiar red/cyan stripes slowly moving up.\n" << std::endl;
