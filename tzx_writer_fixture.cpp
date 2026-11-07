@@ -41,7 +41,7 @@ int main(int argc, char **argv)
     {
         std::ofstream out(std::string(argv[1]) + "/" + name, std::ios::binary);
         if(!out) throw std::runtime_error("Cannot open fixture output");
-        TzxWriter::WriteTzxFile(pulsers, out, spectrum::tstate_dur);
+        TzxWriter::WriteTzxFile(pulsers, out, spectrum::tstate_dur, 0);
         if(!out) throw std::runtime_error("Cannot write fixture");
     };
     TzxWriter::Pulsers pulsers;
@@ -83,7 +83,7 @@ int main(int argc, char **argv)
     auto rejects = [&](Doublesec period)
     {
         std::ostringstream out;
-        try { TzxWriter::WriteTzxFile(pulsers, out, period); }
+        try { TzxWriter::WriteTzxFile(pulsers, out, period, 0); }
         catch(const std::runtime_error &) { return; }
         throw std::runtime_error("Expected invalid waveform to be rejected");
     };
