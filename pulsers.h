@@ -31,7 +31,7 @@ class Pulser
 
 public:
 
-    Pulser(Doublesec p_tstate_dur)
+    explicit Pulser(Doublesec p_tstate_dur)
         : m_tstate_dur(p_tstate_dur)  // T-state duration in seconds
     {}
 
@@ -92,7 +92,7 @@ class PausePulser : public Pulser
 
 public:
 
-    PausePulser(Doublesec p_tstate_dur) : Pulser(p_tstate_dur)
+    explicit PausePulser(Doublesec p_tstate_dur) : Pulser(p_tstate_dur)
     {}
 
 
@@ -197,7 +197,7 @@ class TonePulser : public Pulser
 
 public:
 
-    TonePulser(Doublesec p_tstate_dur) : Pulser(p_tstate_dur)
+    explicit TonePulser(Doublesec p_tstate_dur) : Pulser(p_tstate_dur)
     {}
 
 
@@ -328,7 +328,7 @@ class DataPulser : public Pulser
 
 public:
 
-    DataPulser(Doublesec p_tstate_dur) : Pulser(p_tstate_dur)
+    explicit DataPulser(Doublesec p_tstate_dur) : Pulser(p_tstate_dur)
     {}
 
 

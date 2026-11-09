@@ -349,8 +349,6 @@ public:
 
     /// Set durations in T states for zero and one pulses.
     /// When 0 keep defaults.
-    /// Set durations in T states for zero and one pulses.
-    /// When 0 keep defaults.
     void SetDurations(int p_zero_duration, int p_one_duration, int p_end_of_byte_delay)
     {
         if (p_zero_duration != 0)
