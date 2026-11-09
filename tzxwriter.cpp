@@ -272,10 +272,6 @@ void TzxWriter::WriteTzxFile(Pulsers& p_pulsers, std::ostream& p_stream,
     }
     if (first) // No pulse events: only the TZX header and comment.
     {
-        if (!p_stream)
-        {
-            throw std::runtime_error("Failed to write TZX header");
-        }
         return;
     }
     // Close the final edge. WAV writes its final sample plus twenty tail samples.
@@ -325,10 +321,6 @@ void TzxWriter::WriteTzxFile(Pulsers& p_pulsers, std::ostream& p_stream,
             WriteBinary(p_stream, index);
         }
         begin = end;
-    }
-    if (!p_stream)
-    {
-        throw std::runtime_error("Failed to write TZX waveform");
     }
 }
 

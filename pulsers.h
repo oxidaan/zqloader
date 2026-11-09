@@ -13,7 +13,6 @@
 #include "types.h"                  // Edge enum
 #include "datablock.h"              // DataBlock
 #include "byte_tools.h"             // eg literal for std::byte
-#include <ostream>                  // std::ostream
 
 
 
