@@ -84,7 +84,7 @@ public:
         {
             m_action = Action::write_wav;
         }
-        else if (ToLower(p_outputfilename.extension().string()) != "")
+        else if (p_outputfilename.extension().string() != "" && p_outputfilename.string()[0] != '[')
         {
             throw std::runtime_error("Invalid output filename extension (must be .tzx or .wav)");
         }
@@ -107,6 +107,13 @@ public:
     /// Set spectrum clock frequency.
     void SetSpectrumClock(int p_spectrum_clock)
     {
+        // some reasonable range
+        // dont accept 35000000 either probably typo
+        if(p_spectrum_clock < (spectrum::spectrum_clock / 2) ||
+           p_spectrum_clock >= (spectrum::spectrum_clock * 10))
+        {
+            throw std::runtime_error("Invalid value (" + std::to_string(p_spectrum_clock) + ") for ZX Spectrum clock Frequeny");
+        }
         m_spectrumloader.SetTstateDuration(1s / double(p_spectrum_clock));
     }
 
@@ -531,9 +538,8 @@ private:
             throw std::runtime_error(1 + &*R"(
 When using zqloader.tap a 2nd filename is needed indicating the program to be turboloaded. A game for example.
 This can be given at commandline or the 2nd filename at the dialog.
-Else the ZX Spectrum will not do anything after loading the turbo loader,
-except waiting.
-    )");
+Else the ZX Spectrum will not do anything after loading the turbo loader, except waiting.
+)");
         }
         if(m_spectrumloader.GetDurationInTStates() == 0)
         {

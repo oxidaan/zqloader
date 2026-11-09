@@ -54,6 +54,10 @@ TonePulser& TonePulser::SetLength(std::chrono::milliseconds p_duration)
 /// Get total duration for this pulser in TStates.
 int DataPulser::GetDurationInTStates() const
 {
+    if(m_data.empty())
+    {
+        return 0;
+    }
     auto bitnumb4 = m_bitnum;
     auto pulsnumb4 = m_pulsnum;
     int tstates = 0;

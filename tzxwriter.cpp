@@ -20,6 +20,8 @@
 #include <cstdint>
 #include <utility>
 
+const char *GetVersion();
+
 
 inline void DebugLog(const std::string_view p_str)
 {
@@ -129,11 +131,10 @@ void TzxWriter::WriteBegin(std::ostream& p_stream)
 
 
 // convenience
-void TzxWriter::WriteTzxFile(Pulsers& p_pulsers, std::ostream& p_stream,
+void TzxWriter::WriteTzxFile(const Pulsers& p_pulsers, std::ostream& p_stream,
                              Doublesec p_tstate_dur)
 {
     WriteBegin(p_stream);
-    extern const char *GetVersion();
     WriteInfo(p_stream, std::string("File written by ZQLoader version ") + GetVersion());
     WritePulsers(p_pulsers, p_stream, p_tstate_dur);
 }
@@ -141,16 +142,20 @@ void TzxWriter::WriteTzxFile(Pulsers& p_pulsers, std::ostream& p_stream,
 
 
 // convenience
-// Alternate algorithm witten by Fredrick Meunier 
-void TzxWriter::WriteTzxFile(Pulsers& p_pulsers, std::ostream& p_stream,
+// Alternate algorithm witten by Fredrick Meunier
+// Note:
+// Tone/IsInfinite can not happen. Used only when 'tune' button was pressed. Check removed.
+// Invalid p_tstate_dur can not happen. ZQLoader class protects it now.
+// There are also never tone pulsers with zero length.
+// Imho it does not make sense to check ostream after writing:
+// can only go wrong when drive is full. Stopped checking on that since 1995.
+// So removed most tests for now. Most of these can never happen. If they do, sending audio, and
+// creating wav would also fail. To avoid same checks at multiple locations
+// better move checks a level 'up' eg at ZqLoader class. This was now done at least for tstate duration.
+void TzxWriter::WriteTzxFile(const Pulsers& p_pulsers, std::ostream& p_stream,
                              Doublesec p_tstate_dur, uint32_t p_sample_rate)
 {
-    if (!std::isfinite(p_tstate_dur.count()) || p_tstate_dur.count() <= 0)
-    {
-        throw std::runtime_error("TZX requires a positive finite T-state duration");
-    }
     WriteBegin(p_stream);
-    extern const char* GetVersion();
     WriteInfo(p_stream, std::string("File written by ZQLoader version ") + GetVersion());
 
     if (p_sample_rate)
@@ -174,13 +179,9 @@ void TzxWriter::WriteTzxFile(Pulsers& p_pulsers, std::ostream& p_stream,
     bool   level = false;
     double remainder = 0;
     bool   first = true;
-    auto   Append = [&](double ticks)
+    auto   append = [&](double ticks)
     {
         ticks += remainder;
-        if (!std::isfinite(ticks) || ticks < 0 || ticks >= double(UINT64_MAX))
-        {
-            throw std::runtime_error("TZX pulse duration is out of range");
-        }
         auto count = uint64_t(std::floor(ticks));
         remainder = ticks - double(count);
         while (count)
@@ -201,40 +202,17 @@ void TzxWriter::WriteTzxFile(Pulsers& p_pulsers, std::ostream& p_stream,
     };
     for (const auto& pulser : p_pulsers)
     {
-        if (auto tone = dynamic_cast<const TonePulser*>(pulser.get()))
+        if(pulser->GetDurationInTStates() == 0)
         {
-            if (tone->IsInfinite())
-            {
-                throw std::runtime_error("Cannot export an unbounded tone");
-            }
-            if (tone->GetMaxPulses() == 0 || tone->GetPattern().empty())
-            {
-                continue;
-            }
-        }
-        if (auto data = dynamic_cast<const DataPulser*>(pulser.get()))
-        {
-            if (data->GetTotalSize() == 0)
-            {
-                continue;
-            }
+            continue;
         }
         do
         {
             auto wait = pulser->GetDurationWait();
-            if (!std::isfinite(wait.count()) || wait.count() < 0)
-            {
-                throw std::runtime_error("TZX pulse duration must be finite and non-negative");
-            }
             if (p_sample_rate)
             {
                 // Explicit WAV-equivalence mode: mirror SampleToWav's strict
                 // comparison and per-edge time reset, not cumulative rounding.
-                auto sample_count = wait.count() * p_sample_rate;
-                if (!std::isfinite(sample_count) || sample_count >= double(UINT64_MAX))
-                {
-                    throw std::runtime_error("TZX sampled pulse duration is out of range");
-                }
                 auto period = 1s / double(p_sample_rate);
                 Doublesec elapsed{};
                 uint64_t  samples = 0;
@@ -247,11 +225,11 @@ void TzxWriter::WriteTzxFile(Pulsers& p_pulsers, std::ostream& p_stream,
                 {
                     --samples;
                 }
-                Append(double(samples) / double(p_sample_rate) / spectrum::tstate_dur.count());
+                append(double(samples) / double(p_sample_rate) / spectrum::tstate_dur.count());
             }
             else
             {
-                Append(std::round(wait / spectrum::tstate_dur));
+                append(std::round(wait / spectrum::tstate_dur));
             }
             first = false;
             switch (pulser->GetEdge())
@@ -275,7 +253,7 @@ void TzxWriter::WriteTzxFile(Pulsers& p_pulsers, std::ostream& p_stream,
         return;
     }
     // Close the final edge. WAV writes its final sample plus twenty tail samples.
-    Append(p_sample_rate ? 21.0 / p_sample_rate / spectrum::tstate_dur.count() : 1.0);
+    append(p_sample_rate ? 21.0 / p_sample_rate / spectrum::tstate_dur.count() : 1.0);
 
     // Pack explicit held levels into data symbols. Every block has real data;
     // unused alphabet entries are never referenced and have valid pulse lengths.
@@ -470,7 +448,7 @@ void TzxWriter::WriteAsTzxBlock(const TonePulser &p_pulser, std::ostream &p_stre
         generalized_data_block.pause        = 0;
         generalized_data_block.totp         = 1;        // one tone
         generalized_data_block.npp          = BYTE(pattern.size());
-        generalized_data_block.asp          = 1;        // one symbol
+        generalized_data_block.asp          = 2;        // one symbol but keep power of 2
 
         generalized_data_block.totd         = 0;        // no data
         generalized_data_block.npd          = 0;        // should not be used when totd is 0
@@ -610,15 +588,15 @@ void TzxWriter::WriteAsTzxBlock(const DataPulser &p_pulser, std::ostream& p_stre
     WriteBinary(p_stream, TzxBlockType::GeneralizedDataBlock);
 
     GeneralizedDataBlock generalized_data_block{};
-    generalized_data_block.pause        = 0;
+    generalized_data_block.pause = 0;
 
-    generalized_data_block.totp         = 0;                                                       // no pilot/sync block here (just data)
-    generalized_data_block.npp          = 0;                                                       // not used when totp is 0
-    generalized_data_block.asp          = 1;                                                       // not used when totp is 0, but 0 is 256.
+    generalized_data_block.totp  = 0;    // no pilot/sync block here (just data)
+    generalized_data_block.npp   = 0;    // not used when totp is 0
+    generalized_data_block.asp   = 2;    // not used when totp is 0, but 0 is 256. Also keep power of 2
 
-    generalized_data_block.totd         = DWORD(total_size * 8);                                   // so # bits
-    generalized_data_block.npd          = BYTE(std::max(zero_pattern.size(), one_pattern.size())); // eg 2 for standard, 1 for turbo
-    generalized_data_block.asd          = 2;                                                       // we have a pattern for 0 and for 1
+    generalized_data_block.totd  = DWORD(total_size * 8);                                   // so # bits
+    generalized_data_block.npd   = BYTE(std::max(zero_pattern.size(), one_pattern.size())); // eg 2 for standard, 1 for turbo
+    generalized_data_block.asd   = 2;                                                       // we have a pattern for 0 and for 1
 
     generalized_data_block.block_length = DWORD(generalized_data_block.GetBlockLength(total_size));
     std::cout << "Data only: GeneralizedDataBlock: #bytes: " << total_size << "  " << generalized_data_block << std::endl;
@@ -733,7 +711,7 @@ void TzxWriter::WriteAsZqLoaderTurboData(std::ostream &p_stream, const TonePulse
 
     generalized_data_block.totp  = leader ? 2 : 1;               // a pilot + sync OR just a sync (then its the minisync)
     generalized_data_block.asp = 2;// leader ? 2 : 1;            // #symbol defs. a symbol for pilot + sync OR just a sync (then its the minisync)
-                                                                 // rtzx needs to be a power of 2.
+                                                                 // For rtzx needs to be a power of 2.
 
     if(!delay_after_byte)
     {

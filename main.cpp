@@ -123,7 +123,7 @@ More options can be given with syntax: option=value, or just 'option value' or o
                             a 'zero'.
                             Minimum value is 1 (need at least one IN to see an edge)
                             Not giving this (or 0) uses a default that worked for me (3).
-                            This parameter ise used at the ZX-spectrum side so must match
+                            This parameter is used at the ZX-spectrum side so must match
                             zero_tstates/one_tstates.
                             Eg extra speed: zero_max=3 one_tstates=243
     bit_loop_max = value    Maximum number of IN's without an edge seen to be considered a 
