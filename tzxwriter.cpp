@@ -131,8 +131,7 @@ void TzxWriter::WriteBegin(std::ostream& p_stream)
 
 
 // convenience
-void TzxWriter::WriteTzxFile(const Pulsers& p_pulsers, std::ostream& p_stream,
-                             Doublesec p_tstate_dur)
+void TzxWriter::WriteTzxFile(const Pulsers& p_pulsers, std::ostream& p_stream, Doublesec p_tstate_dur)
 {
     WriteBegin(p_stream);
     WriteInfo(p_stream, std::string("File written by ZQLoader version ") + GetVersion());
@@ -145,15 +144,15 @@ void TzxWriter::WriteTzxFile(const Pulsers& p_pulsers, std::ostream& p_stream,
 // Alternate algorithm witten by Fredrick Meunier
 // Note:
 // Tone/IsInfinite can not happen. Used only when 'tune' button was pressed. Check removed.
-// Invalid p_tstate_dur can not happen. ZQLoader class protects it now.
-// There are also never tone pulsers with zero length.
+// Invalid p_tstate_dur can not happen and is not even used by this function. Removed. 
+// (ZQLoader class protects it now.)
+// There are also never tone pulsers with zero length. Datapulser also can not have zero length anymore (check add there)
 // Imho it does not make sense to check ostream after writing:
 // can only go wrong when drive is full. Stopped checking on that since 1995.
 // So removed most tests for now. Most of these can never happen. If they do, sending audio, and
 // creating wav would also fail. To avoid same checks at multiple locations
-// better move checks a level 'up' eg at ZqLoader class. This was now done at least for tstate duration.
-void TzxWriter::WriteTzxFile(const Pulsers& p_pulsers, std::ostream& p_stream,
-                             Doublesec p_tstate_dur, uint32_t p_sample_rate)
+// better move checks a level 'up' eg at ZqLoader class. This was now done at least for tstate duration + Datapulser not empty.
+void TzxWriter::WriteTzxFile(const Pulsers& p_pulsers, std::ostream& p_stream, uint32_t p_sample_rate)
 {
     WriteBegin(p_stream);
     WriteInfo(p_stream, std::string("File written by ZQLoader version ") + GetVersion());

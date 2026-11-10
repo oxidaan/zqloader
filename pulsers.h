@@ -414,11 +414,7 @@ public:
 
 
     /// Set the data to be pulsed.
-    DataPulser& SetData(DataBlock p_data)
-    {
-        m_data = std::move(p_data);
-        return *this;
-    }
+    DataPulser& SetData(DataBlock p_data);
 
 
 
@@ -473,7 +469,7 @@ public:
     }
     std::byte GetByte(unsigned p_index) const
     {
-        return m_data[p_index];
+        return m_data.at(p_index);      // can throw std::out_of_range
     }
 protected:
 

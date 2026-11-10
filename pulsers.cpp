@@ -51,13 +51,21 @@ TonePulser& TonePulser::SetLength(std::chrono::milliseconds p_duration)
 
 
 
+
+/// Set the data to be pulsed.
+DataPulser& DataPulser::SetData(DataBlock p_data)
+{
+    if (p_data.empty())
+    {
+        throw std::runtime_error("Data block is empty. Cannot use to create audio.");
+    }
+    m_data = std::move(p_data);
+    return *this;
+}
+
 /// Get total duration for this pulser in TStates.
 int DataPulser::GetDurationInTStates() const
 {
-    if(m_data.empty())
-    {
-        return 0;
-    }
     auto bitnumb4 = m_bitnum;
     auto pulsnumb4 = m_pulsnum;
     int tstates = 0;

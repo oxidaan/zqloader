@@ -93,7 +93,7 @@ SpectrumLoader& SpectrumLoader::AddPause(std::chrono::milliseconds p_duration)
 /// Alternate algorithm witten by Fredrick Meunier
 SpectrumLoader& SpectrumLoader::WriteTzxFile(std::ostream& p_filewrite, uint32_t p_sample_rate)
 {
-    TzxWriter::WriteTzxFile(m_standby_pulsers, p_filewrite, m_tstate_dur, p_sample_rate);
+    TzxWriter::WriteTzxFile(m_standby_pulsers, p_filewrite, p_sample_rate);
     return *this;
 }
 

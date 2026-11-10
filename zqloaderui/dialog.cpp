@@ -655,7 +655,7 @@ inline void Dialog::RestoreDefaults()
     ui->lineEditLoaderAddress->setText(QString::number(spectrum::screen::SCREEN_23RD));
 
     ui->lineEditSampleRate->setText("");            // = device default
-    ui->lineEditSampleRate->setText("");            // = device default
+    ui->lineEditSampleRate->signalFocusOut();       // also gives correct tip-text
     ui->checkBoxCatchUp->setChecked(loader_defaults::catch_up);
     // no defaults for volume
   //  ui->lineEditVolumeLeft->setText(QString::number(loader_defaults::volume_left));
@@ -766,6 +766,7 @@ inline void Dialog::Go()
             ); 
             if (reply != QMessageBox::Yes) 
             {
+                SetState(State::Cancelled);
                 return;
             }
         }
@@ -788,6 +789,7 @@ inline void Dialog::Go()
         m_zqloader.Start();
         if(!m_zqloader.IsBusy())     // else immidiately done eg writing wav file
         {
+            ui->progressBar->setFormat("Done");
             SetState(State::Idle);
         }
     }
