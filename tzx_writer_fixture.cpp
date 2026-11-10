@@ -76,7 +76,7 @@ int main(int argc, char **argv)
                      {
                          throw std::runtime_error("Cannot open fixture output");
                      }
-                     TzxWriter::WriteTzxFile(pulsers, out, spectrum::tstate_dur, 0);
+                     TzxWriter::WriteTzxFile(pulsers, out, 0);
                      if(!out)
                      {
                          throw std::runtime_error("Cannot write fixture");
@@ -134,7 +134,7 @@ int main(int argc, char **argv)
                        std::ostringstream out;
                        try
                        {
-                           TzxWriter::WriteTzxFile(pulsers, out, period, 0);
+                           TzxWriter::WriteTzxFile(pulsers, out, 0);
                        }
                        catch(const std::runtime_error &)
                        {
@@ -181,7 +181,7 @@ int main(int argc, char **argv)
         auto stem = std::string(argv[1]) + "/sampled-" + std::to_string(rate);
         pulsers.push_back(std::make_unique<SequencePulser>(sampled));
         std::ofstream tzx(stem + ".tzx", std::ios::binary);
-        TzxWriter::WriteTzxFile(pulsers, tzx, spectrum::tstate_dur, rate);
+        TzxWriter::WriteTzxFile(pulsers, tzx, rate);
         pulsers.clear();
         SpectrumLoader loader;
         loader.AddPulser(SequencePulser(sampled));
