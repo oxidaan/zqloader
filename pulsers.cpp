@@ -72,11 +72,11 @@ int DataPulser::GetDurationInTStates() const
     auto me = const_cast<DataPulser *>(this);
     me->m_bitnum = 0;
     me->m_pulsnum = 0;
-    do
+    while(!me->AtEnd())
     {
         tstates += GetTstate();
+        me->Next();
     }
-    while(!me -> Next());
     me->m_bitnum = bitnumb4;
     me->m_pulsnum = pulsnumb4;
     return tstates;

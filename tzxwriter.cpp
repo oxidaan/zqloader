@@ -203,7 +203,12 @@ void TzxWriter::WriteTzxFile(const Pulsers& p_pulsers, std::ostream& p_stream, u
     {
         if(pulser->GetDurationInTStates() == 0)
         {
-            continue;
+            continue;       // empty data pulser or otherwise empty
+        }
+        auto tp = dynamic_cast<TonePulser *>(pulser.get());
+        if(tp && tp->IsInfinite())
+        {
+            throw std::runtime_error("Cannot handle infinite tone when writing TZX file");
         }
         do
         {

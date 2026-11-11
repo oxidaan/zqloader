@@ -140,7 +140,8 @@ if(BUILD_TESTING)
         # Compile internal writer code directly: these classes are not part of
         # the exported Windows DLL API. No audio device/backend is needed.
         add_executable(tzx_writer_fixture tzx_writer_fixture.cpp tzxwriter.cpp
-            pulsers.cpp spectrum_loader.cpp sampletowav.cpp enumstreamer.cpp)
+            pulsers.cpp spectrum_loader.cpp sampletowav.cpp enumstreamer.cpp
+            tests/tzx_waveform.py)
         target_compile_features(tzx_writer_fixture PRIVATE cxx_std_20)
         find_package(Threads REQUIRED)
         target_link_libraries(tzx_writer_fixture PRIVATE Threads::Threads)

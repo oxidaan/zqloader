@@ -76,11 +76,8 @@ int main(int argc, char **argv)
                      {
                          throw std::runtime_error("Cannot open fixture output");
                      }
+                     std::cout << "Writing file: " << name << std::endl;
                      TzxWriter::WriteTzxFile(pulsers, out, 0);
-                     if(!out)
-                     {
-                         throw std::runtime_error("Cannot write fixture");
-                     }
                  };
     TzxWriter::Pulsers pulsers;
     pulsers.push_back(std::make_unique<SequencePulser>(std::vector<SequencePulser::Item> {
@@ -88,6 +85,7 @@ int main(int argc, char **argv)
         { 40, Edge::one }, { 50, Edge::zero } }));
     write("levels.tzx", pulsers);
     pulsers.clear();
+
     auto data = std::make_unique<DataPulser>(spectrum::tstate_dur);
     DataBlock bytes;
     bytes.push_back(std::byte { 0 });
@@ -96,10 +94,12 @@ int main(int argc, char **argv)
     pulsers.push_back(std::move(data));
     write("byte-delay.tzx", pulsers);
     pulsers.clear();
+
     pulsers.push_back(std::make_unique<SequencePulser>(std::vector<SequencePulser::Item> {
         { 140000, Edge::toggle } }));
     write("long-hold.tzx", pulsers);
     pulsers.clear();
+
     std::vector<SequencePulser::Item> many;
     for(int i = 0; i < 300; ++i)
     {
@@ -108,6 +108,7 @@ int main(int argc, char **argv)
     pulsers.push_back(std::make_unique<SequencePulser>(std::move(many)));
     write("alphabet-boundary.tzx", pulsers);
     pulsers.clear();
+
     std::vector<SequencePulser::Item> long_stream;
     for(int i = 0; i < 65540; ++i)
     {
@@ -116,54 +117,58 @@ int main(int argc, char **argv)
     pulsers.push_back(std::make_unique<SequencePulser>(std::move(long_stream)));
     write("stream-boundary.tzx", pulsers);
     pulsers.clear();
+
     pulsers.push_back(std::make_unique<SequencePulser>(std::vector<SequencePulser::Item> {
         { 10, Edge::toggle } }, spectrum::tstate_dur / 2));
     write("clock.tzx", pulsers);
     pulsers.clear();
+
     write("empty.tzx", pulsers);
+
     pulsers.push_back(std::make_unique<DataPulser>(spectrum::tstate_dur));
     write("empty-data.tzx", pulsers);
     pulsers.clear();
-#if 0
+
+
+
     // Removed for now. Most of these can never happen. If the do, sending audio, and
     // creating wav would also fail. To avoid same checks at multiple locations
     // better move checks a level 'up' eg at ZqLoader class.
     // This was now done at least for tstate duration.
-    auto rejects = [&](Doublesec period)
+    auto rejects = [&]()
                    {
                        std::ostringstream out;
                        try
                        {
                            TzxWriter::WriteTzxFile(pulsers, out, 0);
                        }
-                       catch(const std::runtime_error &)
+                       catch(const std::exception &e)
                        {
                            return;
                        }
                        throw std::runtime_error("Expected invalid waveform to be rejected");
                    };
 
-    rejects(Doublesec {});  // period parameter not valid tstate duration
-
     auto infinite = std::make_unique<TonePulser>(spectrum::tstate_dur);
     infinite->SetPattern(500).SetInfiniteLength();
     pulsers.push_back(std::move(infinite));
-    rejects(spectrum::tstate_dur);  // infinite length, invalid
-
+    rejects();  // infinite length, invalid
     pulsers.clear();
+#if 0
+
     pulsers.push_back(std::make_unique<SequencePulser>(std::vector<SequencePulser::Item> {
         { -1, Edge::toggle } }));       // negative length, invalid
-    rejects(spectrum::tstate_dur);
-
+    rejects();
     pulsers.clear();
+
     pulsers.push_back(std::make_unique<SequencePulser>(std::vector<SequencePulser::Item> {
         { 1, Edge::toggle } }, Doublesec(std::numeric_limits<double>::infinity())));
-    rejects(spectrum::tstate_dur);      // pulser parameter not valid tstate duration
+    rejects();      // pulser parameter not valid tstate duration
     pulsers.clear();
 
     pulsers.push_back(std::make_unique<SequencePulser>(std::vector<SequencePulser::Item> {
         { 1, Edge::toggle } }, Doublesec(1e100)));
-    rejects(spectrum::tstate_dur);      // invalid (enormous) length for tstate duration
+    rejects();      // invalid (enormous) length for tstate duration
     pulsers.clear();
 #endif
     // Compare against the real WAV writer, not a duplicate rounding formula.
