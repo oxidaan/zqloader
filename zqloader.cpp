@@ -10,7 +10,7 @@
 // ==============================================================================
 // uses pimpl
 
-#include "pulsers.h"
+#include "pulsers.h"        // FM: supply the Pulser type when compiling with macOS libc++.
 #include "zqloader.h"
 #include "tools.h"
 #include "spectrum_loader.h"
@@ -204,8 +204,12 @@ public:
             m_spectrumloader.Attach(wav_writer);
             wav_writer.SetVolume(m_volume_left, m_volume_right).SetSampleRate(m_sample_rate).SetCatchUp(m_catch_up);
             wav_writer.WriteToFile(filewrite);
+            Reset();        // needed?
+            if(!filewrite)
+            {
+                throw std::runtime_error("Error writing file: " + outputfilename.string());
+            }
             std::cout << "Written " << (outputfilename.is_absolute() ? outputfilename : std::filesystem::current_path() / outputfilename) << " with size: " << wav_writer.GetSize() << " and duration: " << wav_writer.GetDuration().count() << "s (Samplerate = " << wav_writer.GetSampleRate() << "; Catch up = " << m_catch_up << ")" << std::endl;
-            Reset();
         }
         else if (m_action == Action::write_tzx)
         {
@@ -220,9 +224,12 @@ public:
             {
                 m_spectrumloader.WriteTzxFile(filewrite);
             }
-            //            m_spectrumloader.WriteTzxFile(filewrite);
+            Reset();        // needed?
+            if(!filewrite)
+            {
+                throw std::runtime_error("Error writing file: " + outputfilename.string());
+            }
             std::cout << "Written " << (outputfilename.is_absolute() ? outputfilename : std::filesystem::current_path() / outputfilename) << " (Samplerate = " << m_sample_rate << "; Catch up = " << m_catch_up << ")"  << std::endl;
-            Reset();
         }
     }
 
@@ -482,7 +489,7 @@ private:
             std::cout << "<b>Warning: Number of found code blocks (" << m_turboblocks.size() << ") not equal to LOAD \"\" CODE statements in BASIC (" << tab_to_turbo_blocks.GetNumberLoadCode() << ")!</b>\n" << std::endl;
         }
         auto size = m_turboblocks.Finalize(m_when_done_return_to_basic ? 0 :
-                                           m_when_done_call_usr == 0 ? tab_to_turbo_blocks.GetUsrAddress() :
+                                           m_when_done_call_usr == 0 ? tab_to_turbo_blocks.GetUsrAddress() :    // auto
                                            m_when_done_call_usr,
                                            tab_to_turbo_blocks.GetClearAddress());
         if(size == 0)
@@ -558,7 +565,7 @@ Please add a normal file and/or a turbo speed file.
     {
         if(m_output_filename.empty() && !m_turbo_filename.empty())
         {
-            // When -w or -wav is given create output filename out of 2nd given filename (filename2)
+            // When -w or -wav is given auto create output filename out of 2nd given filename (filename2)
             auto outputfilename = m_turbo_filename;
             if( m_action == Action::write_wav )
             {
@@ -578,11 +585,13 @@ Please add a normal file and/or a turbo speed file.
         return m_output_filename;
     }
 
-public:
+private:
+    friend class ZQLoader;
 
     SpectrumLoader              m_spectrumloader;
     TurboBlocks                 m_turboblocks;
     SampleSender                m_sample_sender;
+
     bool                        m_use_fun_attribs           = false;
     uint32_t                    m_sample_rate               = loader_defaults::sample_rate;
     bool                        m_catch_up                  = loader_defaults::catch_up;

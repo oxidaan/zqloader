@@ -39,7 +39,7 @@ constexpr const char *DefaultVideoFile = "[To have 'live' (...) video on ZX spec
 constexpr const char *DefaultImageDir = "[To have images as dia show on ZX spectrum.]";
 constexpr const char* DefaultSampleRate = "[Device default]";
 
-// Make given QLineEdit black en normal font
+// Make given QLineEdit black and normal font
 inline void MakeBlack(QLineEdit *p_line_edit)
 {
     QFont f = p_line_edit->font();
@@ -50,7 +50,7 @@ inline void MakeBlack(QLineEdit *p_line_edit)
     p_line_edit->setPalette(p);
 };
 
-// Make given QLineEdit gray en italic
+// Make given QLineEdit gray and italic
 inline void MakeGray(QLineEdit *p_line_edit)
 {
     QFont f = p_line_edit->font();
@@ -211,7 +211,6 @@ Dialog::Dialog(QWidget *parent)
             }
         });
     };
-
     ConnectBrowse(ui->pushButtonBrowseNormalFile, ui->lineEditNormalFile,
         "Give normal speed file to load",
         "Tap/tzx files (*.tap *.tzx);;All files (*.*)",
@@ -237,6 +236,7 @@ Dialog::Dialog(QWidget *parent)
         "",
         QFileDialog::Directory,
         "dialog_path_imagefile");
+
     // make hyperlinks work in about text
     connect(ui->labelAbout, &QLabel::linkActivated, [](const QString & link)
     {
@@ -444,9 +444,6 @@ Dialog::Dialog(QWidget *parent)
             FocusOut(p_line_edit, p_tip_text);
         });
     };
-
-
-
     ConnectLineEditFocus(ui->lineEditNormalFile, DefaultNormalFilename);
     ConnectLineEditFocus(ui->lineEditTurboFile,  DefaultTurboFilename);
     ConnectLineEditFocus(ui->lineEditZxFilename, DefaultZxFilename);
@@ -795,6 +792,7 @@ inline void Dialog::Go()
     }
     catch(...)
     {
+        SetState(State::Idle);
         m_zqloader.Reset();
         throw;
     }

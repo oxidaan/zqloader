@@ -143,12 +143,11 @@ void TzxWriter::WriteTzxFile(const Pulsers& p_pulsers, std::ostream& p_stream, D
 // convenience
 // Alternate algorithm witten by Fredrick Meunier
 // Note:
-// Tone/IsInfinite can not happen. Used only when 'tune' button was pressed. Check removed.
-// Invalid p_tstate_dur can not happen and is not even used by this function. Removed. 
+// Invalid p_tstate_dur can not happen and parameter is not even used by this function. Check Removed.
+// Tone/IsInfinite can not happen. Used only when 'tune' button was pressed (kept check)
 // (ZQLoader class protects it now.)
-// There are also never tone pulsers with zero length. Datapulser also can not have zero length anymore (check add there)
-// Imho it does not make sense to check ostream after writing:
-// can only go wrong when drive is full. Stopped checking on that since 1995.
+// There are also never tone pulsers with zero length. Datapulser also can not have zero length anymore (kept check)
+// Checks if writing succeeded moved to ZQLoader class (also for WAV writing)
 // So removed most tests for now. Most of these can never happen. If they do, sending audio, and
 // creating wav would also fail. To avoid same checks at multiple locations
 // better move checks a level 'up' eg at ZqLoader class. This was now done at least for tstate duration + Datapulser not empty.
@@ -557,7 +556,7 @@ void TzxWriter::WriteAsTzxBlock(const PausePulser &p_pulser, std::ostream& p_str
             // write pause (1x) - sync(1x) sequence.
             for (unsigned totp = 0; totp < generalized_data_block.totp; totp++)     // is 2
             {
-                DebugLog(( " | Prle#" + std::to_string(totp) + ": " ).c_str());
+                DebugLog(( " | Prle#" + std::to_string(totp) + ": " ));
                 GeneralizedDataBlock::Prle prle {};
                 prle.m_symbol      = BYTE(totp);
                 prle.m_repetitions = 1;
