@@ -24,6 +24,7 @@
 #include "samplesender.h"
 #include "sampletowav.h"
 #include "loader_defaults.h"
+#include "tzxwriter.h"
 #include <iostream>
 #include <fstream>
 #include <filesystem>
@@ -170,7 +171,7 @@ public:
     void Run(bool p_threaded)
     {
         Check();
-        m_turboblocks.DebugDump();      // "Duration of Zero/One ... etc
+        std::cout << m_turboblocks.GetDebugString() << " Samplerate = " << m_sample_rate << "; Catch up = " << m_catch_up << '\n';      // "Duration of Zero / One ... etc
         std::cout << "Estimated duration: " << GetEstimatedDuration().count() << "ms  (" << m_spectrumloader.GetDurationInTStates() << " TStates)" << std::endl;
         //                       "; Sample rate: " << m_sample_rate << "; Catch up: " << m_catch_up << std::endl;
         m_spectrumloader.SetOnDone([this]
@@ -204,7 +205,7 @@ public:
             m_spectrumloader.Attach(wav_writer);
             wav_writer.SetVolume(m_volume_left, m_volume_right).SetSampleRate(m_sample_rate).SetCatchUp(m_catch_up);
             wav_writer.WriteToFile(filewrite);
-            std::cout << "Written " << (outputfilename.is_absolute() ? outputfilename : std::filesystem::current_path() / outputfilename) << " with size: " << wav_writer.GetSize() << " and duration: " << wav_writer.GetDuration().count() << "s (Samplerate = " << wav_writer.GetSampleRate() << "; Catch up = " << m_catch_up << ")" << std::endl;
+            std::cout << "Written " << (outputfilename.is_absolute() ? outputfilename : std::filesystem::current_path() / outputfilename) << " with size: " << wav_writer.GetSize() << " and duration: " << wav_writer.GetDuration().count() << std::endl;
             Reset();
         }
         else if (m_action == Action::write_tzx)
@@ -212,16 +213,8 @@ public:
             // Write to tzx file
             auto outputfilename     = GetOutputFilename();
             std::ofstream filewrite = OpenFileToWrite(outputfilename, m_allow_overwrite);
-            if (m_catch_up)
-            {
-                m_spectrumloader.WriteTzxFile(filewrite, m_sample_rate);
-            }
-            else
-            {
-                m_spectrumloader.WriteTzxFile(filewrite);
-            }
-            //            m_spectrumloader.WriteTzxFile(filewrite);
-            std::cout << "Written " << (outputfilename.is_absolute() ? outputfilename : std::filesystem::current_path() / outputfilename) << " (Samplerate = " << m_sample_rate << "; Catch up = " << m_catch_up << ")"  << std::endl;
+            WriteTzxFile(filewrite, m_catch_up);        // mis-use m_catch_up als algortihm selection
+            std::cout << "Written " << (outputfilename.is_absolute() ? outputfilename : std::filesystem::current_path() / outputfilename)  << std::endl;
             Reset();
         }
     }
@@ -303,6 +296,28 @@ public:
             m_turboblocks.SetLoaderCopyTarget(p_address);
         }
     }
+
+    /// Write as tzx file to given stream
+    /// p_how: true use alternate algorithm witten by Fredrick Meunier
+    /// else use classic algorithm
+    void WriteTzxFile(std::ostream& p_filewrite, bool p_how) const
+    {
+        extern const char* GetVersion();
+        TzxWriter::WriteBegin(p_filewrite);
+        TzxWriter::WriteInfo(p_filewrite, std::string("File written by ZQLoader version ") + GetVersion());
+        std::stringstream ss;
+        ss << m_turboblocks.GetDebugString() << " Samplerate = " << m_sample_rate << "; Catch up = " << m_catch_up;
+        TzxWriter::WriteInfo(p_filewrite, ss.str());
+        if (p_how)
+        {
+            m_spectrumloader.WritePulsersAsTzx(p_filewrite, m_sample_rate);
+        }
+        else
+        {
+            m_spectrumloader.WritePulsersAsTzx(p_filewrite);
+        }
+    }
+
 
 private:
 

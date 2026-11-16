@@ -336,13 +336,15 @@ public:
 
 
 
-    void DebugDump() const
+    std::string GetDebugString() const
     {
-        std::cout << "Duration of Zero/One: " << m_zero_duration << '/' << m_one_duration <<
+        std::stringstream ss;
+        ss << "Duration of Zero/One: " << m_zero_duration << '/' << m_one_duration <<
             "; Max zero: " << m_zero_max <<
             "; End of byte: " << m_end_of_byte_delay <<
             "; Decompr. speed (kb/s): " << m_decompression_speed <<
-            "; Init. wait: " << m_initial_wait.count() << std::endl;
+            "; Init. wait: " << m_initial_wait.count();
+        return ss.str();
     }
 
 
@@ -770,10 +772,9 @@ uint16_t TurboBlocks::GetLoaderCodeLength(bool p_with_registers) const
 
 
 
-TurboBlocks &TurboBlocks::DebugDump() const
+std::string TurboBlocks::GetDebugString() const
 {
-    m_pimpl->DebugDump();
-    return *const_cast<TurboBlocks*>( this );
+    return m_pimpl->GetDebugString();
 }
 
 

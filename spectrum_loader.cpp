@@ -89,21 +89,20 @@ SpectrumLoader& SpectrumLoader::AddPause(std::chrono::milliseconds p_duration)
     return *this;
 }
 
+
 /// Write as tzx file to given stream
-/// Alternate algorithm witten by Fredrick Meunier
-SpectrumLoader& SpectrumLoader::WriteTzxFile(std::ostream& p_filewrite, uint32_t p_sample_rate)
+/// Alternate algorithm witten by Fredrick Meunier using p_sample_rate
+SpectrumLoader &SpectrumLoader::WritePulsersAsTzx(std::ostream& p_filewrite, uint32_t p_sample_rate) const
 {
-    TzxWriter::WriteTzxFile(m_standby_pulsers, p_filewrite, p_sample_rate);
-    return *this;
+    TzxWriter::WritePulsers(m_standby_pulsers, p_filewrite, p_sample_rate);
+    return const_cast<SpectrumLoader & >(*this);
 }
-
-
 /// Write as tzx file to given stream
-/// Classic algorithm
-SpectrumLoader& SpectrumLoader::WriteTzxFile(std::ostream& p_filewrite)
+/// Classic algorithm - needs TState duration
+SpectrumLoader& SpectrumLoader::WritePulsersAsTzx(std::ostream& p_filewrite) const
 {
-    TzxWriter::WriteTzxFile(m_standby_pulsers, p_filewrite, m_tstate_dur);
-    return *this;
+    TzxWriter::WritePulsers(m_standby_pulsers, p_filewrite, m_tstate_dur);
+    return const_cast<SpectrumLoader&>(*this);
 }
 
 

@@ -28,7 +28,7 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, const std::string &p_zx
     using namespace spectrum;
     bool done          = false;
     TapeBlockType type = TapeBlockType(p_block[0]);
-    // kick of type and checksum
+    // kick of TapeBlockType and checksum
     DataBlock block    = p_block.size() >= 2 ? DataBlock(p_block.begin() + 1, p_block.end() - 1) : std::move(p_block);
     if (type == TapeBlockType::header)
     {

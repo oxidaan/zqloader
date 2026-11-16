@@ -2,8 +2,10 @@
 // PROJECT:         zqloader
 // FILE:            tzxwriter.h
 // DESCRIPTION:     Definition of class TzxWriter.
+//                  http://k1.spdns.de/Develop/Projects/zasm/Info/TZX%20format.html
+//                  https://worldofspectrum.net/TZXformat.html
 //
-// Copyright (c) 2023 Daan Scherft [Oxidaan]
+// Copyright (c) 2026 Daan Scherft [Oxidaan]
 // This project uses the MIT license. See LICENSE.txt for details.
 // ==============================================================================
 
@@ -22,14 +24,17 @@ public:
 
 public:
     TzxWriter() = delete;
-    /// Consume the pulse cursors, like audio output. Zero sample rate preserves
-    /// exact T-state timing; nonzero explicitly matches WAV output at that rate.
-    static void WriteTzxFile(const Pulsers &p_pulsers, std::ostream& p_stream, Doublesec p_tstate_dur);
-    // Alternate algorithm, Fred
-    static void WriteTzxFile(const Pulsers& p_pulsers, std::ostream& p_stream, uint32_t p_sample_rate );
 
     static void WriteBegin(std::ostream& p_stream);
+    static void WriteEnd(std::ostream& p_stream);
+    static void WriteInfo(std::ostream& p_stream, const std::string& p_text);
+    static void WriteCustomInfo(std::ostream& p_stream, const std::string& p_id, const std::string& p_text);
+
     static void WritePulsers(const Pulsers &p_pulsers, std::ostream& p_stream , Doublesec p_tstate_dur);
+    // Alternate algorithm, Fred
+    /// Consume the pulse cursors, like audio output. Zero sample rate preserves
+    /// exact T-state timing; nonzero explicitly matches WAV output at that rate.
+    static void WritePulsers(const Pulsers& p_pulsers, std::ostream& p_stream, uint32_t p_sample_rate);
 
 
 private:
@@ -38,9 +43,6 @@ private:
     static void WriteAsTzxBlock(const PausePulser &p_pluser, std::ostream &p_stream, Doublesec p_tstate_dur) ;
     static void WriteAsTzxBlock(const DataPulser &p_pluser, std::ostream &p_stream, Doublesec p_tstate_dur) ;
 
-
-    static void WriteInfo(std::ostream& p_stream, const std::string &p_text);
-    static void WriteCustomInfo(std::ostream& p_stream, const std::string& p_id, const std::string& p_text);
 
     static bool IsPulserLeader(const Pulser &p_pulser);
     static bool IsPulserSync(const Pulser &p_pulser);

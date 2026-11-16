@@ -130,7 +130,7 @@ public:
    
     TurboBlocks& SetSkipPilots(bool p_to_what);
 
-    TurboBlocks &DebugDump() const;
+    std::string GetDebugString() const;
 private:
     class Impl;
     std::unique_ptr<Impl> m_pimpl;

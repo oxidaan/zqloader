@@ -5,7 +5,7 @@
 //                  http://k1.spdns.de/Develop/Projects/zasm/Info/TZX%20format.html
 //                  https://worldofspectrum.net/TZXformat.html
 // 
-// Copyright (c) 2023 Daan Scherft [Oxidaan]
+// Copyright (c) 2026 Daan Scherft [Oxidaan]
 // This project uses the MIT license. See LICENSE.txt for details.
 //==============================================================================
 
@@ -68,14 +68,14 @@ struct TurboSpeedDataBlock
     BYTE length[3];
     friend std::ostream &operator << (std::ostream &p_stream, const TurboSpeedDataBlock &p_block) 
     {
-        p_stream << "Data length = " << p_block.length[0] + 256 * p_block.length[1] + 65536 * p_block.length[2] 
-                // << " pause = " << p_block.pause
-                 << " length_of_pilot_pulse = "  << p_block.length_of_pilot_pulse 
-                 << " length_of_sync_first_pulse = "   << p_block.length_of_sync_first_pulse 
-                 << " length_of_sync_second_pulse = "   << p_block.length_of_sync_second_pulse 
-                 << " length_of_zero_bit_pulse = "  << p_block.length_of_zero_bit_pulse 
-                 << " length_of_one_bit_pulse = "   << p_block.length_of_one_bit_pulse 
-                 << " length_of_pilot_tone = "   << p_block.length_of_pilot_tone;
+        p_stream << "Data length = " << p_block.length[0] + 256 * p_block.length[1] + 65536 * p_block.length[2]
+                 // << " pause = " << p_block.pause
+                 << " length_of_pilot_pulse = " << p_block.length_of_pilot_pulse
+                 << " length_of_pilot_tone = " << p_block.length_of_pilot_tone
+                 << " length_of_sync_first_pulse = " << p_block.length_of_sync_first_pulse
+                 << " length_of_sync_second_pulse = " << p_block.length_of_sync_second_pulse
+                 << " length_of_zero_bit_pulse = " << p_block.length_of_zero_bit_pulse
+                 << " length_of_one_bit_pulse = " << p_block.length_of_one_bit_pulse;
         return p_stream; 
     }
 };
@@ -94,7 +94,7 @@ struct GeneralizedDataBlock
 
     DWORD   totp;           // Total number of symbols in pilot / sync block(can be 0) (eg 2 for a leader, then a sync)
     BYTE    npp;            // Maximum number of pulses per pilot/sync symbol (= #pulse_lengths at pulse-symdef)
-    BYTE    asp;            // Number of pilot/sync symbols in the alphabet table (0=256) (= #pulse-symdef-s)
+    BYTE    asp;            // Number of pilot/sync symbols in the alphabet table (0=256) (= #pulse-symdef-s), best have power of 2.
 
     DWORD   totd;           // Total number of symbols in data stream (can be 0)    (when asd==2 this is # bits in data)
     BYTE    npd;            // Maximum number of pulses per data symbol             (= #pulse_lengths at data-symdef)
@@ -103,7 +103,7 @@ struct GeneralizedDataBlock
 
     struct SymDef           // Pilot / sync / data symbols ('alphabet') definition table #=asp
     {
-        Edge   m_edge;      // exactly same as our Edge enum type eg 0 is toggle
+        Edge   m_edge;      // Exactly same as our Edge enum type eg 0 is toggle
         // WORD pulse_lengths[];    // Size of this is #npp for pulse-symdef; #npd for data-symdef (written 'manually')
     };
 
@@ -115,34 +115,43 @@ struct GeneralizedDataBlock
         BYTE   m_symbol;            // ref to pulse-symdef number so 0 - asp-1 (basicly: what pulse to use)
         WORD   m_repetitions;       // How often is the above pulse repeated
     };
+    static_assert(sizeof(Prle) ==3, "Sizeof SymDef must be 3");
 
+    // Get 'Block length' that is total length without 'without these four bytes'
+    // Used when writing
     size_t GetBlockLength(size_t p_size_of_data) const
     {
         return sizeof(GeneralizedDataBlock) - sizeof(block_length) + GetRemainingLength(p_size_of_data);
     }
 
+    int GetNB() const
+    {
+        // eg 2-> 1; 4->2 etc
+        return static_cast<int>(std::ceil(std::log2(asd == 0 ? 256 : asd)));
+    }
 
+    // Get Data length calculated from read block
+    // used when reading
     size_t GetDataLength() const
     {
         if(block_length == 0)
         {
             throw std::runtime_error("Need to read or set block_length first");
         }
-        //     length+data-4 + 4                    -  length w/o data
-        return block_length + sizeof(block_length) - sizeof(GeneralizedDataBlock) - GetRemainingLength();
+        auto nb = static_cast<int>(std::ceil(std::log2(asd == 0 ? 256 : asd)));
+        return static_cast<size_t>((nb * totd) / 8);
+        //return block_length + sizeof(block_length) - sizeof(GeneralizedDataBlock) - GetRemainingLength();
     }
 
-
+    // Get size of SYMDEF[ASP] + PRLE[TOTP] + SYMDEF[ASD] + p_size_of_data
     size_t GetRemainingLength(size_t p_size_of_data = 0) const
     {   
         
-        auto sizeof_leader =  totp > 0 ? (asp == 0 ? 256 : int(asp)) * (sizeof(SymDef) + sizeof(WORD) * npp) +
-                                    totp *(sizeof(BYTE) + sizeof(WORD)) 
+        auto sizeof_pilot =  totp > 0 ? (asp == 0 ? 256 : int(asp)) * (sizeof(SymDef) + sizeof(WORD) * npp) + totp * sizeof(Prle) 
                                     :0;
-        auto sizeof_data   =  totd > 0 ? (asd == 0 ? 256 : int(asd)) * (sizeof(BYTE) + sizeof(WORD) * npd) +
-                                    p_size_of_data 
+        auto sizeof_data  =  totd > 0 ? (asd == 0 ? 256 : int(asd)) * (sizeof(SymDef) + sizeof(WORD) * npd) + p_size_of_data
                                     :0;
-        return sizeof_leader + sizeof_data;
+        return sizeof_pilot + sizeof_data;
 
 
     }
@@ -160,5 +169,6 @@ struct GeneralizedDataBlock
     }
 
 };
+static_assert(sizeof(TurboSpeedDataBlock) == 0x12);     // until and including ASD
 #pragma pack(pop)
 

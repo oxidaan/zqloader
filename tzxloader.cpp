@@ -79,7 +79,7 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
         }
         case TzxBlockType::TurboSpeedDataBlock:
         {
-            p_stream.ignore(0x0f );
+            p_stream.ignore(0x0f);
             auto len1 = LoadBinary<BYTE>(p_stream);     // bit of weird 24 bit length
             auto len2 = LoadBinary<BYTE>(p_stream);
             auto len3 = LoadBinary<BYTE>(p_stream);

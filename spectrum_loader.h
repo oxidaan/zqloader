@@ -63,11 +63,11 @@ public:
 
     using DoneFun = std::function<void (void)>;
 
-    // Ctor
+    /// Ctor
     SpectrumLoader();
     SpectrumLoader(SpectrumLoader &&) noexcept;
     SpectrumLoader & operator = (SpectrumLoader &&) noexcept;
-    // Dtor
+    /// Dtor
     ~SpectrumLoader();   // = default;
 
 
@@ -106,12 +106,9 @@ public:
     }
 
 
-    /// Write all added pulsers data as a TZX file.
-    SpectrumLoader& WriteTzxFile(std::ostream& p_file);
-    SpectrumLoader& WriteTzxFile(std::ostream& p_file, uint32_t p_sample_rate);
 
-    // Set the call backs
-    // TSampleSender is SampleSender or SampleToWav
+    /// Set the call backs
+    /// TSampleSender is SampleSender or SampleToWav
     template<class TSampleSender>
     SpectrumLoader& Attach(TSampleSender& p_sample_sender)
     {
@@ -157,13 +154,20 @@ public:
         return m_use_standard_clock_for_rom ? spectrum::tstate_dur : m_tstate_dur;
     }
 
-    // Ignore speed as set by SetTstateDuration for normal speed (=rom) loading routines
-    // Then take 3.5Mhz.
+    /// Ignore speed as set by SetTstateDuration for normal speed (=rom) loading routines
+    /// Then take 3.5Mhz.
     SpectrumLoader &SetUseStandaardSpeedForRom(bool p_to_what) 
     {
         m_use_standard_clock_for_rom = p_to_what;
         return *this;
     }
+
+    /// Write the standby pulsers as tzx file to given stream
+    /// Alternate algorithm witten by Fredrick Meunier using p_sample_rate
+    SpectrumLoader &WritePulsersAsTzx(std::ostream& p_filewrite, uint32_t p_sample_rate) const;
+    /// Write the standby pulsers as tzx file to given stream
+    /// Classic algorithm - needs TState duration
+    SpectrumLoader &WritePulsersAsTzx(std::ostream& p_filewrite) const;
 private:
 
     // CallBack; runs in miniaudio thread
@@ -200,6 +204,7 @@ private:
 
 
     void StandbyToActive();
+
 
 private:
 
