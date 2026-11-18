@@ -20,7 +20,7 @@
 /// or: https://worldofspectrum.net/TZXformat.html
 class TzxLoader
 {
-    using HandleTapBlockFun = std::function<bool (DataBlock, std::string)>;
+    using HandleTapBlockFun = std::function<bool (DataBlock, std::string, int)>;
 
 public:
 
@@ -41,15 +41,17 @@ public:
         return *this;
     }
 
+
 private:
 
-    bool HandleTapBlock(std::istream& p_stream, std::string p_zxfilename, int p_length);
+    bool HandleTapBlock(std::istream& p_stream, std::string p_zxfilename, int p_length, int p_startaddress);
 
     //  Loads tzx file from given stream. Ignores until given zxfilename is ound.
     TzxLoader& Read(std::istream& p_stream, const std::string &p_zxfilename);
 
 private:
-
+    bool m_is_zq_loader_tzx = false;
+    int m_last_block_startaddress = 0;
     HandleTapBlockFun   m_OnHandleTapBlock;
 };
 

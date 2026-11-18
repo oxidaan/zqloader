@@ -12,7 +12,6 @@
 
 TurboBlock::TurboBlock()
 {
-    m_data.resize(sizeof(Header));
     GetHeader().m_length = 0;
     GetHeader().m_load_address = 0;                     // where it initially loads payload, when 0 use load at basic buffer
     GetHeader().m_dest_address = 0;                     // no copy so keep at m_load_address
@@ -28,7 +27,7 @@ TurboBlock::TurboBlock()
 /// m_length,
 /// m_compression_type,
 /// RLE meta data
-TurboBlock& TurboBlock::SetData(const DataBlock& p_data, CompressionType p_compression_type)
+TurboBlock& TurboBlock::SetData(DataBlock p_data, CompressionType p_compression_type)
 {
     m_data_size = p_data.size();
     Compressor<DataBlock>::RLE_Meta rle_meta{};
@@ -45,7 +44,8 @@ TurboBlock& TurboBlock::SetData(const DataBlock& p_data, CompressionType p_compr
         //      " Data size = " << p_data.size() <<
         //      " Compressed size = " << compressed_data.size() << ")" << std::endl;
     }
-    const DataBlock* data;
+
+    DataBlock* data = &p_data;
 
     GetHeader().m_compression_type = p_compression_type;
     if (p_compression_type == CompressionType::rle)
@@ -63,10 +63,7 @@ TurboBlock& TurboBlock::SetData(const DataBlock& p_data, CompressionType p_compr
 #endif
         data = &compressed_data;
     }
-    else // no compression
-    {
-        data = &p_data;
-    }
+
 
 
     GetHeader().m_length = uint16_t(data->size());
@@ -74,8 +71,7 @@ TurboBlock& TurboBlock::SetData(const DataBlock& p_data, CompressionType p_compr
 //    if(data->size() > spectrum::SCREEN_SIZE)        // @DEBUG cause crc error
 //        GetHeader().m_checksum++;
     // GetHeader().m_length = uint16_t(compressed_data.size() + 2);       // @DEBUG should give ERROR
-    m_data.insert(m_data.end(), data->begin(), data->end());          // append given data at m_data (after header)
-
+    m_payload = std::move(*data);            // add compressed or given data
 
     if (GetHeader().m_load_address == 0 && GetHeader().m_dest_address != 0)
     {
@@ -123,7 +119,7 @@ TurboBlock& TurboBlock::DebugDump(int p_max) const
     }
     std::cout << std::endl;
     // optionally dump some data
-    for (int n = 0; (n < m_data.size()) && (n < p_max); n++)
+    for (int n = 0; (n < m_payload.size()) && (n < p_max); n++)
     {
         if (n % 32 == 0 || (n == sizeof(Header)))
         {
@@ -141,7 +137,7 @@ TurboBlock& TurboBlock::DebugDump(int p_max) const
         {
             std::cout << ", ";
         }
-        std::cout << std::hex << "0x" << int(m_data[n]);
+        std::cout << std::hex << "0x" << int(m_payload[n]);
     }
     if (p_max)
     {

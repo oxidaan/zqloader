@@ -26,9 +26,8 @@ public:
     TzxWriter() = delete;
 
     static void WriteBegin(std::ostream& p_stream);
-    static void WriteEnd(std::ostream& p_stream);
     static void WriteInfo(std::ostream& p_stream, const std::string& p_text);
-    static void WriteCustomInfo(std::ostream& p_stream, const std::string& p_id, const std::string& p_text);
+    static void WriteCustomInfo(std::ostream& p_stream, const std::string& p_text);
 
     static void WritePulsers(const Pulsers &p_pulsers, std::ostream& p_stream , Doublesec p_tstate_dur);
     // Alternate algorithm, Fred

@@ -95,7 +95,19 @@ public:
     /// m_length,
     /// m_compression_type,
     /// RLE meta data
-    TurboBlock& SetData(const DataBlock& p_data, CompressionType p_compression_type = loader_defaults::compression_type);
+    TurboBlock& SetData( DataBlock p_data, CompressionType p_compression_type = loader_defaults::compression_type);
+
+    TurboBlock& SetRawData(DataBlock p_header, DataBlock p_payload)
+    {
+        if (sizeof(Header) != p_header.size())
+        {
+            throw std::runtime_error("Not a header");
+        }
+        std::memcpy(&m_header, p_header.data(), sizeof(Header));
+        m_payload = std::move(p_payload);
+        return *this;
+    }
+
 
 public:
 
@@ -196,17 +208,15 @@ public:
         TonePulser(p_loader.GetTstateDuration()).SetPattern(500, 500).SetLength(m_pilot_length).MoveToLoader(p_loader);    // leader; best to have even number of edges
         TonePulser(p_loader.GetTstateDuration()).SetPattern(250, 499).SetLength(1).MoveToLoader(p_loader);        // sync + 499=minisync!
 
-
-
-        DataBlock header(m_data.begin(), m_data.begin() + sizeof(Header));      // split (eg for minisync)
-        DataBlock payload(m_data.begin() + sizeof(Header), m_data.end());
+        DataBlock header(sizeof(Header));
+        std::memcpy(header.data(), &m_header, sizeof(Header));
 
         MoveToLoader(p_loader, std::move(header), p_zero_duration, p_one_duration, p_end_of_byte_delay);             // header
-        if (payload.size() != 0)
+        if (m_payload.size() != 0)
         {
             TonePulser(p_loader.GetTstateDuration()).SetPattern(501).SetLength(1).MoveToLoader(p_loader);            //  501=minisync!
            // PausePulser(p_loader.GetTstateDuration()).SetLength(500).SetEdge(Edge::toggle).MoveToLoader(p_loader); //  minisync!
-            MoveToLoader(p_loader, std::move(payload), p_zero_duration, p_one_duration, p_end_of_byte_delay);        // data
+            MoveToLoader(p_loader, std::move(m_payload), p_zero_duration, p_one_duration, p_end_of_byte_delay);        // data
         }
     }
 
@@ -220,6 +230,7 @@ public:
     TurboBlock& DebugDump(int p_max = 0) const;
 
     /// Set pilot tone length
+    /// TODO not used (always 200ms)
     TurboBlock& SetPilotLength(std::chrono::milliseconds p_duration)
     {
         m_pilot_length = p_duration;
@@ -260,11 +271,11 @@ private:
 
     Header& GetHeader()
     {
-        return *(reinterpret_cast<Header*>(m_data.data()));
+        return m_header;
     }
     const Header& GetHeader() const
     {
-        return *(reinterpret_cast<const Header*>(m_data.data()));
+        return m_header;
     }
 
         
@@ -288,10 +299,10 @@ private:
     static uint8_t CalculateChecksum(const DataBlock &p_data);
 
 private:
-
-    size_t      m_data_size{};               // size of (uncompressed/final) data exl. header. Note: Spectrum does not need this.
     std::chrono::milliseconds m_pilot_length = 200ms;
-    DataBlock   m_data;                      // the data as send to Spectrum, starts with header
+    size_t      m_data_size{};                 // size of (uncompressed/final) data exl. header. Note: Spectrum does not need this.
+    DataBlock   m_payload;                     // the data as send to Spectrum, can be compressed
+    Header      m_header;                      // the data as send to Spectrum, starts with header
 }; // class TurboBlock
 
 

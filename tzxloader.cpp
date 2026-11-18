@@ -74,7 +74,7 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
             p_stream.ignore(0x2);
             auto len = LoadBinary<WORD>(p_stream);
             std::cout << " length = " << len << std::endl;
-            done = HandleTapBlock(p_stream, p_zxfilename, len);
+            done = HandleTapBlock(p_stream, p_zxfilename, len, 0);
             break;
         }
         case TzxBlockType::TurboSpeedDataBlock:
@@ -85,7 +85,7 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
             auto len3 = LoadBinary<BYTE>(p_stream);
             auto len  = 0x10000 * len3 + 0x100 * len2 + len1;
             std::cout << " length = " << len << std::endl;
-            done = HandleTapBlock(p_stream, p_zxfilename, len);
+            done = HandleTapBlock(p_stream, p_zxfilename, len, 0);
             break;
         }
         case TzxBlockType::Puretone:
@@ -111,7 +111,7 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
             int len3 = LoadBinary<BYTE>(p_stream);
             int len  = 0x10000 * len3 + 0x100 * len2 + len1;
             std::cout << " length = " << len << std::endl;
-            done = HandleTapBlock(p_stream, p_zxfilename, len);
+            done = HandleTapBlock(p_stream, p_zxfilename, len, 0);
             break;
         }
         case TzxBlockType::DirectRecordingBlock:
@@ -139,9 +139,9 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
             p_stream.ignore(remaining_len);
             int len                                     = int(generalized_data_block.GetDataLength());
             std::cout << " length = " << len << std::endl;
-            if(len)
+            if (len)
             {
-                HandleTapBlock(p_stream, p_zxfilename, len);
+                HandleTapBlock(p_stream, p_zxfilename, len, m_is_zq_loader_tzx ? m_last_block_startaddress : 0);
             }
             break;
         }
@@ -226,9 +226,14 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
         }
         case TzxBlockType::Custominfoblock:
         {
-            p_stream.ignore(10);
-            auto len = LoadBinary<WORD>(p_stream);
-            p_stream.ignore(len);
+            auto ids = LoadBinary<std::string>(p_stream, 0x10);
+            if (ids.starts_with("ZQLoader"))
+            {
+                m_is_zq_loader_tzx = true;
+            }
+            auto len = LoadBinary<DWORD>(p_stream);
+            auto data = LoadBinary<std::string>(p_stream, len);
+            (void)data;
             break;
         }
         case TzxBlockType::Glueblock:
@@ -248,16 +253,18 @@ TzxLoader& TzxLoader::Read(std::istream& p_stream, const std::string &p_zxfilena
 
 
 
-
-bool TzxLoader::HandleTapBlock(std::istream& p_stream, std::string p_zxfilename, int p_length)
+// "Data as in .TAP files"
+bool TzxLoader::HandleTapBlock(std::istream& p_stream, std::string p_zxfilename, int p_length, int p_startaddress)
 {
-    auto block = TapLoader::LoadTapBlock(p_stream, p_length);
+    auto block = TapLoader::LoadTapBlock(p_stream, p_length);      
     if (m_OnHandleTapBlock)
     {
-        return m_OnHandleTapBlock(std::move(block), std::move(p_zxfilename));
+        return m_OnHandleTapBlock(std::move(block), std::move(p_zxfilename), p_startaddress);
     }
     return false;
 }
+
+
 
 
 

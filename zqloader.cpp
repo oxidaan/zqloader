@@ -10,7 +10,7 @@
 // ==============================================================================
 // uses pimpl
 
-#include "pulsers.h"
+#include "pulsers.h"        // FM: supply the Pulser type when compiling with macOS libc++.
 #include "zqloader.h"
 #include "tools.h"
 #include "spectrum_loader.h"
@@ -205,26 +205,34 @@ public:
             m_spectrumloader.Attach(wav_writer);
             wav_writer.SetVolume(m_volume_left, m_volume_right).SetSampleRate(m_sample_rate).SetCatchUp(m_catch_up);
             wav_writer.WriteToFile(filewrite);
-            std::cout << "Written " << (outputfilename.is_absolute() ? outputfilename : std::filesystem::current_path() / outputfilename) << " with size: " << wav_writer.GetSize() << " and duration: " << wav_writer.GetDuration().count() << std::endl;
-            Reset();
+            Reset();        // needed?
+            if(!filewrite)
+            {
+                throw std::runtime_error("Error writing file: " + outputfilename.string());
+            }
+            std::cout << "Written " << (outputfilename.is_absolute() ? outputfilename : std::filesystem::current_path() / outputfilename) << " with size: " << wav_writer.GetSize() << " and duration: " << wav_writer.GetDuration().count() << "s" << std::endl;
         }
         else if (m_action == Action::write_tzx)
         {
             // Write to tzx file
             auto outputfilename     = GetOutputFilename();
             std::ofstream filewrite = OpenFileToWrite(outputfilename, m_allow_overwrite);
-            WriteTzxFile(filewrite, m_catch_up);        // mis-use m_catch_up als algortihm selection
-            std::cout << "Written " << (outputfilename.is_absolute() ? outputfilename : std::filesystem::current_path() / outputfilename)  << std::endl;
-            Reset();
+  			WriteTzxFile(filewrite, m_catch_up);        // mis-use m_catch_up as algortihm selection
+            Reset();        // needed?
+            if(!filewrite)
+            {
+                throw std::runtime_error("Error writing file: " + outputfilename.string());
+            }
+            std::cout << "Written " << (outputfilename.is_absolute() ? outputfilename : std::filesystem::current_path() / outputfilename) << std::endl;
         }
     }
 
 
 
     /// Only used for fun attributes and video fun.
-    void AddMemoryBlock(const MemoryBlock &p_block, uint16_t p_load_address)
+    void AddMemoryBlock(MemoryBlock p_block, uint16_t p_load_address)
     {
-        m_turboblocks.AddMemoryBlockAsTurboBlock(p_block, p_load_address);
+        m_turboblocks.AddMemoryBlockAsTurboBlock(std::move(p_block), p_load_address);
         m_turboblocks.MoveToLoader(m_spectrumloader, true);
     }
 
@@ -308,6 +316,7 @@ public:
         std::stringstream ss;
         ss << m_turboblocks.GetDebugString() << " Samplerate = " << m_sample_rate << "; Catch up = " << m_catch_up;
         TzxWriter::WriteInfo(p_filewrite, ss.str());
+        TzxWriter::WriteCustomInfo(p_filewrite, "hi");
         if (p_how)
         {
             m_spectrumloader.WritePulsersAsTzx(p_filewrite, m_sample_rate);
@@ -487,17 +496,24 @@ private:
         AddZqLoader(m_normal_filename);
         TapToTurboBlocks tab_to_turbo_blocks{ m_turboblocks };
         Tloader tap_or_tzx_loader;
-        tap_or_tzx_loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string p_zxfilename)
-                                              {
-                                                  return tab_to_turbo_blocks.HandleTapBlock(std::move(p_block), p_zxfilename);
-                                              });
+        tap_or_tzx_loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string p_zxfilename, int p_start_address)
+        {
+            if (p_start_address)
+            {
+                return tab_to_turbo_blocks.HandleIncomingBlock(std::move(p_block), p_start_address);
+            }
+            else
+            {
+                return tab_to_turbo_blocks.HandleIncomingBlock(std::move(p_block), p_zxfilename);
+            }
+        });
         tap_or_tzx_loader.Load(p_filename, p_zxfilename);
         if(m_turboblocks.size() != tab_to_turbo_blocks.GetNumberLoadCode())
         {
             std::cout << "<b>Warning: Number of found code blocks (" << m_turboblocks.size() << ") not equal to LOAD \"\" CODE statements in BASIC (" << tab_to_turbo_blocks.GetNumberLoadCode() << ")!</b>\n" << std::endl;
         }
         auto size = m_turboblocks.Finalize(m_when_done_return_to_basic ? 0 :
-                                           m_when_done_call_usr == 0 ? tab_to_turbo_blocks.GetUsrAddress() :
+                                           m_when_done_call_usr == 0 ? tab_to_turbo_blocks.GetUsrAddress() :    // auto
                                            m_when_done_call_usr,
                                            tab_to_turbo_blocks.GetClearAddress());
         if(size == 0)
@@ -534,12 +550,11 @@ private:
     void AddNormalSpeedFile(const fs::path &p_filename, SpectrumLoader &p_spectrum_loader, const std::string &p_zxfilename)
     {
         Tloader tap_or_tzx_loader;
-        tap_or_tzx_loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string)
-                                              {
-                                                  p_spectrum_loader.AddLeaderPlusData(std::move(p_block), spectrum::tstate_quick_zero, 1750ms); // .AddPause(100ms);
-                                                  return false;
-                                              }
-                                              );
+        tap_or_tzx_loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string, int)
+        {
+            p_spectrum_loader.AddLeaderPlusData(std::move(p_block), spectrum::tstate_quick_zero, 1750ms); // .AddPause(100ms);
+            return false;
+        });
         tap_or_tzx_loader.Load(p_filename, p_zxfilename);
     }
 
@@ -573,7 +588,7 @@ Please add a normal file and/or a turbo speed file.
     {
         if(m_output_filename.empty() && !m_turbo_filename.empty())
         {
-            // When -w or -wav is given create output filename out of 2nd given filename (filename2)
+            // When -w or -wav is given auto create output filename out of 2nd given filename (filename2)
             auto outputfilename = m_turbo_filename;
             if( m_action == Action::write_wav )
             {
@@ -593,11 +608,13 @@ Please add a normal file and/or a turbo speed file.
         return m_output_filename;
     }
 
-public:
+private:
+    friend class ZQLoader;
 
     SpectrumLoader              m_spectrumloader;
     TurboBlocks                 m_turboblocks;
     SampleSender                m_sample_sender;
+
     bool                        m_use_fun_attribs           = false;
     uint32_t                    m_sample_rate               = loader_defaults::sample_rate;
     bool                        m_catch_up                  = loader_defaults::catch_up;
@@ -944,9 +961,9 @@ void ZQLoader::Test()
 
 
 
-ZQLoader& ZQLoader::AddMemoryBlock(const MemoryBlock &p_block, uint16_t p_load_address)
+ZQLoader& ZQLoader::AddMemoryBlock(MemoryBlock p_block, uint16_t p_load_address)
 {
-    m_pimpl->AddMemoryBlock(p_block, p_load_address);
+    m_pimpl->AddMemoryBlock(std::move(p_block), p_load_address);
     return *this;
 }
 

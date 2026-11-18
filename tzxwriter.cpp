@@ -136,12 +136,11 @@ void TzxWriter::WriteBegin(std::ostream& p_stream)
 // convenience
 // Alternate algorithm witten by Fredrick Meunier
 // Note:
-// Tone/IsInfinite can not happen. Used only when 'tune' button was pressed. Check removed.
-// Invalid p_tstate_dur can not happen and is not even used by this function. Removed. 
+// Invalid p_tstate_dur can not happen and parameter is not even used by this function. Check Removed.
+// Tone/IsInfinite can not happen. Used only when 'tune' button was pressed (kept check)
 // (ZQLoader class protects it now.)
-// There are also never tone pulsers with zero length. Datapulser also can not have zero length anymore (check add there)
-// Imho it does not make sense to check ostream after writing:
-// can only go wrong when drive is full. Stopped checking on that since 1995.
+// There are also never tone pulsers with zero length. Datapulser also can not have zero length anymore (kept check)
+// Checks if writing succeeded moved to ZQLoader class (also for WAV writing)
 // So removed most tests for now. Most of these can never happen. If they do, sending audio, and
 // creating wav would also fail. To avoid same checks at multiple locations
 // better move checks a level 'up' eg at ZqLoader class. This was now done at least for tstate duration + Datapulser not empty.
@@ -364,7 +363,9 @@ void TzxWriter::WritePulsers(const Pulsers& p_pulsers, std::ostream& p_stream,  
 }
 
 
-
+/// Text description
+/// "This is meant to identify parts of the tape..."
+/// Keep short. Max 255 chars long.
 void TzxWriter::WriteInfo(std::ostream& p_stream, const std::string &p_text)
 {
     WriteBinary(p_stream, TzxBlockType::Textdescription);
@@ -375,13 +376,15 @@ void TzxWriter::WriteInfo(std::ostream& p_stream, const std::string &p_text)
     }
 }
 
-
-void TzxWriter::WriteCustomInfo(std::ostream& p_stream, const std::string& p_id,  const std::string& p_text)
+/// "This block can be used to save any information you want..."
+/// With id is 'ZQLoader'
+void TzxWriter::WriteCustomInfo(std::ostream& p_stream, const std::string& p_text)
 {
     WriteBinary(p_stream, TzxBlockType::Custominfoblock);
-    for (int n =0; n < 10; n++)
+    std::string_view id = "ZQLoader";
+    for (int n = 0; n < 0x10; n++)
     {
-        WriteBinary(p_stream, (n < p_id.length()) ? p_id[n] : ' ');
+        WriteBinary(p_stream, (n < id.length()) ? id[n] : ' ');
     }
     WriteBinary(p_stream, DWORD(p_text.length()));
     for (auto c : p_text)
@@ -420,7 +423,6 @@ void TzxWriter::WriteAsTzxBlock(const TonePulser &p_pulser, std::ostream &p_stre
     {
         std::cout << "Tone: Puretone patt=" << pattern[0] << " #pulses=" << max_pulses << " Dur=" << (( max_pulses * pattern[0] ) * p_tstate_dur ).count() << "sec" << std::endl;
         WriteBinary(p_stream, TzxBlockType::Puretone);
-        std::cout << "  ";
         WriteBinary(p_stream, WORD(pattern[0]));
         WriteBinary(p_stream, WORD(max_pulses));
         DebugLog(" [End Tone: Puretone]\n");
@@ -429,7 +431,6 @@ void TzxWriter::WriteAsTzxBlock(const TonePulser &p_pulser, std::ostream &p_stre
     {
         std::cout << "Tone: Puretone patt=" << pattern[0] << " #pulses=" << 2 * max_pulses << " Dur=" << (( 2 * max_pulses * pattern[0] ) * p_tstate_dur ).count() << "sec" << std::endl;
         WriteBinary(p_stream, TzxBlockType::Puretone);
-        std::cout << "  ";
         WriteBinary(p_stream, WORD(pattern[0]));
         WriteBinary(p_stream, WORD(2 * max_pulses));
         DebugLog(" [End Tone: Puretone]\n");
@@ -547,7 +548,7 @@ void TzxWriter::WriteAsTzxBlock(const PausePulser &p_pulser, std::ostream& p_str
             // write pause (1x) - sync(1x) sequence.
             for (unsigned totp = 0; totp < generalized_data_block.totp; totp++)     // is 2
             {
-                DebugLog(( " | Prle#" + std::to_string(totp) + ": " ).c_str());
+                DebugLog(( " | Prle#" + std::to_string(totp) + ": " ));
                 GeneralizedDataBlock::Prle prle {};
                 prle.m_symbol      = BYTE(totp);
                 prle.m_repetitions = 1;

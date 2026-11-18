@@ -34,7 +34,9 @@ public:
     ///     When basic: try get addresses like RANDOMIZE USR XXXXX
     ///     When code: Add to list of blocks to (turbo) load as given at CTOR.
     /// p_zxfilename: when !empty check if name matches before accepting header.
-    bool HandleTapBlock(DataBlock p_block, const std::string &p_zxfilename);
+    bool HandleIncomingBlock(DataBlock p_block, const std::string &p_zxfilename);
+
+    bool HandleIncomingBlock(DataBlock p_block, int p_start_address);
 
     /// Get MC start address as found in BASIC block as in RANDOMIZE USR xxxxx
     /// (As earlier found with TryFindUsr)

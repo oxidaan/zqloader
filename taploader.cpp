@@ -48,7 +48,7 @@ inline bool TapLoader::HandleTapBlock(DataBlock p_block, std::string p_zxfilenam
 {
     if (m_OnHandleTapBlock)
     {
-        return m_OnHandleTapBlock(std::move(p_block), std::move(p_zxfilename));
+        return m_OnHandleTapBlock(std::move(p_block), std::move(p_zxfilename), 0);
     }
     return false;
 }

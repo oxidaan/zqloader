@@ -23,7 +23,7 @@
 ///     When basic: try get addresses like RANDOMIZE USR XXXXX
 ///     When code: Add to list of blocks to (turbo) load
 /// p_zxfilename: when given check if name matches before accepting header.
-bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, const std::string &p_zxfilename)
+bool TapToTurboBlocks::HandleIncomingBlock(DataBlock p_block, const std::string &p_zxfilename)
 {
     using namespace spectrum;
     bool done          = false;
@@ -106,6 +106,12 @@ bool TapToTurboBlocks::HandleTapBlock(DataBlock p_block, const std::string &p_zx
     return done;
 }
 
+// ZQLoader block
+bool TapToTurboBlocks::HandleIncomingBlock(DataBlock p_block, int p_startaddress)
+{
+    m_tblocks.AddMemoryBlock({ std::move(p_block), p_startaddress });
+    return false;
+}
 
 inline void TapToTurboBlocks::ParseBasic(const DataBlock& p_basic_block)
 {

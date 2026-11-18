@@ -62,8 +62,12 @@ public:
     /// Add given memory block, just a push_back.
     TurboBlocks& AddMemoryBlock(MemoryBlock p_block);
 
+    /// Add given TurboBlock directly eg when read from ZQLoader-tzx file.
+    TurboBlocks& AddTurboBlock(TurboBlock p_block);
+
     /// Add given memory block, make it a turboblock immidiately.
-    TurboBlocks& AddMemoryBlockAsTurboBlock(const MemoryBlock &p_block, uint16_t p_load_address = 0);
+    /// Only used for fun attributes and video fun.
+    TurboBlocks& AddMemoryBlockAsTurboBlock(MemoryBlock p_block, uint16_t p_load_address = 0);
 
     /// Make sure:
     ///     to add upperblock (overwriting loader) as last in the chain.

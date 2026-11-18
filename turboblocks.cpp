@@ -62,7 +62,7 @@ public:
         LoadSymbolFilename(filename_exp);
 
         TapLoader loader;
-        loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string)
+        loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string, int)
                                    {
                                        return HandleZqLoaderTapBlock(std::move(p_block));
                                    });
@@ -515,7 +515,7 @@ private:
                         load_address = m_symbols.GetSymbol("ASM_UPPER_START_OFFSET");
                     }
                 }
-                prev = &AddMemoryBlockAsTurboBlock(block, load_address);
+                prev = &AddMemoryBlockAsTurboBlock(std::move(block), load_address);
             }
         }
         if(prevprev && p_last_bank_to_set >= 0 && p_last_bank_to_set != prev_bank_set)
@@ -550,7 +550,7 @@ private:
     // So convert to TurboBlock.
     // p_load_address: when given (!=0) load there first.
     // Note: A memoryblock already has a destination address.
-    TurboBlock &AddMemoryBlockAsTurboBlock(const MemoryBlock& p_block, uint16_t p_load_address = 0)
+    TurboBlock &AddMemoryBlockAsTurboBlock(MemoryBlock p_block, uint16_t p_load_address = 0)
     {
         if (m_turbo_blocks.size() == 0)
         {
@@ -570,11 +570,12 @@ private:
         {
             tblock.SetLoadAddress(p_load_address);
         }
-        tblock.SetData(p_block.m_datablock, m_compression_type);
+        tblock.SetData(std::move(p_block.m_datablock), m_compression_type);
 
         m_turbo_blocks.push_back(std::move(tblock));
         return m_turbo_blocks.back();
     }
+
 
 
 
@@ -649,11 +650,16 @@ TurboBlocks& TurboBlocks::AddMemoryBlock(MemoryBlock p_block)
     return *this;
 }
 
-
-
-TurboBlocks& TurboBlocks::AddMemoryBlockAsTurboBlock(const MemoryBlock &p_block,  uint16_t p_load_address)
+TurboBlocks& TurboBlocks::AddTurboBlock(TurboBlock p_block)
 {
-    m_pimpl->AddMemoryBlockAsTurboBlock(p_block, p_load_address);
+    m_pimpl->m_turbo_blocks.push_back(std::move(p_block));
+    return *this;
+}
+
+
+TurboBlocks& TurboBlocks::AddMemoryBlockAsTurboBlock(MemoryBlock p_block,  uint16_t p_load_address)
+{
+    m_pimpl->AddMemoryBlockAsTurboBlock(std::move(p_block), p_load_address);
     return *this;
 }
 
