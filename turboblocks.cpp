@@ -369,11 +369,9 @@ public:
             {   \
                 ss >> m_##what;  \
             }
-
-        while( p_stream && !p_stream.eof() )
+        std::string line;
+        while(std::getline( p_stream, line ) )
         {
-            std::string line;
-            std::getline( p_stream, line );
             std::stringstream ss( line );
             std::string command;
             // read command
