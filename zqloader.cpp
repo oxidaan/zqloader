@@ -62,7 +62,8 @@ public:
 
 
 
-    /// Set turbo filename eg the 2nd filename in the dialog.
+    /// Set and adds turbo filename eg the 2nd filename in the dialog.
+    /// This adds all data as turbo blocks and then pulsers to m_spectrumloader.
     void SetTurboFilename(fs::path p_filename, const std::string &p_zxfilename)
     {
         if(!p_filename.empty() && p_filename.string()[0] != '[')
@@ -217,7 +218,7 @@ public:
             // Write to tzx file
             auto outputfilename     = GetOutputFilename();
             std::ofstream filewrite = OpenFileToWrite(outputfilename, m_allow_overwrite);
-  			WriteTzxFile(filewrite, m_catch_up);        // mis-use m_catch_up as algortihm selection
+            WriteTzxFile(filewrite, m_catch_up);        // mis-use m_catch_up as algortihm selection
             Reset();        // needed?
             if(!filewrite)
             {
@@ -268,8 +269,7 @@ public:
     /// Prepare for preloading.
     void SetPreload()
     {
-        m_128_mode = true;
-        AddZqLoader(m_normal_filename);
+        AddZqLoader(true, m_normal_filename);
         m_turboblocks.MoveToLoader(m_spectrumloader, true);     // needed else 'no files added nothing to do'
         m_is_preloaded = true;
     }
@@ -288,7 +288,7 @@ public:
     {
         extern uint16_t Test(TurboBlocks & p_blocks, const fs::path &p_filename);
         auto adr = Test(m_turboblocks, "");
-        m_turboblocks.AddZqLoader(FindZqLoaderTapfile());
+        m_turboblocks.AddZqLoader(FindZqLoaderTapfile(false));
         m_turboblocks.Finalize(adr);
         m_turboblocks.MoveToLoader(m_spectrumloader);
         Run(true);
@@ -353,12 +353,12 @@ private:
     // Try to find the path/to/zqloader.tap
     // (when p_filename has no path yet)
     // Throws when file not found.
-    fs::path FindZqLoaderTapfile(const fs::path &p_filename = "") const
+    fs::path FindZqLoaderTapfile(bool p_128_mode, const fs::path &p_filename = "") const
     {
         fs::path filename = p_filename;
         if(filename.empty() || filename.string()[0] == '[')
         {
-            filename = m_128_mode ? "zqloader128.tap" : "zqloader48.tap";
+            filename = p_128_mode ? "zqloader128.tap" : "zqloader48.tap";
         }
         if(!FileIsZqLoader(filename))
         {
@@ -417,6 +417,7 @@ private:
 
 
     // Add given normal speed file (tap/tzx) to m_spectrumloader
+    // Should not be zqloader.
     void AddNormalSpeedFile(const fs::path &p_filename, const std::string &p_zxfilename)
     {
         std::cout << "Processing normal speed file: " << p_filename << std::endl;
@@ -439,11 +440,11 @@ private:
 
     // Add/load zqloader.tap (to turboblocks) when not already done so.
     // throws when p_filename is not zqloader or could not be found/
-    void AddZqLoader(const fs::path &p_filename)
+    void AddZqLoader(bool p_128_mode, const fs::path &p_filename)
     {
         if(!m_is_preloaded && !m_turboblocks.IsZqLoaderAdded())
         {
-            auto filename = FindZqLoaderTapfile(p_filename);
+            auto filename = FindZqLoaderTapfile(p_128_mode, p_filename);
             m_turboblocks.AddZqLoader(filename);                 // zqloader.tap
         }
     }
@@ -474,7 +475,7 @@ private:
             // reserved for Test
             extern uint16_t Test(TurboBlocks & p_blocks, const fs::path &p_filename);
             auto adr = Test(m_turboblocks, p_filename);
-            AddZqLoader(m_normal_filename);
+            AddZqLoader(false, m_normal_filename);
             m_turboblocks.Finalize(adr);
         }
         else if(!p_filename.empty())
@@ -494,8 +495,7 @@ private:
     template<class Tloader>
     void AddFileToTurboBlocks(const fs::path &p_filename, const std::string &p_zxfilename)
     {
-        m_128_mode = false;
-        AddZqLoader(m_normal_filename);
+        AddZqLoader(false, m_normal_filename);
         TapToTurboBlocks tab_to_turbo_blocks{ m_turboblocks };
         Tloader tap_or_tzx_loader;
         tap_or_tzx_loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string p_zxfilename, bool p_is_zqloader_tzx)
@@ -525,11 +525,11 @@ private:
     {
         SnapShotLoader snapshotloader;
         snapshotloader.Load(p_filename);
-        m_128_mode = !snapshotloader.Is48KSnapShot();
-        AddZqLoader(m_normal_filename);
+        bool is_128_mode = !snapshotloader.Is48KSnapShot();
+        AddZqLoader(is_128_mode, m_normal_filename);
 
         // Read file snapshotregs.bin (created by sjasmplus) -> regblock
-        fs::path snapshot_regs_filename = FindZqLoaderTapfile(m_normal_filename);
+        fs::path snapshot_regs_filename = FindZqLoaderTapfile(is_128_mode, m_normal_filename);
         snapshot_regs_filename.replace_filename("snapshotregs");
         snapshot_regs_filename.replace_extension("bin");
         DataBlock regblock = LoadFromFile(snapshot_regs_filename);
@@ -632,7 +632,6 @@ private:
     fs::path                                m_turbo_filename;
     fs::path                                m_output_filename;             // writing wav or tzx
 
-    bool                                    m_128_mode = false;
 
     std::chrono::steady_clock::time_point   m_start_time{};
 }; // class ZQLoader::Impl

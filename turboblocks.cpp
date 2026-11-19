@@ -200,7 +200,7 @@ public:
     /// p_last_bank_to_set last bank to set; when <0: 48K snapshot. Dont do bank setting.
     size_t Finalize(uint16_t p_usr_address, uint16_t p_clear_address, int p_last_bank_to_set)
     {
-        if (m_memory_blocks.size() == 0)
+        if (m_memory_blocks.empty())
         {
             throw std::runtime_error("No Memory block added. Nothing to do!");
         }
@@ -297,6 +297,7 @@ public:
 
     /// Move all earlier added turboblocks to given SpectrumLoader.
     /// Call after Finalize.
+    /// First add ZQLoader itself when present.
     /// p_is_fun_attribute originally used for scrolling attribute text, but more general
     /// for a continues stream of (small) blocks. (can skip pilot, dont log)
     /// no-op when there are no blocks.
@@ -347,7 +348,51 @@ public:
         return ss.str();
     }
 
+    // Write/serialize.
+    std::ostream & Write(std::ostream &p_stream) const
+    {
+        #define WRITE_CMD(what) \
+             p_stream << #what << m_##what << '\n'
+        WRITE_CMD(zero_duration);
+        WRITE_CMD(one_duration);
+        WRITE_CMD(zero_max);
+        WRITE_CMD(end_of_byte_delay);
+        WRITE_CMD(decompression_speed);
+        p_stream << "initial_wait " << m_initial_wait.count() << '\n';
+        return p_stream;
+    }
+    // Read/serialize.
+    std::istream & Read(std::istream &p_stream)
+    {
+        #define READ_CMD(what)  \
+            if(command == #what)  \
+            {   \
+                ss >> m_##what;  \
+            }
 
+        while( p_stream && !p_stream.eof() )
+        {
+            std::string line;
+            std::getline( p_stream, line );
+            std::stringstream ss( line );
+            std::string command;
+            // read command
+            ss >> command;
+            READ_CMD(zero_duration);
+            READ_CMD(one_duration);
+            READ_CMD(zero_max);
+            READ_CMD(end_of_byte_delay);
+            READ_CMD(decompression_speed);
+            if(command == "initial_wait")
+            {
+                int init_wait;
+                ss >> init_wait;
+                m_initial_wait = std::chrono::milliseconds(init_wait);
+            }
+        }
+        #undef READ_CMD
+        return p_stream;
+    }
 
     /// Set durations in T states for zero and one pulses.
     /// When 0 keep defaults.
