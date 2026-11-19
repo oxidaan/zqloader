@@ -13,6 +13,7 @@
 #include "byte_tools.h"
 #include "memoryblock.h"
 #include <string>
+#include "turboblock.h"
 
 
 /// call back
@@ -23,7 +24,20 @@
 ///     When basic: try get addresses like RANDOMIZE USR XXXXX
 ///     When code: Add to list of blocks to (turbo) load
 /// p_zxfilename: when given check if name matches before accepting header.
-bool TapToTurboBlocks::HandleIncomingBlock(DataBlock p_block, const std::string &p_zxfilename)
+/// p_is_zqloader_tzx when true its zqloader raw block from a tzx file.
+bool TapToTurboBlocks::HandleIncomingBlock(DataBlock p_block, const std::string &p_zxfilename, bool p_is_zqloader_tzx)
+{
+    if(p_is_zqloader_tzx)
+    {
+        return HandleIncomingZqLoaderBlock(std::move(p_block));
+    }
+    else
+    {
+        return HandleIncomingTapBlock(std::move(p_block), p_zxfilename);
+    }
+}
+
+bool TapToTurboBlocks::HandleIncomingTapBlock(DataBlock p_block, const std::string &p_zxfilename)
 {
     using namespace spectrum;
     bool done          = false;
@@ -106,10 +120,25 @@ bool TapToTurboBlocks::HandleIncomingBlock(DataBlock p_block, const std::string 
     return done;
 }
 
-// ZQLoader block
-bool TapToTurboBlocks::HandleIncomingBlock(DataBlock p_block, int p_startaddress)
+// ZQLoader block eg when read from ZQLoader-tzx file.
+bool TapToTurboBlocks::HandleIncomingZqLoaderBlock(DataBlock p_block)
 {
-    m_tblocks.AddMemoryBlock({ std::move(p_block), p_startaddress });
+    if(m_zqloader_header.empty() && p_block.size() == TurboBlock::GetHeaderSize())
+    {
+        // Must be a ZQLoader header
+        m_zqloader_header = std::move(p_block);
+    }
+    else if(!m_zqloader_header.empty())
+    {
+        // We have the header so this must be ZQLoader data (can be compressed)
+        TurboBlock block;
+        block.SetRawData(std::move(m_zqloader_header), std::move(p_block));
+        m_tblocks.AddTurboBlock(std::move(block));
+    }
+    else
+    {
+        throw std::runtime_error("Unexpected block, size = " + std::to_string(p_block.size()));
+    }
     return false;
 }
 

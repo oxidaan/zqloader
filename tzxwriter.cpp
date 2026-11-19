@@ -138,7 +138,6 @@ void TzxWriter::WriteBegin(std::ostream& p_stream)
 // Note:
 // Invalid p_tstate_dur can not happen and parameter is not even used by this function. Check Removed.
 // Tone/IsInfinite can not happen. Used only when 'tune' button was pressed (kept check)
-// (ZQLoader class protects it now.)
 // There are also never tone pulsers with zero length. Datapulser also can not have zero length anymore (kept check)
 // Checks if writing succeeded moved to ZQLoader class (also for WAV writing)
 // So removed most tests for now. Most of these can never happen. If they do, sending audio, and

@@ -85,11 +85,13 @@ TurboBlock& TurboBlock::SetData(DataBlock p_data, CompressionType p_compression_
     return *this;
 }
 
+/// Set header and payload directly eg when read from ZQLoader-tzx file.
+/// p_payload can be compressed.
 TurboBlock &TurboBlock::SetRawData(DataBlock p_header, DataBlock p_payload)
 {
     if (sizeof(Header) != p_header.size())
     {
-        throw std::runtime_error("Not a header");
+        throw std::runtime_error("Not a TurboBlock header (size mismatch)");
     }
     std::memcpy(&m_header, p_header.data(), sizeof(Header));
     m_payload = std::move(p_payload);

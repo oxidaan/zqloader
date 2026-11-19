@@ -97,6 +97,7 @@ public:
     /// RLE meta data
     TurboBlock& SetData( DataBlock p_data, CompressionType p_compression_type = loader_defaults::compression_type);
 
+    /// Set header and payload directly eg when read from ZQLoader-tzx file.
     TurboBlock& SetRawData(DataBlock p_header, DataBlock p_payload);
 
 
@@ -291,9 +292,9 @@ private:
 
 private:
     std::chrono::milliseconds m_pilot_length = 200ms;
-    size_t      m_data_size{};                 // size of (uncompressed/final) data exl. header. Note: Spectrum does not need this.
+    size_t      m_data_size{};                 // size of (uncompressed/final) data exl. header. Mainly for logging/calc. decompress time. Note: Spectrum does not need this.
+    Header      m_header;                      // the header as send to Spectrum
     DataBlock   m_payload;                     // the data as send to Spectrum, can be compressed
-    Header      m_header;                      // the data as send to Spectrum, starts with header
 }; // class TurboBlock
 
 

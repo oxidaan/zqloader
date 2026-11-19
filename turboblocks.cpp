@@ -62,7 +62,7 @@ public:
         LoadSymbolFilename(filename_exp);
 
         TapLoader loader;
-        loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string, int)
+        loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string, bool)
                                    {
                                        return HandleZqLoaderTapBlock(std::move(p_block));
                                    });

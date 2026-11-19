@@ -34,9 +34,9 @@ public:
     ///     When basic: try get addresses like RANDOMIZE USR XXXXX
     ///     When code: Add to list of blocks to (turbo) load as given at CTOR.
     /// p_zxfilename: when !empty check if name matches before accepting header.
-    bool HandleIncomingBlock(DataBlock p_block, const std::string &p_zxfilename);
+    /// p_is_zqloader_tzx when true its zqloader raw block from a tzx file.
+    bool HandleIncomingBlock(DataBlock p_block, const std::string &p_zxfilename, bool p_is_zqloader_tzx);
 
-    bool HandleIncomingBlock(DataBlock p_block, int p_start_address);
 
     /// Get MC start address as found in BASIC block as in RANDOMIZE USR xxxxx
     /// (As earlier found with TryFindUsr)
@@ -59,6 +59,10 @@ public:
     }
 
 private:
+    bool HandleIncomingZqLoaderBlock(DataBlock p_block);
+    bool HandleIncomingTapBlock(DataBlock p_block, const std::string &p_zxfilename);
+
+
     void ParseBasic(const DataBlock& p_basic_block);
 
     // Try to find (first) USR start address in given BASIC block
@@ -92,6 +96,7 @@ private:
 
     spectrum::TapeHeader      m_last_header{};
     spectrum::TapeBlockType   m_last_block_type = spectrum::TapeBlockType::unknown;      // not header or data
+    DataBlock                 m_zqloader_header;
     int                       m_headercnt  = 0;
     int                       m_codecount  = 0;
     int                       m_basic_was_parsed = false;

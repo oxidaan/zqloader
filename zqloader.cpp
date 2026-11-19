@@ -105,7 +105,7 @@ public:
 
 
 
-    /// Set spectrum clock frequency.
+    /// Set spectrum clock frequency -> m_spectrumloader
     void SetSpectrumClock(int p_spectrum_clock)
     {
         // some reasonable range
@@ -305,9 +305,12 @@ public:
         }
     }
 
-    /// Write as tzx file to given stream
-    /// p_how: true use alternate algorithm witten by Fredrick Meunier
-    /// else use classic algorithm
+
+private:
+
+    // Write as tzx file to given stream
+    // p_how: true use alternate algorithm witten by Fredrick Meunier
+    // else use classic algorithm
     void WriteTzxFile(std::ostream& p_filewrite, bool p_how) const
     {
         extern const char* GetVersion();
@@ -316,7 +319,7 @@ public:
         std::stringstream ss;
         ss << m_turboblocks.GetDebugString() << " Samplerate = " << m_sample_rate << "; Catch up = " << m_catch_up;
         TzxWriter::WriteInfo(p_filewrite, ss.str());
-        TzxWriter::WriteCustomInfo(p_filewrite, "hi");
+        TzxWriter::WriteCustomInfo(p_filewrite, "hi");      // TODO!
         if (p_how)
         {
             m_spectrumloader.WritePulsersAsTzx(p_filewrite, m_sample_rate);
@@ -328,7 +331,6 @@ public:
     }
 
 
-private:
 
     // runs in miniaudio / samplesender thread
     void OnDone()
@@ -348,9 +350,9 @@ private:
 
 
 
-    /// Try to find the path/to/zqloader.tap
-    /// (when p_filename has no path yet)
-    /// Throws when file not found.
+    // Try to find the path/to/zqloader.tap
+    // (when p_filename has no path yet)
+    // Throws when file not found.
     fs::path FindZqLoaderTapfile(const fs::path &p_filename = "") const
     {
         fs::path filename = p_filename;
@@ -496,16 +498,9 @@ private:
         AddZqLoader(m_normal_filename);
         TapToTurboBlocks tab_to_turbo_blocks{ m_turboblocks };
         Tloader tap_or_tzx_loader;
-        tap_or_tzx_loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string p_zxfilename, int p_start_address)
+        tap_or_tzx_loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string p_zxfilename, bool p_is_zqloader_tzx)
         {
-            if (p_start_address)
-            {
-                return tab_to_turbo_blocks.HandleIncomingBlock(std::move(p_block), p_start_address);
-            }
-            else
-            {
-                return tab_to_turbo_blocks.HandleIncomingBlock(std::move(p_block), p_zxfilename);
-            }
+            return tab_to_turbo_blocks.HandleIncomingBlock(std::move(p_block), p_zxfilename, p_is_zqloader_tzx);
         });
         tap_or_tzx_loader.Load(p_filename, p_zxfilename);
         if(m_turboblocks.size() != tab_to_turbo_blocks.GetNumberLoadCode())
