@@ -149,15 +149,15 @@ void TzxWriter::WritePulsers(const Pulsers& p_pulsers, std::ostream& p_stream, u
     if (p_sample_rate)
     {
         std::stringstream ss;
-        ss << "Explicit WAV - equivalence mode with sample rate: " << p_sample_rate;
-        std::cout << ss.str() << '\n';
+        ss << "Tzx - Explicit WAV - equivalence mode with sample rate: " << p_sample_rate;
+        std::cout << "Writing " + ss.str() << '\n';
         WriteInfo(p_stream, ss.str() );
     }
     else
     {
         std::stringstream ss;
-        ss << "Using single GeneralizedDataBlock tzx write mode.";
-        std::cout << ss.str() << '\n';
+        ss << "Tzx - Single GeneralizedDataBlock mode.";
+        std::cout << "Writing " + ss.str() << '\n';
         WriteInfo(p_stream, ss.str());
     }
     // Pulsers describe a wait followed by an edge. TZX symbols describe the

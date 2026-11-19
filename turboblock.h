@@ -15,7 +15,7 @@
 #include "loader_defaults.h"
 #include "pulsers.h"
 #include <string>
-
+#include <cstring>          // memcpy
 ///
 /// Our turbo block as used with zqloader.z80asm.
 /// Has header and data.
@@ -97,16 +97,7 @@ public:
     /// RLE meta data
     TurboBlock& SetData( DataBlock p_data, CompressionType p_compression_type = loader_defaults::compression_type);
 
-    TurboBlock& SetRawData(DataBlock p_header, DataBlock p_payload)
-    {
-        if (sizeof(Header) != p_header.size())
-        {
-            throw std::runtime_error("Not a header");
-        }
-        std::memcpy(&m_header, p_header.data(), sizeof(Header));
-        m_payload = std::move(p_payload);
-        return *this;
-    }
+    TurboBlock& SetRawData(DataBlock p_header, DataBlock p_payload);
 
 
 public:

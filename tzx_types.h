@@ -13,7 +13,7 @@
 
 
 #include "types.h"      // Edge
-
+#include <cmath>        // std::ceil, std::log2
 
 
 using BYTE   = uint8_t;
@@ -124,11 +124,6 @@ struct GeneralizedDataBlock
         return sizeof(GeneralizedDataBlock) - sizeof(block_length) + GetRemainingLength(p_size_of_data);
     }
 
-    int GetNB() const
-    {
-        // eg 2-> 1; 4->2 etc
-        return static_cast<int>(std::ceil(std::log2(asd == 0 ? 256 : asd)));
-    }
 
     // Get Data length calculated from read block
     // used when reading
