@@ -9,6 +9,7 @@
 
 
 #include "dialog.h"
+#include "zqloader.h"
 #include <streambuf>
 #include <iostream>
 #include <sstream>                  
@@ -26,6 +27,7 @@
 #include "spectrum_consts.h"
 #include "loader_defaults.h"        // consts with default settings for ZQLoader
 #include "widgetstreambuffer.h"
+#include "Loaderparameters.h"
 
 #include <filesystem>
 #include <qevent.h>
@@ -72,7 +74,7 @@ inline void FocusIn(QLineEdit *p_line_edit)
 }
 
 // Set tip-text when empty and make gray
-inline void FocusOut(QLineEdit *p_line_edit, const char *p_tip_text)
+void FocusOut(QLineEdit *p_line_edit, const char *p_tip_text)
 {
     if(p_line_edit->text().isEmpty() || p_line_edit->text()[0] == '[')
     {
@@ -117,203 +119,623 @@ void WriteFunText(ZQLoader &p_zq_loader, bool p_first)
     }
 }
 
-Dialog::Dialog(QWidget *parent)
-    : QDialog(parent)
-    , ui(new Ui::Dialog)
-    , m_state(State::Idle)
+
+class Dialog::Impl
 {
-    m_zqloader.SetExeFilename(QCoreApplication::applicationDirPath().toStdString());
-
-
-    ui->setupUi(this);
-    QIcon icon(":/icon/zqloader.ico"); 
-    setWindowIcon(icon);
-
-    // redirect cout to textEditOutput
-    ui->textBrowserOutput->moveCursor(QTextCursor::End);
-    auto buffer = new TextEditStreamBuffer(ui->textBrowserOutput);
-    std::streambuf* oldCoutBuffer = std::cout.rdbuf(buffer);
-    (void)oldCoutBuffer;
-
-    ZQLoader::Version(true);
-    ui->labelAbout->setText(ui->labelAbout->text().replace("%0", GetVersion()));
-
-
-
-    // connect/sync volume dials and edits for 2 volumes
-    auto ConnectVolume = [this](Dial *p_dial, QLineEdit *p_edit)
+    enum class State
     {
-        connect(p_dial, &QDial::sliderMoved, [=]
-        {
-            p_edit->setText(QString::number(p_dial->value()));
-        });
-        connect(p_edit, &QLineEdit::textEdited, [=]
-        {
-            bool ok;
-            auto v = p_edit->text().toInt(&ok);
-            if(ok && v >= -100 && v <= 100)
-            {
-                p_dial->setValue(v);
-            }
-            if(ok)
-            {
-                p_edit->setText(QString::number(p_dial->value())); // read back, also limits value
-            }
-        });
-        connect(p_edit, &QLineEdit::editingFinished, [=]
-        {
-            p_edit->setText(QString::number(p_dial->value())); // read back in case of error, also limits value
-        });
-        // Volume value directly to zqloader when dial changes
-        connect(p_dial, &QDial::valueChanged, [this]
-        {
-            m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());
-        });
- 
+        Idle,                       // doing nothing
+        Playing,                    // busy (turbo) loading
+        Tuning,                     // playing endless header tone
+        Preloading,                 // preloading zqloader
+        PreloadingFunAttribs,       // after preloading zqloader loading fun-attributes
+        VideoFunFirst,
+        VideoFunNext,
+        ImageFun,
+        Cancelled                   // Playing was cancelled
     };
-    ConnectVolume(ui->dialVolumeLeft,  ui->lineEditVolumeLeft);
-    ConnectVolume(ui->dialVolumeRight, ui->lineEditVolumeRight);
-
-    // common connect code for all browse buttons
-    auto ConnectBrowse  = [this](QPushButton *p_button, QLineEdit *p_edit, QString p_text, QString p_filter, QFileDialog::FileMode p_mode, QString p_setting_name)
+public:
+    Impl(Dialog* p_this) :
+        m_this(p_this),
+        ui(p_this->ui),
+        m_state(State::Idle)
     {
-        connect(p_button, &QPushButton::pressed, [=, this]
+        m_zqloader.SetExeFilename(QCoreApplication::applicationDirPath().toStdString());
+
+
+        ui->setupUi(m_this);
+        QIcon icon(":/icon/zqloader.ico");
+        m_this->setWindowIcon(icon);
+
+        // redirect cout to textEditOutput
+        ui->textBrowserOutput->moveCursor(QTextCursor::End);
+        auto buffer = new TextEditStreamBuffer(ui->textBrowserOutput);
+        std::streambuf* oldCoutBuffer = std::cout.rdbuf(buffer);
+        (void)oldCoutBuffer;
+
+        ZQLoader::Version(true);
+        ui->labelAbout->setText(ui->labelAbout->text().replace("%0", GetVersion()));
+
+
+
+        // connect/sync volume dials and edits for 2 volumes
+        auto ConnectVolume = [this](Dial* p_dial, QLineEdit* p_edit)
+            {
+                connect(p_dial, &QDial::sliderMoved, [=]
+                {
+                        p_edit->setText(QString::number(p_dial->value()));
+                });
+                connect(p_edit, &QLineEdit::textEdited, [=]
+                {
+                        bool ok;
+                        auto v = p_edit->text().toInt(&ok);
+                        if (ok && v >= -100 && v <= 100)
+                        {
+                            p_dial->setValue(v);
+                        }
+                        if (ok)
+                        {
+                            p_edit->setText(QString::number(p_dial->value())); // read back, also limits value
+                        }
+                });
+                connect(p_edit, &QLineEdit::editingFinished, [=]
+                {
+                        p_edit->setText(QString::number(p_dial->value())); // read back in case of error, also limits value
+                });
+                // Volume value directly to zqloader when dial changes
+                connect(p_dial, &QDial::valueChanged, [this]
+                {
+                        m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());
+                });
+
+            };
+        ConnectVolume(ui->dialVolumeLeft, ui->lineEditVolumeLeft);
+        ConnectVolume(ui->dialVolumeRight, ui->lineEditVolumeRight);
+
+        // common connect code for all browse buttons
+        auto ConnectBrowse = [this](QPushButton* p_button, QLineEdit* p_edit, QString p_text, QString p_filter, QFileDialog::FileMode p_mode, QString p_setting_name)
         {
-            QSettings settings("Oxidaan", "ZQLoader");
-            QString dir = settings.value(p_setting_name, "").toString();    // remember last used dir.
-            QFileDialog dialog(this);
-            dialog.setDirectory(dir);
-            dialog.setNameFilter(p_filter);
-            dialog.setWindowTitle(p_text);
-            dialog.setFileMode(p_mode);
-            dialog.setOption(QFileDialog::DontConfirmOverwrite, true);  // Now done later
-            // Else hangs when (??)
-            // preload->cancel preload, open this dialog -> cancel ->  preload->cancel preload -> open this dialog:
-            // https://stackoverflow.com/questions/31983412/code-freezes-on-trying-to-open-qdialog
-            // 9 years old issue still not solved???
-            // No same issue as see comment at DTOR ~SampleSender
-            // dialog.setOption(QFileDialog::DontUseNativeDialog, true);
-            if (p_mode == QFileDialog::Directory)
+            connect(p_button, &QPushButton::pressed, [=, this]
             {
-                dialog.setOption(QFileDialog::ShowDirsOnly);
-            }
-            else
-            {
-                dialog.setAcceptMode(p_mode == QFileDialog::ExistingFiles ? QFileDialog::AcceptOpen : QFileDialog::AcceptSave);
-            }
-            if(dialog.exec() == QDialog::Accepted)
-            {
-                auto filename = QDir::toNativeSeparators(dialog.selectedFiles().first());   // else wrong slashes in Windows
-                p_edit->setText(filename);
-                MakeBlack(p_edit);
-                QFileInfo fileInfo(dialog.selectedFiles().first()); 
-                settings.setValue(p_setting_name, fileInfo.absolutePath());
-            }
+                    QSettings settings("Oxidaan", "ZQLoader");
+                    QString dir = settings.value(p_setting_name, "").toString();    // remember last used dir.
+                    QFileDialog dialog(m_this);
+                    dialog.setDirectory(dir);
+                    dialog.setNameFilter(p_filter);
+                    dialog.setWindowTitle(p_text);
+                    dialog.setFileMode(p_mode);
+                    dialog.setOption(QFileDialog::DontConfirmOverwrite, true);  // Now done later
+                    // Else hangs when (??)
+                    // preload->cancel preload, open this dialog -> cancel ->  preload->cancel preload -> open this dialog:
+                    // https://stackoverflow.com/questions/31983412/code-freezes-on-trying-to-open-qdialog
+                    // 9 years old issue still not solved???
+                    // No same issue as see comment at DTOR ~SampleSender
+                    // dialog.setOption(QFileDialog::DontUseNativeDialog, true);
+                    if (p_mode == QFileDialog::Directory)
+                    {
+                        dialog.setOption(QFileDialog::ShowDirsOnly);
+                    }
+                    else
+                    {
+                        dialog.setAcceptMode(p_mode == QFileDialog::ExistingFiles ? QFileDialog::AcceptOpen : QFileDialog::AcceptSave);
+                    }
+                    if (dialog.exec() == QDialog::Accepted)
+                    {
+                        auto filename = QDir::toNativeSeparators(dialog.selectedFiles().first());   // else wrong slashes in Windows
+                        p_edit->setText(filename);
+                        MakeBlack(p_edit);
+                        QFileInfo fileInfo(dialog.selectedFiles().first());
+                        settings.setValue(p_setting_name, fileInfo.absolutePath());
+                    }
+            });
+        };
+        ConnectBrowse(ui->pushButtonBrowseNormalFile, ui->lineEditNormalFile,
+            "Give normal speed file to load",
+            "Tap/tzx files (*.tap *.tzx);;All files (*.*)",
+            QFileDialog::ExistingFiles,
+            "dialog_path_normal");
+        ConnectBrowse(ui->pushButtonBrowseTurboFile, ui->lineEditTurboFile,
+            "Give turbo speed file to load",
+            "All Spectrum files (*.tap *.tzx *.z80 *.sna);;Tap/tzx files (*.tap *.tzx);;SnapShot files (*.z80 *.sna)';;All files (*.*)",
+            QFileDialog::ExistingFiles,
+            "dialog_path_turbo");
+        ConnectBrowse(ui->pushButtonBrowseOutputFile, ui->lineEditOutputFile,
+            "Give output file to create",
+            "Wav files (*.wav);;Tzx files (*.tzx);;All files (*.*)",
+            QFileDialog::AnyFile,
+            "dialog_path_output");
+        ConnectBrowse(ui->pushButtonBrowseVideoFile, ui->lineEditVideoFile,
+            "Give video file to funload",
+            "Mp4 Video files (*.mp4);;All files (*.*)",
+            QFileDialog::ExistingFiles,
+            "dialog_path_videofile");
+        ConnectBrowse(ui->pushButtonBrowseImageDir, ui->lineEditImageDir,
+            "Give image file directory, will take *.jpg and *.png there",
+            "",
+            QFileDialog::Directory,
+            "dialog_path_imagefile");
+
+        // make hyperlinks work in about text
+        connect(ui->labelAbout, &QLabel::linkActivated, [](const QString& link)
+        {
+            QDesktopServices::openUrl(link);
         });
-    };
-    ConnectBrowse(ui->pushButtonBrowseNormalFile, ui->lineEditNormalFile,
-        "Give normal speed file to load",
-        "Tap/tzx files (*.tap *.tzx);;All files (*.*)",
-        QFileDialog::ExistingFiles,
-        "dialog_path_normal");
-    ConnectBrowse(ui->pushButtonBrowseTurboFile, ui->lineEditTurboFile,
-        "Give turbo speed file to load",
-        "All Spectrum files (*.tap *.tzx *.z80 *.sna);;Tap/tzx files (*.tap *.tzx);;SnapShot files (*.z80 *.sna)';;All files (*.*)",
-        QFileDialog::ExistingFiles,
-        "dialog_path_turbo");
-    ConnectBrowse(ui->pushButtonBrowseOutputFile, ui->lineEditOutputFile,
-        "Give output file to create",
-        "Wav files (*.wav);;Tzx files (*.tzx);;All files (*.*)",
-        QFileDialog::AnyFile,
-        "dialog_path_output");
-    ConnectBrowse(ui->pushButtonBrowseVideoFile, ui->lineEditVideoFile,
-        "Give video file to funload",
-        "Mp4 Video files (*.mp4);;All files (*.*)",
-        QFileDialog::ExistingFiles,
-        "dialog_path_videofile");
-    ConnectBrowse(ui->pushButtonBrowseImageDir, ui->lineEditImageDir,
-        "Give image file directory, will take *.jpg and *.png there",
-        "",
-        QFileDialog::Directory,
-        "dialog_path_imagefile");
+        // make hyperlinks work in output text
+        ui->textBrowserOutput->setOpenLinks(false);  // Disable internal loading
+        connect(ui->textBrowserOutput, &QTextBrowser::anchorClicked, [](const QUrl& link)
+        {
+            QDesktopServices::openUrl(link);
+        });
 
-    // make hyperlinks work in about text
-    connect(ui->labelAbout, &QLabel::linkActivated, [](const QString & link)
-    {
-        QDesktopServices::openUrl(link);
-    });
-    // make hyperlinks work in output text
-    ui->textBrowserOutput->setOpenLinks(false);  // Disable internal loading
-    connect(ui->textBrowserOutput, &QTextBrowser::anchorClicked, [](const QUrl & link)
-    {
-        QDesktopServices::openUrl(link);
-    });
+        // make close button work would otherwise reject
+        connect(ui->buttonBox->button(QDialogButtonBox::Close), &QPushButton::clicked, [this]
+        {
+            Save();
+            m_this->close();
+        });
+        // make cancel button work (dont save)
+        connect(ui->buttonBox->button(QDialogButtonBox::Cancel), &QPushButton::clicked, [this]
+        {
+            m_this->close();
+        });
+        // Restore defaults button pressed
+        connect(ui->buttonBox->button(QDialogButtonBox::RestoreDefaults), &QPushButton::clicked, [this]
+        {
+            RestoreDefaults();
+        });
+        // Calculate button pressed
+        connect(ui->pushButtonCalculate, &QPushButton::pressed, [this]
+        {
+            auto wanted_zero_cyclii = ui->lineEditWantedZeroCyclii->text().toDouble();
+            auto zero_max = ui->lineEditZeroMax->text().toInt();
+            auto wanted_one_cyclii = ui->lineEditWantedOneCyclii->text().toDouble();
+            CalculateLoaderParameters(wanted_zero_cyclii, zero_max, wanted_one_cyclii);
+        });
+        // Go! or Stop (big) button pressed
+        connect(ui->pushButtonGo, &QPushButton::pressed, [this]
+        {
+            GoOrStopPressed();
+        });
 
-    // make close button work would otherwise reject
-    connect(ui->buttonBox->button(QDialogButtonBox::Close), &QPushButton::clicked, [this]
-    {
-        Save();
-        close();
-    });
-    // make cancel button work (dont save)
-    connect(ui->buttonBox->button(QDialogButtonBox::Cancel), &QPushButton::clicked, [this]
-    {
-        close();
-    });
-    // Restore defaults button pressed
-    connect(ui->buttonBox->button(QDialogButtonBox::RestoreDefaults), &QPushButton::clicked, [this]
-    {
-        RestoreDefaults();
-    });
-    // Calculate button pressed
-    connect(ui->pushButtonCalculate, &QPushButton::pressed, [this]
-    {
-        auto wanted_zero_cyclii = ui->lineEditWantedZeroCyclii->text().toDouble();
-        auto zero_max  = ui->lineEditZeroMax->text().toInt();
-        auto wanted_one_cyclii = ui->lineEditWantedOneCyclii->text().toDouble();
-        CalculateLoaderParameters(wanted_zero_cyclii, zero_max, wanted_one_cyclii);
-    });
-    // Go! or Stop (big) button pressed
-    connect(ui->pushButtonGo,&QPushButton::pressed, [this]
-    {
-        if( m_state == State::Playing || m_state == State::Tuning)
+        // Preload button pressed
+        connect(ui->pushButtonPreLoad, &QPushButton::pressed, [this]
         {
-            // Stop pressed (canceled) (pushButtonGo is now 'stop')
-            SetState((m_state != State::Playing)  ? State::Idle : State::Cancelled);
-            m_zqloader.Reset();
+            PreloadPressed();
+        });
+
+        // Tune button pressed
+        connect(ui->pushButtonTune, &QPushButton::pressed, [this]
+        {
+            TunePressed();
+        });
+
+        // Speed slider dragged/changed
+        connect(ui->horizontalSliderSpeed, &QSlider::valueChanged, [this](int value)
+        {
+            CalculateLoaderParametersFromSlider(value);
+        });
+
+        // Clear button pressed
+        connect(ui->pushButtonClean, &QPushButton::pressed, [this]
+        {
+            ui->textBrowserOutput->clear();
+            ui->pushButtonClean->setEnabled(false);
+        });
+
+        // Test button pressed
+        connect(ui->pushButtonTest, &QPushButton::pressed, [this]
+        {
+            m_zqloader.Test();
+        });
+
+
+        UiToZxImage();
+        connect(ui->checkBoxUseFloydSteinberg, &QCheckBox::toggled, [this]
+        {
+            UiToZxImage();
+        });
+        connect(ui->checkBoxUseGrayScale, &QCheckBox::toggled, [this]
+        {
+            UiToZxImage();
+        });
+        connect(ui->checkBoxUseMagenta, &QCheckBox::toggled, [this]
+        {
+            UiToZxImage();
+        });
+        connect(ui->checkBoxSimpleColorDistance, &QCheckBox::toggled, [this]
+        {
+            UiToZxImage();
+        });
+        connect(ui->checkBoxUAttrDarkLight, &QCheckBox::toggled, [this]
+        {
+            UiToZxImage();
+        });
+        connect(ui->radioButton32x24, &QRadioButton::toggled, [this]
+        {
+            UiToZxImage();
+        });
+        connect(ui->radioButton64x24, &QRadioButton::toggled, [this]
+        {
+            UiToZxImage();
+        });
+        connect(ui->radioButton32x48, &QRadioButton::toggled, [this]
+        {
+            UiToZxImage();
+        });
+
+        // Called when zqloader is done.
+        m_zqloader.SetOnDone([this]
+        {
+            OnDone();
+        });
+
+        // Called when really done.
+        connect(m_this, &Dialog::signalDone, m_this, [this] // this extra this is needed to go back to ui thread
+        {
+            Done();
+        });
+
+
+        // For tip text at lineedits when empty
+        auto ConnectLineEditFocus = [](LineEdit* p_line_edit, const char* p_tip_text)
+            {
+                connect(p_line_edit, &LineEdit::signalFocusIn, [=]
+                {
+                        FocusIn(p_line_edit);
+                });
+                connect(p_line_edit, &LineEdit::signalFocusOut, [=]
+                {
+                        FocusOut(p_line_edit, p_tip_text);
+                });
+            };
+        ConnectLineEditFocus(ui->lineEditNormalFile, DefaultNormalFilename);
+        ConnectLineEditFocus(ui->lineEditTurboFile, DefaultTurboFilename);
+        ConnectLineEditFocus(ui->lineEditZxFilename, DefaultZxFilename);
+        ConnectLineEditFocus(ui->lineEditOutputFile, DefaultOutputFilename);
+        ConnectLineEditFocus(ui->lineEditVideoFile, DefaultVideoFile);
+        ConnectLineEditFocus(ui->lineEditImageDir, DefaultImageDir);
+        ConnectLineEditFocus(ui->lineEditSampleRate, DefaultSampleRate);
+
+
+
+        Load(); // settings
+
+        QTimer* timer = new QTimer(m_this);
+        timer->setInterval(100ms);
+        connect(timer, &QTimer::timeout, [this]
+        {
+            UpdateProgressBar();
+        });
+        timer->start();
+
+        // commandline file parameter given, start immidiately
+        if (QCoreApplication::arguments().size() > 1)
+        {
+            std::cout << "Commandline parameter given: loading: " << QCoreApplication::arguments()[1].toStdString() << std::endl;
+            ui->lineEditTurboFile->setText(QCoreApplication::arguments()[1]);
+            // maybe not nice to have loading sounds unprepared: 
+            // Go();
         }
-        else if( m_state == State::VideoFunFirst )
+
+
+
+    }
+
+private:
+
+    void UiToZxImage()
+    {
+        auto ap = ui->zximage->GetAlgorithmParameters();
+
+        ap.m_use_floyd_steinberg = ui->checkBoxUseFloydSteinberg->isChecked();
+        ap.m_use_distance_to_black_white = ui->checkBoxUseGrayScale->isChecked();
+        ap.m_use_simple_count = ui->checkBoxSimpleColorDistance->isChecked();
+        ap.m_use_dark_and_light_attr = ui->checkBoxUAttrDarkLight->isChecked();
+
+        if (ui->checkBoxUseMagenta->isChecked())
         {
-            // stop /cancel video
-            ui->zxvideo->Stop();
-            m_zqloader.Reset();         // can cause tape loading error
-            SetState(State::Cancelled);
-        }
-        else if( m_state == State::VideoFunNext || m_state == State::ImageFun)
-        {
-            // Stop pressed (canceled) (pushButtonGo is now cancel)
-            ui->zxvideo->Stop();
-            SetState(State::Idle);
-            // m_zqloader.WaitUntilDone();     // else tape loading error
-            m_zqloader.Reset();
+            //  ap.m_dark_colors.insert(spectrum::screen::magenta);       // ugly
+            ap.m_light_colors.insert(spectrum::screen::magenta);
+            ap.m_light_colors.insert(spectrum::screen::br_magenta);
         }
         else
         {
-            // go pressed
-            Go();
+            ap.m_dark_colors.erase(spectrum::screen::magenta);
+            ap.m_light_colors.erase(spectrum::screen::magenta);
+            ap.m_light_colors.erase(spectrum::screen::br_magenta);
         }
-    });
 
-    // Preload button pressed
-    connect(ui->pushButtonPreLoad,&QPushButton::pressed, [this]
+        ui->zximage->SetAlgorithmParameters(std::move(ap));
+
+        if (ui->radioButton32x24->isChecked())
+        {
+            ui->zxvideo->SetWidthAndHeight(WidthAndHeight::wh_32x24);
+        }
+        else if (ui->radioButton64x24->isChecked())
+        {
+            ui->zxvideo->SetWidthAndHeight(WidthAndHeight::wh_64x24);
+        }
+        else if (ui->radioButton32x48->isChecked())
+        {
+            ui->zxvideo->SetWidthAndHeight(WidthAndHeight::wh_32x48);
+        }
+    }
+
+
+
+    // Update ui (timer)
+    // most prominentlty the progressBar
+    void UpdateProgressBar()
     {
-        if(m_state == State::Preloading )     
+        if (m_zqloader.IsBusy() && m_zqloader.GetEstimatedDuration() != 0ms)
+        {
+            auto perc = (100 * m_zqloader.GetCurrentTime()) / m_zqloader.GetEstimatedDuration();
+            ui->progressBar->setValue(perc);
+            std::stringstream ss;
+            ss << std::fixed << std::setprecision(1) << std::chrono::duration<double>(m_zqloader.GetCurrentTime()).count();
+            ui->progressBar->setFormat(QString::fromStdString(ss.str()) + "s / %p%");
+        }
+    }
+
+
+    // Called when zqloader is done. 
+    // runs in miniaudio thread!
+    void OnDone()
+    {
+        switch (m_state)
+        {
+        case State::Preloading:
+            std::cout << "Preloading done! Select a turbo file and press Go!..." << std::endl;
+            m_state = State::PreloadingFunAttribs;
+            WriteFunText(m_zqloader, true);     // true=first (wipe screen)
+            break;
+        case State::PreloadingFunAttribs:
+            // next fun attributes (scroll text)
+            WriteFunText(m_zqloader, false);
+            std::cout << '*' << std::flush;
+            break;
+        case State::VideoFunFirst:
+        {
+            // send bar pattern to spectrum screen for 64x24 res
+            m_zqloader.SetCompressionType(CompressionType::automatic);
+            m_zqloader.AddMemoryBlock({ ui->zxvideo->GetPattern(), spectrum::SCREEN_START }, 0);
+            m_state = State::VideoFunNext;
+            break;
+        }
+        case State::VideoFunNext:
+        {
+            Attributes attributes = ui->zxvideo->GetAttributes();
+            m_zqloader.SetCompressionType(CompressionType::automatic);
+            m_zqloader.AddMemoryBlock({ std::move(attributes), spectrum::screen::ATTR_BEGIN }, 40000);
+            break;
+        }
+        case State::ImageFun:
+        {
+            const auto screen = ui->zximage->GetLastLoadedScreen();
+            m_zqloader.SetCompressionType(CompressionType::automatic);
+            m_zqloader.AddMemoryBlock({ screen.GetDataBlock().Clone(), spectrum::SCREEN_START }, 40000);
+            break;
+        }
+        case State::Playing:
+        case State::Tuning:
+        case State::Cancelled:
+            emit m_this->signalDone();      // swap to ui thread -> Done / Set state to Idle 
+            break;
+        case State::Idle:
+            break;
+        }
+    }
+
+    // Done / Set state to Idle; update ui.
+    // Runs in ui(main) thread
+    // Only called when audio was played
+    void Done()
+    {
+        if (!m_zqloader.IsBusy())        // double check
+        {
+            SetState(State::Idle);
+            if (m_zqloader.GetTimeNeeded() != 0ms)
+            {
+                std::stringstream ss;
+                ss << std::fixed << std::setprecision(1) << std::chrono::duration<double>(m_zqloader.GetTimeNeeded()).count();
+                ui->progressBar->setFormat("Done, took " + QString::fromStdString(ss.str()) + "s");
+                ui->progressBar->setValue(100);
+            }
+            m_zqloader.WaitUntilDone(); // else tape loading error
+            m_zqloader.Reset();         // do not keep preloaded state
+        }
+    }
+
+
+    // Update (button) enabled state and progressBar
+    // ui only.
+    void SetState(State p_state)
+    {
+        m_state = p_state;
+        switch (p_state)
+        {
+        case State::Playing:
+        case State::VideoFunFirst:
+        case State::VideoFunNext:
+        case State::ImageFun:
+            ui->zxvideo->setVisible(p_state == State::VideoFunFirst || p_state == State::VideoFunNext);
+            ui->zximage->setVisible(p_state == State::ImageFun);
+            ui->pushButtonGo->setText("Stop");
+            ui->pushButtonPreLoad->setEnabled(false);
+            ui->pushButtonTune->setEnabled(false);
+            break;
+        case State::Tuning:
+            ui->pushButtonPreLoad->setEnabled(false);
+            ui->pushButtonGo->setText("Stop");
+            ui->pushButtonTune->setText("Stop");
+            break;
+        case State::Preloading:
+        case State::PreloadingFunAttribs:
+            ui->pushButtonGo->setText("Go!");
+            ui->pushButtonPreLoad->setText("Stop");
+            ui->pushButtonTune->setEnabled(false);
+            break;
+        case State::Cancelled:
+            ui->progressBar->setFormat("Cancelled");
+            // no break
+        case State::Idle:
+            ui->pushButtonPreLoad->setEnabled(true);    //!m_zqloader.IsPreLoaded());
+            ui->pushButtonPreLoad->setText("PreLoad");
+            ui->pushButtonGo->setText("Go!");
+            ui->pushButtonTune->setText("Tune...");
+            ui->pushButtonTune->setEnabled(true);
+            break;
+        }
+    }
+
+
+    void RestoreDefaults()
+    {
+        m_zqloader.Stop();
+        SetState(State::Idle);
+        LoaderParametersToUi(LoaderParameters{});
+        ui->lineEditNormalFile->setText("");            // zqloader
+        ui->lineEditNormalFile->signalFocusOut();       // also gives correct tip-text
+  
+        ui->checkBoxUseStandardClockForRom->setChecked(false);
+        
+        ui->comboBoxBorderColor->setCurrentIndex(loader_defaults::io_init_value & 0b00000111);
+        ui->checkBoxOutMic->setChecked(bool(loader_defaults::io_init_value & 0b00001000));
+        ui->checkBoxOutEar->setChecked(bool(loader_defaults::io_init_value & 0b00010000));
+        ui->lineEditBorderToggle->setText(QString::number(loader_defaults::io_xor_value & 0b00000111));
+        ui->checkBoxToggleMic->setChecked(bool(loader_defaults::io_xor_value & 0b00001000));
+        ui->checkBoxToggleEar->setChecked(bool(loader_defaults::io_xor_value & 0b00010000));
+
+        std::cout << "Restored defaults." << std::endl;
+    }
+
+
+
+    // 'Go!' pressed.
+    void Go()
+    {
+        try
+        {
+            ui->pushButtonClean->setEnabled(true);
+            if (ui->tabWidget->currentIndex() == 2)  // fun! tab. Eg video fun
+            {
+                StartVideoOrImageFun();
+                return;
+            }
+
+            Check();        // might throw
+
+            fs::path normal_filename = ui->lineEditNormalFile->text().toStdString();
+            fs::path output_filename = ui->lineEditOutputFile->text().toStdString();
+            fs::path turbo_filename = ui->lineEditTurboFile->text().toStdString();
+
+            // Auto determine output filename from turbo_filename when given as *.wav or *.tzx
+            if (output_filename.stem() == "*" && !turbo_filename.empty())
+            {
+                fs::path tmp = output_filename;
+                tmp.replace_filename(turbo_filename.stem());
+                tmp.replace_extension(output_filename.extension());
+                if (tmp.parent_path().empty() && !turbo_filename.parent_path().empty())
+                {
+                    tmp = turbo_filename.parent_path() / tmp;
+                }
+                output_filename = std::move(tmp);
+            }
+
+            // Ask overwrite confirmation for output file
+            if (!output_filename.empty() && std::filesystem::exists(output_filename))
+            {
+                std::string q("File to write (" + output_filename.string() + ") already exists. Overwrite?");
+                auto reply = QMessageBox::question(
+                    nullptr,                                // Parent widget (nullptr = no parent)
+                    "Confirm Action",                       // Title
+                    QString::fromStdString(q),                                      // Message text
+                    QMessageBox::Yes | QMessageBox::No      // Buttons
+                );
+                if (reply != QMessageBox::Yes)
+                {
+                    SetState(State::Cancelled);
+                    return;
+                }
+            }
+
+
+            std::cout << "\n" << std::endl;
+
+            SetZqLoaderParameters();
+
+            // When outputfile="path/to/filename" or -w or -wav given: 
+            // Convert to wav file instead of outputting sound
+            m_zqloader.SetOutputFilename(output_filename, true);
+
+            std::string zxfilename = ui->lineEditZxFilename->text().toStdString();
+            m_zqloader.SetNormalFilename(normal_filename, zxfilename[0] == '[' ? "" : zxfilename);
+            m_zqloader.SetTurboFilename(turbo_filename, zxfilename[0] == '[' ? "" : zxfilename);
+
+
+            SetState(State::Playing);
+            m_zqloader.Start();
+            if (!m_zqloader.IsBusy())     // else immidiately done eg writing wav file
+            {
+                ui->progressBar->setFormat("Done");
+                SetState(State::Idle);
+                LoaderParametersToUi(m_zqloader.GetLoaderParameters());
+            }
+        }
+        catch (...)
+        {
+            SetState(State::Idle);
+            m_zqloader.Reset();
+            throw;
+        }
+
+    }
+
+    void StartVideoOrImageFun()
+    {
+        std::string video_url = ui->lineEditVideoFile->text().toStdString();
+        std::string image_url = ui->lineEditImageDir->text().toStdString();
+        if ((!video_url.empty() && video_url[0] != '[') ||
+           (!image_url.empty() && image_url[0] != '['))
+        {
+            // start video or image fun
+            m_zqloader.Reset();
+            fs::path filename1 = ui->lineEditNormalFile->text().toStdString();
+            SetZqLoaderParameters();
+            m_zqloader.SetNormalFilename(filename1).SetPreload();       // should be zqloader or empty
+            m_zqloader.Start();
+            if (!video_url.empty() && video_url[0] != '[')
+            {
+                SetState(State::VideoFunFirst);
+                try
+                {
+                    ui->zxvideo->Play(ui->lineEditVideoFile->text().toStdString());
+                }
+                catch (const std::exception& e)
+                {
+                    std::cout << "<b>" << e.what() << "</b>" << std::endl;
+                    SetState(State::Cancelled);
+                }
+
+            }
+            else
+            {
+                SetState(State::ImageFun);
+                ui->zximage->SetDirectory(image_url);       // can throw
+            }
+        }
+    }
+
+
+    void PreloadPressed()
+    {
+        if (m_state == State::Preloading)
         {
             // stop /cancel preload
             m_zqloader.Reset();
             SetState(State::Cancelled);
         }
-        else if(m_state == State::PreloadingFunAttribs )     
+        else if (m_state == State::PreloadingFunAttribs)
         {
             // stop /cancel fun attributes after preload
             // this will stop fun attribs, but keep preloaded
@@ -331,12 +753,42 @@ Dialog::Dialog(QWidget *parent)
             m_zqloader.Start();
             SetState(State::Preloading);
         }
-    });
+    }
 
-    // Tune button pressed
-    connect(ui->pushButtonTune,&QPushButton::pressed, [this]
+    void GoOrStopPressed()
     {
-        if(m_zqloader.IsBusy())     
+        if (m_state == State::Playing || m_state == State::Tuning)
+        {
+            // Stop pressed (canceled) (pushButtonGo is now 'stop')
+            SetState((m_state != State::Playing) ? State::Idle : State::Cancelled);
+            m_zqloader.Reset();
+        }
+        else if (m_state == State::VideoFunFirst)
+        {
+            // stop /cancel video
+            ui->zxvideo->Stop();
+            m_zqloader.Reset();         // can cause tape loading error
+            SetState(State::Cancelled);
+        }
+        else if (m_state == State::VideoFunNext || m_state == State::ImageFun)
+        {
+            // Stop pressed (canceled) (pushButtonGo is now cancel)
+            ui->zxvideo->Stop();
+            SetState(State::Idle);
+            // m_zqloader.WaitUntilDone();     // else tape loading error
+            m_zqloader.Reset();
+        }
+        else
+        {
+            // go pressed
+            Go();
+        }
+    }
+
+    // Tune button pressed (endless leader tone)
+    void TunePressed()
+    {
+        if (m_zqloader.IsBusy())
         {
             // stop tune
             m_zqloader.Reset();
@@ -351,849 +803,463 @@ Dialog::Dialog(QWidget *parent)
             m_zqloader.PlayleaderTone();
             SetState(State::Tuning);
         }
-    });
+    }
 
-    // Speed slider dragged/changed
-    connect(ui->horizontalSliderSpeed, &QSlider::valueChanged, [this](int value)
+    void LoaderParametersToUi(const LoaderParameters&p_loaderparameters)
     {
-        CalculateLoaderParametersFromSlider(value);
-    });
 
-    // Clear button pressed
-    connect(ui->pushButtonClean,&QPushButton::pressed, [this]
-    {
-        ui->textBrowserOutput->clear();
-        ui->pushButtonClean->setEnabled(false);
-    });
+        ui->lineEditWantedZeroCyclii->setText(QString::number(p_loaderparameters.wanted_zero_cyclii));
+        ui->lineEditZeroMax->setText(QString::number(p_loaderparameters.zero_max));
+        ui->lineEditWantedOneCyclii->setText(QString::number(p_loaderparameters.wanted_one_cyclii));
+        ui->lineEditBitLoopMax->setText(QString::number(p_loaderparameters.bit_loop_max));
 
-    // Test button pressed
-    connect(ui->pushButtonTest,&QPushButton::pressed, [this]
-    {
-        m_zqloader.Test();
-    });
+        ui->lineEditZeroTStates->setText(QString::number(p_loaderparameters.zero_duration));
+        ui->lineEditOneTStates->setText(QString::number(p_loaderparameters.one_duration));
+        ui->lineEditEndOfByteDelay->setText(QString::number(p_loaderparameters.end_of_byte_delay));
 
 
-    UiToZxImage();
-    connect(ui->checkBoxUseFloydSteinberg, &QCheckBox::toggled, [this]
-    {
-        UiToZxImage();
-    });
-    connect(ui->checkBoxUseGrayScale, &QCheckBox::toggled, [this]
-    {
-        UiToZxImage();
-    });
-    connect(ui->checkBoxUseMagenta, &QCheckBox::toggled, [this]
-    {
-        UiToZxImage();
-    });
-    connect(ui->checkBoxSimpleColorDistance, &QCheckBox::toggled, [this]
-    {
-        UiToZxImage();
-    });
-    connect(ui->checkBoxUAttrDarkLight, &QCheckBox::toggled, [this]
-    {
-        UiToZxImage();
-    });
-    connect(ui->radioButton32x24, &QRadioButton::toggled, [this]
-    {
-        UiToZxImage();
-    });
-    connect(ui->radioButton64x24, &QRadioButton::toggled, [this]
-    {
-        UiToZxImage();
-    });
-    connect(ui->radioButton32x48, &QRadioButton::toggled, [this]
-    {
-        UiToZxImage();
-    });
+        ui->comboBoxCompressionType->setCurrentIndex(int(p_loaderparameters.compression_type));
+        ui->lineEditDeCompressionSpeed->setText(QString::number(p_loaderparameters.decompression_speed));
+        ui->lineEditInitialWait->setText(QString::number(p_loaderparameters.initial_wait.count()));
 
-    // Called when zqloader is done.
-    m_zqloader.SetOnDone([this]
-    {
-        OnDone();
-    });
 
-    // Called when really done.
-    connect(this, &Dialog::signalDone, this, [this] // this extra this is needed to go back to ui thread
+        ui->lineEditSampleRate->setText(p_loaderparameters.sample_rate == 0 ? "" : QString::number(p_loaderparameters.sample_rate));            // = device default
+        ui->lineEditSampleRate->signalFocusOut();       // gives correct tip-text
+        ui->checkBoxCatchUp->setChecked(p_loaderparameters.catch_up);
+
+
+        ui->lineEditClock->setText(QString::number(p_loaderparameters.spectrum_clock));
+
+        //ui->comboBoxBorderColor->setCurrentIndex(loader_defaults::io_init_value & 0b00000111);
+        //ui->checkBoxOutMic->setChecked(bool(loader_defaults::io_init_value & 0b00001000));
+        //ui->checkBoxOutEar->setChecked(bool(loader_defaults::io_init_value & 0b00010000));
+
+        //ui->lineEditBorderToggle->setText(QString::number(loader_defaults::io_xor_value & 0b00000111));
+        //ui->checkBoxToggleMic->setChecked(bool(loader_defaults::io_xor_value & 0b00001000));
+        //ui->checkBoxToggleEar->setChecked(bool(loader_defaults::io_xor_value & 0b00010000));
+        //ui->checkBoxUseStandardClockForRom->setChecked(false);
+
+
+        ui->comboBoxLoaderLocation->setCurrentIndex(p_loaderparameters.loader_copy_start == 0 ? 0 : 2);     // automatic.
+        ui->lineEditLoaderAddress->setText(p_loaderparameters.loader_copy_start == 0 ? "" :
+                QString::number(p_loaderparameters.loader_copy_start));
+
+        ui->comboBoxWhenDone->setCurrentIndex(
+                p_loaderparameters.when_done_return_to_basic ? 1 :
+                p_loaderparameters.when_done_call_usr == 0 ? 0 :2);
+                
+        ui->lineEditUSR->setText((p_loaderparameters.when_done_return_to_basic == false && p_loaderparameters.when_done_call_usr != 0) ?
+                QString::number(p_loaderparameters.when_done_call_usr) : "");
+
+    }
+
+    // Dialog ui controls->m_zqloader.
+    // Except all filenames.
+    void SetZqLoaderParameters()
     {
-        if(!m_zqloader.IsBusy())        // double check
+        m_zqloader.SetBitLoopMax     (ui->lineEditBitLoopMax->text().toInt()).
+                   SetZeroMax        (ui->lineEditZeroMax->text().toInt()).
+                   SetDurations      (ui->lineEditZeroTStates->text().toInt(),
+                                      ui->lineEditOneTStates->text().toInt(),
+                                      ui->lineEditEndOfByteDelay->text().toInt());
+        int io_init_value =  (ui->comboBoxBorderColor->currentIndex() & 0b00000111) |
+                             (ui->checkBoxOutMic->isChecked() ? 0b00001000 : 0) |
+                             (ui->checkBoxOutEar->isChecked() ? 0b00010000 : 0);
+
+        int io_xor_value =   (ui->lineEditBorderToggle->text().toInt() & 0b00000111) |
+                             (ui->checkBoxToggleMic->isChecked() ? 0b00001000 : 0) |
+                             (ui->checkBoxToggleEar->isChecked() ? 0b00010000 : 0) |
+                                0b01000000;       // egde is always xor-ed
+          
+        m_zqloader.SetIoValues( io_init_value, io_xor_value);
+        m_zqloader.SetSpectrumClock(ui->lineEditClock->text().toInt());
+        m_zqloader.SetCompressionType(CompressionType(ui->comboBoxCompressionType->currentIndex()));                                    
+        m_zqloader.SetDeCompressionSpeed(ui->lineEditDeCompressionSpeed->text().toInt());
+        m_zqloader.SetInitialWait(std::chrono::milliseconds(ui->lineEditInitialWait->text().toInt()));
+        m_zqloader.SetUseStandaardSpeedForRom(ui->checkBoxUseStandardClockForRom->isChecked());
+
+        if(ui->comboBoxLoaderLocation->currentIndex() == 0)     // automatic
         {
-            SetState(State::Idle);
-            if(m_zqloader.GetTimeNeeded() != 0ms)
-            {
-                std::stringstream ss;
-                ss << std::fixed << std::setprecision(1) << std::chrono::duration<double>(m_zqloader.GetTimeNeeded()).count();
-                ui->progressBar->setFormat("Done, took " + QString::fromStdString(ss.str()) + "s");
-                ui->progressBar->setValue(100);
-            }
-            m_zqloader.WaitUntilDone(); // else tape loading error
-            m_zqloader.Reset();         // do not keep preloaded state
+            m_zqloader.SetLoaderCopyTarget(ZQLoader::LoaderLocation::automatic);
         }
-    });
-
-
-    // For tip text at lineedits when empty
-    auto ConnectLineEditFocus = [](LineEdit *p_line_edit, const char *p_tip_text) 
-    {
-        connect(p_line_edit, &LineEdit::signalFocusIn, [=]
+        else if(ui->comboBoxLoaderLocation->currentIndex() == 1)        // screen
         {
-            FocusIn(p_line_edit);
-        });
-        connect(p_line_edit, &LineEdit::signalFocusOut, [=]
+            m_zqloader.SetLoaderCopyTarget(ZQLoader::LoaderLocation::screen);
+        }
+        else
         {
-            FocusOut(p_line_edit, p_tip_text);
-        });
-    };
-    ConnectLineEditFocus(ui->lineEditNormalFile, DefaultNormalFilename);
-    ConnectLineEditFocus(ui->lineEditTurboFile,  DefaultTurboFilename);
-    ConnectLineEditFocus(ui->lineEditZxFilename, DefaultZxFilename);
-    ConnectLineEditFocus(ui->lineEditOutputFile, DefaultOutputFilename);
-    ConnectLineEditFocus(ui->lineEditVideoFile,  DefaultVideoFile);
-    ConnectLineEditFocus(ui->lineEditImageDir,   DefaultImageDir);
-    ConnectLineEditFocus(ui->lineEditSampleRate, DefaultSampleRate);
+            uint16_t adr = ui->lineEditLoaderAddress->text().toInt();       // given location
+            m_zqloader.SetLoaderCopyTarget(adr);
+        }
 
+        if(ui->comboBoxWhenDone->currentIndex() == 0)       // automatic
+        {
+            m_zqloader.SetWhenDoneDo(0, false);
+        }
+        else if(ui->comboBoxWhenDone->currentIndex() == 1)        // return to basic
+        {
+            m_zqloader.SetWhenDoneDo(0, true);     
+        }
+        else // use given address
+        {
+            uint16_t adr = ui->lineEditUSR->text().toInt();     
+            m_zqloader.SetWhenDoneDo(adr, false);
+        }
 
-
-    Load(); // settings
-
-    QTimer *timer = new QTimer(this);
-    timer->setInterval(100ms);
-    connect(timer, &QTimer::timeout, [this]
-    {
-        UpdateUI();
-    });
-    timer->start();
-
-    // commandline file parameter given, start immidiately
-    if(QCoreApplication::arguments().size() > 1)
-    {
-        std::cout << "Commandline parameter given: loading: " << QCoreApplication::arguments()[1].toStdString() << std::endl;
-        ui->lineEditTurboFile->setText(QCoreApplication::arguments()[1]);
-        // maybe not nice to have loading sounds unprepared: 
-        // Go();
+        m_zqloader.SetFunAttribs(ui->checkBoxFunAttribs->isChecked());
+        m_zqloader.SetSampleRate(ui->lineEditSampleRate->text().toInt());       // 0 so automatic when conversion faild
+        m_zqloader.SetCatchUp(ui->checkBoxCatchUp->isChecked());       // 0 so automatic when conversion faild
+        m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());
     }
 
-    
+public:
+    // Save all line edits + dialog position
+    void Save() const
+    {
+        QSettings settings("Oxidaan", "ZQLoader");
+        settings.beginGroup(m_this->objectName());
+        Write(settings, m_this);
+        settings.endGroup();
+    }
 
-}
+private:
+    // Save all line edits + dialog position to given settings
+    void Write(QSettings& p_settings, const QObject *p_for_what) const
+    {
+        {
+            // save dialogs (that is only main dialog)
+            auto for_what = dynamic_cast<const QDialog*>(p_for_what);
+            if (for_what)
+            {
+                p_settings.setValue("pos", m_this->pos());
+                p_settings.setValue("size", m_this->size());
+            }
+        }
+        {
+            // save QLineEdits
+            auto for_what = dynamic_cast<const QLineEdit*>(p_for_what);
+            if (for_what)
+            {
+                p_settings.setValue(for_what->objectName(), for_what->text());
+            }
+        }
+        {
+            // save QComboBox
+            auto for_what = dynamic_cast<const QComboBox*>(p_for_what);
+            if (for_what)
+            {
+                p_settings.setValue(for_what->objectName(), for_what->currentIndex());
+            }
+        }
+        {
+            // save slider
+            auto for_what = dynamic_cast<const QSlider*>(p_for_what);
+            if (for_what)
+            {
+                p_settings.setValue(for_what->objectName(), for_what->value());
+            }
+        }
+        {
+            // save checkboxes
+            auto for_what = dynamic_cast<const QCheckBox*>(p_for_what);
+            if (for_what)
+            {
+                p_settings.setValue(for_what->objectName(), for_what->isChecked());
+            }
+        }
+        {
+            // save radiobuttons
+            auto for_what = dynamic_cast<const QRadioButton*>(p_for_what);
+            if (for_what)
+            {
+                p_settings.setValue(for_what->objectName(), for_what->isChecked());
+            }
+        }
+        for(const QObject* child : p_for_what->children())
+        {
+            Write(p_settings, child);        // recusive
+        }
+    }
+
+    /// Load all line edits + dialog position
+    /// When fails restore defaults (eg first time)
+    void Load()
+    {
+        QSettings settings("Oxidaan", "ZQLoader");
+        settings.beginGroup(m_this->objectName());
+        if(!Read(settings, m_this))
+        {
+            // Read failed (first time)
+            RestoreDefaults();
+        }
+        settings.endGroup();
+
+        // sync dials
+        ui->dialVolumeLeft->setValue(ui->lineEditVolumeLeft->text().toInt());
+        ui->dialVolumeRight->setValue(ui->lineEditVolumeRight->text().toInt());
+
+        ui->lineEditNormalFile->signalFocusOut();
+        ui->lineEditTurboFile->signalFocusOut();
+        ui->lineEditZxFilename->signalFocusOut();
+        ui->lineEditOutputFile->signalFocusOut();
+        ui->lineEditVideoFile->signalFocusOut();
+        ui->lineEditImageDir->signalFocusOut();
+        ui->lineEditSampleRate->signalFocusOut();
+    }
+
+    /// Read all line edits + dialog position from given settings
+    /// returns false when any of them fails.
+    bool Read(QSettings& p_settings, QObject *p_for_what)
+    {
+        {
+            // load dialogs (that is only main dialog)
+            auto for_what = dynamic_cast<QDialog*>(p_for_what);
+            if (for_what)
+            {
+                QVariant value = p_settings.value("pos");
+                if (!value.isNull())
+                {
+                    for_what->move(p_settings.value("pos").toPoint());
+                    for_what->resize(p_settings.value("size").toSize());
+                }
+                else
+                {
+                    return false;
+                }
+            }
+        }
+        {
+            // load QLineEdits
+            auto for_what = dynamic_cast<QLineEdit*>(p_for_what);
+            if (for_what)
+            {
+                QVariant value = p_settings.value(for_what->objectName());
+                if(!value.isNull())
+                {
+                    for_what->setText(value.toString());
+                }
+                else
+                {
+                    return false;
+                }
+            }
+        }
+        {
+            // load QComboBox
+            auto for_what = dynamic_cast<QComboBox*>(p_for_what);
+            if (for_what)
+            {
+                QVariant value = p_settings.value(for_what->objectName());
+                if(!value.isNull())
+                {
+                    for_what->setCurrentIndex(value.toInt());
+                }
+                else
+                {
+                    return false;
+                }
+            }
+        }
+        {
+            // load slider
+            auto for_what = dynamic_cast<QSlider*>(p_for_what);
+            if (for_what)
+            {
+                QVariant value = p_settings.value(for_what->objectName());
+                if(!value.isNull())
+                {
+                    QSignalBlocker blocker(for_what);
+                    for_what->setValue(value.toInt());
+                }
+                else
+                {
+                    return false;
+                }
+            }
+        }
+        {
+            // load checkboxes
+            auto for_what = dynamic_cast<QCheckBox*>(p_for_what);
+            if (for_what)
+            {
+                QVariant value = p_settings.value(for_what->objectName());
+                if(!value.isNull())
+                {
+                    for_what->setChecked(value.toBool());
+                }
+                else
+                {
+                    return false;
+                }
+            }
+        }
+        {
+            // load radiobuttons
+            auto for_what = dynamic_cast<QRadioButton*>(p_for_what);
+            if (for_what)
+            {
+                QVariant value = p_settings.value(for_what->objectName());
+                if (!value.isNull())
+                {
+                    for_what->setChecked(value.toBool());
+                }
+                else
+                {
+                    return false;
+                }
+            }
+        }
+        for(QObject* child: p_for_what->children())
+        {
+            if(!Read(p_settings, child))        // recusive
+            {
+                return false;
+            }
+        }
+        return true;
+    }
 
 
-void Dialog::UiToZxImage()
+
+    // Convert # polling cycles to Tstate value that will take that ZQloader z80 code.
+    static int CycleToTstate(double p_cyclii)
+    {
+        return int(loader_tstates::bit_loop_duration + p_cyclii * loader_tstates::wait_for_edge_loop_duration);
+    }
+
+    void CalculateLoaderParametersFromSlider(int p_index )
+    {
+        double wanted_zero_cyclii= loader_defaults::wanted_zero_cyclii;
+        double wanted_one_cyclii = loader_defaults::wanted_one_cyclii;
+        for (int n = 0; n < p_index; n++)
+        {
+            wanted_one_cyclii += 0.5;
+            if (n % 2 == 1)
+            {
+                wanted_zero_cyclii += 0.5;
+            }
+        }
+    #if 0
+        int addhalf = 0;
+        for(int n = 0;  n <= p_index ; n++)
+        {
+            wanted_one_cyclii += addhalf < 2 ? 0.5 : 1.0;
+            addhalf++;
+            if(wanted_one_cyclii > ((2 * wanted_zero_cyclii) + 4))
+            {
+                wanted_zero_cyclii++;
+                addhalf = 0;
+                wanted_one_cyclii = wanted_zero_cyclii + 3.0;
+            }
+        }
+    #endif
+        int zero_max= static_cast<int>((wanted_zero_cyclii + wanted_one_cyclii + 0.5) / 2);
+    //    int zero_max= (wanted_zero_cyclii + wanted_one_cyclii)/2;
+    //    return {wanted_zero_cyclii, zero_max, wanted_one_cyclii};
+        CalculateLoaderParameters(wanted_zero_cyclii, zero_max, wanted_one_cyclii);
+
+    }
+
+    // Based on 'Wanted Zero Cycli'and 'Wanted One Cyclii' calculate
+    // 'Zero TStates' and 'One TStates' *and put result in the dialog lineEdits*
+    void CalculateLoaderParameters(double p_wanted_zero_cyclii, int p_zero_max, double p_wanted_one_cyclii )
+    {
+        if(p_wanted_zero_cyclii < 1.0)
+        {
+            // Cannot be zero (one IN needed at least)
+            p_wanted_zero_cyclii = 1.0;
+        }
+        if(p_zero_max <= p_wanted_zero_cyclii)
+        {
+            p_zero_max = int(p_wanted_zero_cyclii + 1.0);
+        }
+        if(p_wanted_one_cyclii <= p_zero_max)
+        {
+            p_wanted_one_cyclii = p_zero_max + 1;
+        }
+        int zero_tstates  = CycleToTstate(p_wanted_zero_cyclii - 1);
+        int one_tstates   = CycleToTstate(p_wanted_one_cyclii - 1);
+        ui->lineEditWantedZeroCyclii->setText(QString::number(p_wanted_zero_cyclii));
+        ui->lineEditZeroMax->setText(QString::number(p_zero_max));
+        ui->lineEditWantedOneCyclii->setText(QString::number(p_wanted_one_cyclii));
+        ui->lineEditZeroTStates->setText(QString::number(zero_tstates));
+        ui->lineEditOneTStates->setText(QString::number(one_tstates));
+    }
+
+
+
+
+
+    // Check if zero_max/one_tstates/zero_tstates loader parameters, as given in dialog, are valid.
+    // Throws when not valid.
+    // Also check filenames and existence.
+    void Check() const
+    {
+        auto zero_tstates = ui->lineEditZeroTStates->text().toInt();
+        auto one_tstates = ui->lineEditOneTStates->text().toInt();
+        auto zero_max  = ui->lineEditZeroMax->text().toInt();
+
+        auto zero_maxtstates = CycleToTstate(zero_max);
+        if(zero_max < 1)
+        {
+            throw std::runtime_error("'zero_max' can not be 0; must be bigger than - or equal to 1 (this is the maximum number of IN's without an edge to treat data as zero. At least one IN is always done.)");
+        }
+        if(one_tstates < zero_maxtstates )
+        {
+            throw std::runtime_error("'one_tstates' to small minimum is " + std::to_string(zero_maxtstates));
+        }
+        if(zero_tstates > zero_maxtstates )
+        {
+            throw std::runtime_error("'zero_tstates' to big maximum is " + std::to_string(zero_maxtstates));
+        }
+
+        if(one_tstates < (zero_tstates + loader_tstates::wait_for_edge_loop_duration))
+        {
+            throw std::runtime_error("'one_tstates' to small, minimum is " + std::to_string(zero_tstates + loader_tstates::wait_for_edge_loop_duration));
+        }
+
+        fs::path filename1 = ui->lineEditNormalFile->text().toStdString();
+        fs::path filename2 = ui->lineEditTurboFile->text().toStdString();
+        if(ZQLoader::FileIsZqLoader(filename1) && (filename2.empty() || filename2.string()[0] == '['))
+        {
+            throw std::runtime_error("Please give a file to turbo load");
+        }
+        if(!ZQLoader::FileIsZqLoader(filename1) && !std::filesystem::exists(filename1))
+        {
+            throw std::runtime_error("File " + filename1.string() + " not found");
+        }
+        if(ZQLoader::FileIsZqLoader(filename1) && !std::filesystem::exists(filename2) && filename2 != "testdata")
+        {
+            throw std::runtime_error("Turbo File " + filename2.string() + " not found");
+        }
+
+    }
+private:
+    Ui::Dialog* ui;
+    Dialog* m_this;
+    ZQLoader m_zqloader;
+    State m_state;
+};
+
+
+Dialog::Dialog(QWidget* parent) :
+    QDialog(parent),
+    ui(new Ui::Dialog),
+    m_pimpl(new Impl(this))
 {
-    auto ap = ui->zximage->GetAlgorithmParameters();
-
-    ap.m_use_floyd_steinberg = ui->checkBoxUseFloydSteinberg->isChecked();
-    ap.m_use_distance_to_black_white = ui->checkBoxUseGrayScale->isChecked();
-    ap.m_use_simple_count = ui->checkBoxSimpleColorDistance->isChecked();
-    ap.m_use_dark_and_light_attr = ui->checkBoxUAttrDarkLight->isChecked();
-
-    if( ui->checkBoxUseMagenta->isChecked() )
-    {
-      //  ap.m_dark_colors.insert(spectrum::screen::magenta);       // ugly
-        ap.m_light_colors.insert(spectrum::screen::magenta);
-        ap.m_light_colors.insert(spectrum::screen::br_magenta);
-    }
-    else
-    {
-        ap.m_dark_colors.erase(spectrum::screen::magenta);  
-        ap.m_light_colors.erase(spectrum::screen::magenta);
-        ap.m_light_colors.erase(spectrum::screen::br_magenta);
-    }
-
-    ui->zximage->SetAlgorithmParameters(std::move(ap));
-
-    if (ui->radioButton32x24->isChecked())
-    {
-        ui->zxvideo->SetWidthAndHeight(WidthAndHeight::wh_32x24);
-    }
-    else if (ui->radioButton64x24->isChecked())
-    {
-        ui->zxvideo->SetWidthAndHeight(WidthAndHeight::wh_64x24);
-    }
-    else if (ui->radioButton32x48->isChecked())
-    {
-        ui->zxvideo->SetWidthAndHeight(WidthAndHeight::wh_32x48);
-    }
 }
 
 Dialog::~Dialog()
 {
-    // disable cout to textEditOutput
-    std::cout.rdbuf(nullptr);
     delete ui;
 }
-
-
-// Update ui (timer)
-// most prominentlty the progressBar
-inline void Dialog::UpdateUI()
-{
-    if(m_zqloader.IsBusy() && m_zqloader.GetEstimatedDuration() != 0ms)
-    {
-        auto perc = (100 * m_zqloader.GetCurrentTime()) / m_zqloader.GetEstimatedDuration() ;
-        ui->progressBar->setValue(perc);
-        std::stringstream ss;
-        ss << std::fixed << std::setprecision(1) << std::chrono::duration<double>(m_zqloader.GetCurrentTime()).count();
-        ui->progressBar->setFormat(QString::fromStdString(ss.str()) + "s / %p%");
-    }
-}
-
-
-// Called when zqloader is done. 
-// runs in miniaudio thread!
-inline void Dialog::OnDone()
-{
-    switch(m_state)
-    {
-    case State::Preloading:
-        std::cout << "Preloading done! Select a turbo file and press Go!..." << std::endl;
-        m_state = State::PreloadingFunAttribs;
-        WriteFunText(m_zqloader, true);     // true=first (wipe screen)
-        break;
-    case State::PreloadingFunAttribs:
-        // next fun attributes (scroll text)
-        WriteFunText(m_zqloader, false);
-        std::cout << '*' << std::flush;
-        break;
-    case State::VideoFunFirst:
-    {
-        // send bar pattern to spectrum screen for 64x24 res
-        m_zqloader.SetCompressionType(CompressionType::automatic);
-        m_zqloader.AddMemoryBlock({ ui->zxvideo->GetPattern(), spectrum::SCREEN_START}, 0);
-        m_state = State::VideoFunNext;
-        break;
-    }
-    case State::VideoFunNext:
-    {
-        Attributes attributes = ui->zxvideo->GetAttributes();
-        m_zqloader.SetCompressionType(CompressionType::automatic);
-        m_zqloader.AddMemoryBlock({std::move(attributes), spectrum::screen::ATTR_BEGIN}, 40000);
-        break;
-    }
-    case State::ImageFun:
-    {
-        const auto screen = ui->zximage->GetLastLoadedScreen();
-        m_zqloader.SetCompressionType(CompressionType::automatic);
-        m_zqloader.AddMemoryBlock({screen.GetDataBlock().Clone(), spectrum::SCREEN_START}, 40000);
-        break;
-    }
-    case State::Playing:
-    case State::Tuning:
-    case State::Cancelled:
-        emit signalDone();      // swap to ui thread -> Set state to Idle
-        break;
-    case State::Idle:
-        break;
-    }
-}
-
-
-// Update (button) enabled state and progressBar
-// ui only.
-inline void Dialog::SetState(State p_state)
-{
-    m_state = p_state;
-    switch(p_state)
-    {
-    case State::Playing:
-    case State::VideoFunFirst:
-    case State::VideoFunNext:
-    case State::ImageFun:
-        ui->zxvideo->setVisible(p_state == State::VideoFunFirst || p_state == State::VideoFunNext);
-        ui->zximage->setVisible(p_state == State::ImageFun);
-        ui->pushButtonGo->setText("Stop");
-        ui->pushButtonPreLoad->setEnabled(false);
-        ui->pushButtonTune->setEnabled(false);
-        break;
-    case State::Tuning:
-        ui->pushButtonPreLoad->setEnabled(false);
-        ui->pushButtonGo->setText("Stop");
-        ui->pushButtonTune->setText("Stop");
-        break;
-    case State::Preloading:
-    case State::PreloadingFunAttribs:
-        ui->pushButtonGo->setText("Go!");
-        ui->pushButtonPreLoad->setText("Stop");
-        ui->pushButtonTune->setEnabled(false);
-        break;
-    case State::Cancelled:
-        ui->progressBar->setFormat("Cancelled");
-        // no break
-    case State::Idle:
-        ui->pushButtonPreLoad->setEnabled(true);    //!m_zqloader.IsPreLoaded());
-        ui->pushButtonPreLoad->setText("PreLoad");
-        ui->pushButtonGo->setText("Go!");
-        ui->pushButtonTune->setText("Tune...");
-        ui->pushButtonTune->setEnabled(true);
-        break;
-    }
-}
-
-
-inline void Dialog::RestoreDefaults()
-{
-    m_zqloader.Stop();
-    SetState(State::Idle);
-    ui->lineEditWantedZeroCyclii->setText(QString::number(loader_defaults::wanted_zero_cyclii));
-    ui->lineEditZeroMax->setText(QString::number(loader_defaults::zero_max));
-    ui->lineEditWantedOneCyclii->setText(QString::number(loader_defaults::wanted_one_cyclii));
-    ui->lineEditBitLoopMax->setText(QString::number(loader_defaults::bit_loop_max));
-
-    ui->lineEditZeroTStates->setText(QString::number(loader_defaults::zero_duration));
-    ui->lineEditOneTStates->setText(QString::number(loader_defaults::one_duration));
-    ui->lineEditEndOfByteDelay->setText(QString::number(loader_defaults::end_of_byte_delay));
-        
-
-    ui->comboBoxCompressionType->setCurrentIndex(int(loader_defaults::compression_type));
-    ui->lineEditDeCompressionSpeed->setText(QString::number(loader_defaults::decompression_speed));
-    ui->lineEditInitialWait->setText(QString::number(loader_defaults::initial_wait.count()));
-
-    ui->comboBoxLoaderLocation->setCurrentIndex(0);     // automatic.
-    ui->lineEditLoaderAddress->setText(QString::number(spectrum::screen::SCREEN_23RD));
-
-    ui->lineEditSampleRate->setText("");            // = device default
-    ui->lineEditSampleRate->signalFocusOut();       // also gives correct tip-text
-    ui->checkBoxCatchUp->setChecked(loader_defaults::catch_up);
-    // no defaults for volume
-  //  ui->lineEditVolumeLeft->setText(QString::number(loader_defaults::volume_left));
-  //  ui->dialVolumeLeft->setValue(loader_defaults::volume_left);
-  //  ui->lineEditVolumeRight->setText(QString::number(loader_defaults::volume_right));
-  //  ui->dialVolumeRight->setValue(loader_defaults::volume_right);
-
-    ui->lineEditClock->setText(QString::number(spectrum::spectrum_clock));
-
-    ui->comboBoxBorderColor->setCurrentIndex(loader_defaults::io_init_value & 0b00000111);
-    ui->checkBoxOutMic->setChecked(bool(loader_defaults::io_init_value & 0b00001000));
-    ui->checkBoxOutEar->setChecked(bool(loader_defaults::io_init_value & 0b00010000));
-
-    ui->lineEditBorderToggle->setText(QString::number(loader_defaults::io_xor_value & 0b00000111));
-    ui->checkBoxToggleMic->setChecked(bool(loader_defaults::io_xor_value & 0b00001000));
-    ui->checkBoxToggleEar->setChecked(bool(loader_defaults::io_xor_value & 0b00010000));
-    ui->checkBoxUseStandardClockForRom->setChecked(false);
-    ui->horizontalSliderSpeed->setValue(0);
-
-    ui->lineEditNormalFile->setText("");
-    ui->lineEditNormalFile->signalFocusOut();       // also gives correct tip-text
-
-    //ui->lineEditTurboFile->setText("");
-    //ui->lineEditTurboFile->signalFocusOut();       // no leave even when pressed restore defaults
-
-    ui->lineEditZxFilename->setText("");
-    ui->lineEditZxFilename->signalFocusOut();
-
-    ui->comboBoxWhenDone->setCurrentIndex(0);     // automatic.
-    ui->lineEditUSR->setText("");
-    // ui->lineEditOutputFile->setText("");      // no leave even when pressed restore defaults
-    // ui->lineEditOutputFile->signalFocusOut();    
-    std::cout << "Restored defaults." << std::endl;
-}
-
-
-
-// 'Go!' pressed.
-inline void Dialog::Go()
-{
-    try
-    {
-        ui->pushButtonClean->setEnabled(true);
-        if(ui->tabWidget->currentIndex() == 2)  // fun! tab. Eg video fun
-        {
-            std::string video_url =  ui->lineEditVideoFile->text().toStdString();
-            std::string image_url =  ui->lineEditImageDir->text().toStdString();
-            if((!video_url.empty() && video_url[0] != '[') ||
-               (!image_url.empty() && image_url[0] != '['))
-            {
-                // start video or image fun
-                m_zqloader.Reset();
-                fs::path filename1 = ui->lineEditNormalFile->text().toStdString();
-                SetZqLoaderParameters();
-                m_zqloader.SetNormalFilename(filename1).SetPreload();       // should be zqloader or empty
-                m_zqloader.Start();
-                if(!video_url.empty() && video_url[0] != '[')
-                {
-                    SetState(State::VideoFunFirst);
-                    try
-                    {
-                        ui->zxvideo->Play(ui->lineEditVideoFile->text().toStdString());
-                    }
-                    catch (const std::exception& e)
-                    {
-                        std::cout << "<b>" << e.what() << "</b>" << std::endl;
-                        SetState(State::Cancelled);
-                    }
-
-                }
-                else
-                {
-                    SetState(State::ImageFun);
-                    ui->zximage->SetDirectory(image_url);       // can throw
-                }
-            }
-            return;
-        }
-
-        Check();        // might throw
-
-        fs::path normal_filename = ui->lineEditNormalFile->text().toStdString();
-        fs::path output_filename = ui->lineEditOutputFile->text().toStdString();
-        fs::path turbo_filename = ui->lineEditTurboFile->text().toStdString();
-
-        // Auto determine output filename from turbo_filename when given as *.wav or *.tzx
-        if(output_filename.stem() == "*" && !turbo_filename.empty())
-        {
-            fs::path tmp = output_filename;
-            tmp.replace_filename(turbo_filename.stem());
-            tmp.replace_extension(output_filename.extension());
-            if(tmp.parent_path().empty() && !turbo_filename.parent_path().empty())
-            {
-                tmp = turbo_filename.parent_path() / tmp;
-            }
-            output_filename = std::move(tmp);
-        }
-
-        // Ask overwrite confirmation for output file
-        if (!output_filename.empty() && std::filesystem::exists(output_filename))
-        {
-            std::string q("File to write (" + output_filename.string() + ") already exists. Overwrite?");
-            auto reply = QMessageBox::question(
-                nullptr,                                // Parent widget (nullptr = no parent)
-                "Confirm Action",                       // Title
-                QString::fromStdString(q),                                      // Message text
-                QMessageBox::Yes | QMessageBox::No      // Buttons
-            ); 
-            if (reply != QMessageBox::Yes) 
-            {
-                SetState(State::Cancelled);
-                return;
-            }
-        }
-
-        
-        std::cout << "\n" << std::endl;
-
-        SetZqLoaderParameters();
-      
-        // When outputfile="path/to/filename" or -w or -wav given: 
-        // Convert to wav file instead of outputting sound
-        m_zqloader.SetOutputFilename(output_filename, true); 
-
-        std::string zxfilename = ui->lineEditZxFilename->text().toStdString();
-        m_zqloader.SetNormalFilename(normal_filename, zxfilename[0] == '[' ? "" : zxfilename);
-        m_zqloader.SetTurboFilename(turbo_filename, zxfilename[0] == '[' ? "" : zxfilename);
-
-
-        SetState(State::Playing);
-        m_zqloader.Start();
-        if(!m_zqloader.IsBusy())     // else immidiately done eg writing wav file
-        {
-            ui->progressBar->setFormat("Done");
-            SetState(State::Idle);
-        }
-    }
-    catch(...)
-    {
-        SetState(State::Idle);
-        m_zqloader.Reset();
-        throw;
-    }
-
-}
-
-// Dialog ui controls->m_zqloader.
-// Except all filenames.
-void Dialog::SetZqLoaderParameters()
-{
-    m_zqloader.SetBitLoopMax     (ui->lineEditBitLoopMax->text().toInt()).
-               SetZeroMax        (ui->lineEditZeroMax->text().toInt()).
-               SetDurations      (ui->lineEditZeroTStates->text().toInt(),
-                                  ui->lineEditOneTStates->text().toInt(),
-                                  ui->lineEditEndOfByteDelay->text().toInt());
-    int io_init_value =  (ui->comboBoxBorderColor->currentIndex() & 0b00000111) |
-                         (ui->checkBoxOutMic->isChecked() ? 0b00001000 : 0) |
-                         (ui->checkBoxOutEar->isChecked() ? 0b00010000 : 0);
-
-    int io_xor_value =   (ui->lineEditBorderToggle->text().toInt() & 0b00000111) |
-                         (ui->checkBoxToggleMic->isChecked() ? 0b00001000 : 0) |
-                         (ui->checkBoxToggleEar->isChecked() ? 0b00010000 : 0) |
-                            0b01000000;       // egde is always xor-ed
-          
-    m_zqloader.SetIoValues( io_init_value, io_xor_value);
-    m_zqloader.SetSpectrumClock(ui->lineEditClock->text().toInt());
-    m_zqloader.SetCompressionType(CompressionType(ui->comboBoxCompressionType->currentIndex()));                                    
-    m_zqloader.SetDeCompressionSpeed(ui->lineEditDeCompressionSpeed->text().toInt());
-    m_zqloader.SetInitialWait(std::chrono::milliseconds(ui->lineEditInitialWait->text().toInt()));
-    m_zqloader.SetUseStandaardSpeedForRom(ui->checkBoxUseStandardClockForRom->isChecked());
-
-    if(ui->comboBoxLoaderLocation->currentIndex() == 0)     // automatic
-    {
-        m_zqloader.SetLoaderCopyTarget(ZQLoader::LoaderLocation::automatic);
-    }
-    else if(ui->comboBoxLoaderLocation->currentIndex() == 1)        // screen
-    {
-        m_zqloader.SetLoaderCopyTarget(ZQLoader::LoaderLocation::screen);
-    }
-    else
-    {
-        uint16_t adr = ui->lineEditLoaderAddress->text().toInt();       // given location
-        m_zqloader.SetLoaderCopyTarget(adr);
-    }
-
-    if(ui->comboBoxWhenDone->currentIndex() == 0)       // automatic
-    {
-        m_zqloader.SetWhenDoneDo(0, false);
-    }
-    else if(ui->comboBoxWhenDone->currentIndex() == 1)        // return to basic
-    {
-        m_zqloader.SetWhenDoneDo(0, true);     
-    }
-    else // use given address
-    {
-        uint16_t adr = ui->lineEditUSR->text().toInt();     
-        m_zqloader.SetWhenDoneDo(adr, false);
-    }
-
-    m_zqloader.SetFunAttribs(ui->checkBoxFunAttribs->isChecked());
-    m_zqloader.SetSampleRate(ui->lineEditSampleRate->text().toInt());       // 0 so automatic when conversion faild
-    m_zqloader.SetCatchUp(ui->checkBoxCatchUp->isChecked());       // 0 so automatic when conversion faild
-    m_zqloader.SetVolume(ui->lineEditVolumeLeft->text().toInt(), ui->lineEditVolumeRight->text().toInt());
-
-}
-
-// Save all line edits + dialog position
-inline void Dialog::Save() const
-{
-    QSettings settings("Oxidaan", "ZQLoader");
-    settings.beginGroup(objectName());
-    Write(settings, this);
-    settings.endGroup();
-}
-
-// Save all line edits + dialog position to given settings
-inline void Dialog::Write(QSettings& p_settings, const QObject *p_for_what) const
-{
-    {
-        // save dialogs (that is only main dialog)
-        auto for_what = dynamic_cast<const QDialog*>(p_for_what);
-        if (for_what)
-        {
-            p_settings.setValue("pos", pos());
-            p_settings.setValue("size", size());
-        }
-    }
-    {
-        // save QLineEdits
-        auto for_what = dynamic_cast<const QLineEdit*>(p_for_what);
-        if (for_what)
-        {
-            p_settings.setValue(for_what->objectName(), for_what->text());
-        }
-    }
-    {
-        // save QComboBox
-        auto for_what = dynamic_cast<const QComboBox*>(p_for_what);
-        if (for_what)
-        {
-            p_settings.setValue(for_what->objectName(), for_what->currentIndex());
-        }
-    }
-    {
-        // save slider
-        auto for_what = dynamic_cast<const QSlider*>(p_for_what);
-        if (for_what)
-        {
-            p_settings.setValue(for_what->objectName(), for_what->value());
-        }
-    }
-    {
-        // save checkboxes
-        auto for_what = dynamic_cast<const QCheckBox*>(p_for_what);
-        if (for_what)
-        {
-            p_settings.setValue(for_what->objectName(), for_what->isChecked());
-        }
-    }
-    {
-        // save radiobuttons
-        auto for_what = dynamic_cast<const QRadioButton*>(p_for_what);
-        if (for_what)
-        {
-            p_settings.setValue(for_what->objectName(), for_what->isChecked());
-        }
-    }
-    for(const QObject* child : p_for_what->children())
-    {
-        Write(p_settings, child);        // recusive
-    }
-}
-
-/// Load all line edits + dialog position
-/// When fails restore defaults (eg first time)
-inline void Dialog::Load()
-{
-    QSettings settings("Oxidaan", "ZQLoader");
-    settings.beginGroup(objectName());
-    if(!Read(settings, this))
-    {
-        // Read failed (first time)
-        RestoreDefaults();
-    }
-    settings.endGroup();
-
-    // sync dials
-    ui->dialVolumeLeft->setValue(ui->lineEditVolumeLeft->text().toInt());
-    ui->dialVolumeRight->setValue(ui->lineEditVolumeRight->text().toInt());
-
-    ui->lineEditNormalFile->signalFocusOut();
-    ui->lineEditTurboFile->signalFocusOut();
-    ui->lineEditZxFilename->signalFocusOut();
-    ui->lineEditOutputFile->signalFocusOut();
-    ui->lineEditVideoFile->signalFocusOut();
-    ui->lineEditImageDir->signalFocusOut();
-    ui->lineEditSampleRate->signalFocusOut();
-}
-
-/// Read all line edits + dialog position from given settings
-/// returns false when any of them fails.
-inline bool Dialog::Read(QSettings& p_settings, QObject *p_for_what)
-{
-    {
-        // load dialogs (that is only main dialog)
-        auto for_what = dynamic_cast<QDialog*>(p_for_what);
-        if (for_what)
-        {
-            QVariant value = p_settings.value("pos");
-            if (!value.isNull())
-            {
-                for_what->move(p_settings.value("pos").toPoint());
-                for_what->resize(p_settings.value("size").toSize());
-            }
-            else
-            {
-                return false;
-            }
-        }
-    }
-    {
-        // load QLineEdits
-        auto for_what = dynamic_cast<QLineEdit*>(p_for_what);
-        if (for_what)
-        {
-            QVariant value = p_settings.value(for_what->objectName());
-            if(!value.isNull())
-            {
-                for_what->setText(value.toString());
-            }
-            else
-            {
-                return false;
-            }
-        }
-    }
-    {
-        // load QComboBox
-        auto for_what = dynamic_cast<QComboBox*>(p_for_what);
-        if (for_what)
-        {
-            QVariant value = p_settings.value(for_what->objectName());
-            if(!value.isNull())
-            {
-                for_what->setCurrentIndex(value.toInt());
-            }
-            else
-            {
-                return false;
-            }
-        }
-    }
-    {
-        // load slider
-        auto for_what = dynamic_cast<QSlider*>(p_for_what);
-        if (for_what)
-        {
-            QVariant value = p_settings.value(for_what->objectName());
-            if(!value.isNull())
-            {
-                QSignalBlocker blocker(for_what);
-                for_what->setValue(value.toInt());
-            }
-            else
-            {
-                return false;
-            }
-        }
-    }
-    {
-        // load checkboxes
-        auto for_what = dynamic_cast<QCheckBox*>(p_for_what);
-        if (for_what)
-        {
-            QVariant value = p_settings.value(for_what->objectName());
-            if(!value.isNull())
-            {
-                for_what->setChecked(value.toBool());
-            }
-            else
-            {
-                return false;
-            }
-        }
-    }
-    {
-        // load radiobuttons
-        auto for_what = dynamic_cast<QRadioButton*>(p_for_what);
-        if (for_what)
-        {
-            QVariant value = p_settings.value(for_what->objectName());
-            if (!value.isNull())
-            {
-                for_what->setChecked(value.toBool());
-            }
-            else
-            {
-                return false;
-            }
-        }
-    }
-    for(QObject* child: p_for_what->children())
-    {
-        if(!Read(p_settings, child))        // recusive
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-
-#if 0
-// Convert Tstate value to # polling cycles at ZQloader z80 code.
-// (currently not (yet) used anymore)
-inline double TStateToCycle(int p_tstate)
-{
-   double retval = double(p_tstate -  loader_tstates::bit_loop_duration) / loader_tstates::wait_for_edge_loop_duration;
-   return retval >= 0 ? retval : 0;
-}
-#endif
-
-// Convert # polling cycles to Tstate value that will take that ZQloader z80 code.
-inline int CycleToTstate(double p_cyclii)
-{
-    return int(loader_tstates::bit_loop_duration + p_cyclii * loader_tstates::wait_for_edge_loop_duration);
-}
-
-inline void Dialog::CalculateLoaderParametersFromSlider(int p_index )
-{
-    double wanted_zero_cyclii= loader_defaults::wanted_zero_cyclii;
-    double wanted_one_cyclii = loader_defaults::wanted_one_cyclii;
-    for (int n = 0; n < p_index; n++)
-    {
-        wanted_one_cyclii += 0.5;
-        if (n % 2 == 1)
-        {
-            wanted_zero_cyclii += 0.5;
-        }
-    }
-#if 0
-    int addhalf = 0;
-    for(int n = 0;  n <= p_index ; n++)
-    {
-        wanted_one_cyclii += addhalf < 2 ? 0.5 : 1.0;
-        addhalf++;
-        if(wanted_one_cyclii > ((2 * wanted_zero_cyclii) + 4))
-        {
-            wanted_zero_cyclii++;
-            addhalf = 0;
-            wanted_one_cyclii = wanted_zero_cyclii + 3.0;
-        }
-    }
-#endif
-    int zero_max= static_cast<int>((wanted_zero_cyclii + wanted_one_cyclii + 0.5) / 2);
-//    int zero_max= (wanted_zero_cyclii + wanted_one_cyclii)/2;
-//    return {wanted_zero_cyclii, zero_max, wanted_one_cyclii};
-    CalculateLoaderParameters(wanted_zero_cyclii, zero_max, wanted_one_cyclii);
-
-}
-
-// Based on 'Wanted Zero Cycli'and 'Wanted One Cyclii' calculate
-// 'Zero TStates' and 'One TStates' *and put result in the dialog lineEdits*
-inline void Dialog::CalculateLoaderParameters(double p_wanted_zero_cyclii, int p_zero_max, double p_wanted_one_cyclii )
-{
-    if(p_wanted_zero_cyclii < 1.0)
-    {
-        // Cannot be zero (one IN needed at least)
-        p_wanted_zero_cyclii = 1.0;
-    }
-    if(p_zero_max <= p_wanted_zero_cyclii)
-    {
-        p_zero_max = int(p_wanted_zero_cyclii + 1.0);
-    }
-    if(p_wanted_one_cyclii <= p_zero_max)
-    {
-        p_wanted_one_cyclii = p_zero_max + 1;
-    }
-    int zero_tstates  = CycleToTstate(p_wanted_zero_cyclii - 1);
-    int one_tstates   = CycleToTstate(p_wanted_one_cyclii - 1);
-    ui->lineEditWantedZeroCyclii->setText(QString::number(p_wanted_zero_cyclii));
-    ui->lineEditZeroMax->setText(QString::number(p_zero_max));
-    ui->lineEditWantedOneCyclii->setText(QString::number(p_wanted_one_cyclii));
-    ui->lineEditZeroTStates->setText(QString::number(zero_tstates));
-    ui->lineEditOneTStates->setText(QString::number(one_tstates));
-}
-
 
 // Title bar close pressed. Save anyway.
 void Dialog::closeEvent(QCloseEvent* event)
 {
-    if(event->spontaneous())
+    if (event->spontaneous())
     {
-        Save();
+        m_pimpl->Save();
     }
-    QDialog::closeEvent(event);  
+    QDialog::closeEvent(event);
 }
-
-
-// Check if zero_max/one_tstates/zero_tstates loader parameters, as given in dialog, are valid.
-// Throws when not valid.
-// Also check filenames and existence.
-inline void Dialog::Check() const
-{
-    auto zero_tstates = ui->lineEditZeroTStates->text().toInt();
-    auto one_tstates = ui->lineEditOneTStates->text().toInt();
-    auto zero_max  = ui->lineEditZeroMax->text().toInt();
-
-    auto zero_maxtstates = CycleToTstate(zero_max);
-    if(zero_max < 1)
-    {
-        throw std::runtime_error("'zero_max' can not be 0; must be bigger than - or equal to 1 (this is the maximum number of IN's without an edge to treat data as zero. At least one IN is always done.)");
-    }
-    if(one_tstates < zero_maxtstates )
-    {
-        throw std::runtime_error("'one_tstates' to small minimum is " + std::to_string(zero_maxtstates));
-    }
-    if(zero_tstates > zero_maxtstates )
-    {
-        throw std::runtime_error("'zero_tstates' to big maximum is " + std::to_string(zero_maxtstates));
-    }
-
-    if(one_tstates < (zero_tstates + loader_tstates::wait_for_edge_loop_duration))
-    {
-        throw std::runtime_error("'one_tstates' to small, minimum is " + std::to_string(zero_tstates + loader_tstates::wait_for_edge_loop_duration));
-    }
-
-    fs::path filename1 = ui->lineEditNormalFile->text().toStdString();
-    fs::path filename2 = ui->lineEditTurboFile->text().toStdString();
-    if(ZQLoader::FileIsZqLoader(filename1) && (filename2.empty() || filename2.string()[0] == '['))
-    {
-        throw std::runtime_error("Please give a file to turbo load");
-    }
-    if(!ZQLoader::FileIsZqLoader(filename1) && !std::filesystem::exists(filename1))
-    {
-        throw std::runtime_error("File " + filename1.string() + " not found");
-    }
-    if(ZQLoader::FileIsZqLoader(filename1) && !std::filesystem::exists(filename2) && filename2 != "testdata")
-    {
-        throw std::runtime_error("Turbo File " + filename2.string() + " not found");
-    }
-
-}
-

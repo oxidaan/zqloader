@@ -206,7 +206,7 @@ public:
             m_spectrumloader.Attach(wav_writer);
             wav_writer.SetVolume(m_volume_left, m_volume_right).SetSampleRate(m_sample_rate).SetCatchUp(m_catch_up);
             wav_writer.WriteToFile(filewrite);
-            Reset();        // needed?
+            //Reset();        // needed?
             if(!filewrite)
             {
                 throw std::runtime_error("Error writing file: " + outputfilename.string());
@@ -219,7 +219,7 @@ public:
             auto outputfilename     = GetOutputFilename();
             std::ofstream filewrite = OpenFileToWrite(outputfilename, m_allow_overwrite);
             WriteTzxFile(filewrite, m_catch_up);        // mis-use m_catch_up as algortihm selection
-            Reset();        // needed?
+           // Reset();        // needed?
             if(!filewrite)
             {
                 throw std::runtime_error("Error writing file: " + outputfilename.string());
@@ -319,7 +319,7 @@ private:
         std::stringstream ss;
         ss << m_turboblocks.GetDebugString() << " Samplerate = " << m_sample_rate << "; Catch up = " << m_catch_up;
         TzxWriter::WriteInfo(p_filewrite, ss.str());
-        TzxWriter::WriteCustomInfo(p_filewrite, "hi");      // TODO!
+        TzxWriter::WriteCustomInfo(p_filewrite, m_turboblocks.ToString());
         if (p_how)
         {
             m_spectrumloader.WritePulsersAsTzx(p_filewrite, m_sample_rate);
@@ -450,7 +450,7 @@ private:
     }
 
 
-
+    // Add/load given file (through turboblocks) to spectrum loader (as pulsers)
     void AddTurboSpeedFile(const fs::path &p_filename, const std::string &p_zxfilename)
     {
         if (ToLower(p_filename.extension().string()) == ".tap")
@@ -488,8 +488,8 @@ private:
 
 
 
-    // Add given file (tap/tzx) to given TurboBlocks so uses turbo speed.
-    // (adds all blocks present in given file).
+    // Reads given (tap/tzx) file and add to given TurboBlocks so uses turbo speed.
+    // (adds all blocks present in given file(after p_zxfilename) ).
     // TLoader is TapLoader or TzxLoader.
     // Finalize will already be called.
     template<class Tloader>
@@ -498,22 +498,25 @@ private:
         AddZqLoader(false, m_normal_filename);
         TapToTurboBlocks tab_to_turbo_blocks{ m_turboblocks };
         Tloader tap_or_tzx_loader;
-        tap_or_tzx_loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string p_zxfilename, bool p_is_zqloader_tzx)
+        tap_or_tzx_loader.SetOnIncomingBlock([&](DataBlock p_block, std::string p_stringdata, int p_is_zqloader_tzx)
         {
-            return tab_to_turbo_blocks.HandleIncomingBlock(std::move(p_block), p_zxfilename, p_is_zqloader_tzx);
+            return tab_to_turbo_blocks.HandleIncomingBlock(std::move(p_block), p_stringdata, p_is_zqloader_tzx);
         });
         tap_or_tzx_loader.Load(p_filename, p_zxfilename);
-        if(m_turboblocks.size() != tab_to_turbo_blocks.GetNumberLoadCode())
+        if (!m_turboblocks.GetFromZqLoaderTzx())
         {
-            std::cout << "<b>Warning: Number of found code blocks (" << m_turboblocks.size() << ") not equal to LOAD \"\" CODE statements in BASIC (" << tab_to_turbo_blocks.GetNumberLoadCode() << ")!</b>\n" << std::endl;
-        }
-        auto size = m_turboblocks.Finalize(m_when_done_return_to_basic ? 0 :
-                                           m_when_done_call_usr == 0 ? tab_to_turbo_blocks.GetUsrAddress() :    // auto
-                                           m_when_done_call_usr,
-                                           tab_to_turbo_blocks.GetClearAddress());
-        if(size == 0)
-        {
-            throw std::runtime_error("No blocks present in file: '" + p_filename.string() + "' that could be turboloaded (note: can only handle code blocks, not BASIC)");
+            if (m_turboblocks.size() != tab_to_turbo_blocks.GetNumberLoadCode())
+            {
+                std::cout << "<b>Warning: Number of found code blocks (" << m_turboblocks.size() << ") not equal to LOAD \"\" CODE statements in BASIC (" << tab_to_turbo_blocks.GetNumberLoadCode() << ")!</b>\n" << std::endl;
+            }
+            auto size = m_turboblocks.Finalize(m_when_done_return_to_basic ? 0 :
+                                               m_when_done_call_usr == 0 ? tab_to_turbo_blocks.GetUsrAddress() :    // auto
+                                               m_when_done_call_usr,
+                                               tab_to_turbo_blocks.GetClearAddress());
+            if (size == 0)
+            {
+                throw std::runtime_error("No blocks present in file: '" + p_filename.string() + "' that could be turboloaded (note: can only handle code blocks, not BASIC)");
+            }
         }
     }
 
@@ -545,7 +548,7 @@ private:
     void AddNormalSpeedFile(const fs::path &p_filename, SpectrumLoader &p_spectrum_loader, const std::string &p_zxfilename)
     {
         Tloader tap_or_tzx_loader;
-        tap_or_tzx_loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string, int)
+        tap_or_tzx_loader.SetOnIncomingBlock([&](DataBlock p_block, std::string, int)
         {
             p_spectrum_loader.AddLeaderPlusData(std::move(p_block), spectrum::tstate_quick_zero, 1750ms); // .AddPause(100ms);
             return false;
@@ -611,8 +614,10 @@ private:
     SampleSender                m_sample_sender;
 
     bool                        m_use_fun_attribs           = false;
+    
     uint32_t                    m_sample_rate               = loader_defaults::sample_rate;
     bool                        m_catch_up                  = loader_defaults::catch_up;
+
     fs::path                    m_exe_path;                           // s/a argv[0]
     Action                      m_action                    = Action::play_audio;
     uint16_t                    m_when_done_call_usr        = 0;      // 0 is automatic
@@ -944,6 +949,11 @@ ZQLoader& ZQLoader::SetOnDone(DoneFun p_fun)
 uint32_t ZQLoader::GetDeviceSampleRate() const
 {
     return SampleSender::GetDeviceSampleRate();
+}
+
+const LoaderParameters& ZQLoader::GetLoaderParameters() const
+{
+    return m_pimpl->m_turboblocks.GetLoaderParameters();
 }
 
 

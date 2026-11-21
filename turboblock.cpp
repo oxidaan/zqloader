@@ -9,6 +9,7 @@
 
 #include "turboblock.h"
 #include "spectrum_screen.h"
+#include "loader_defaults.h"      // loader_tstates
 
 TurboBlock::TurboBlock()
 {
@@ -95,6 +96,19 @@ TurboBlock &TurboBlock::SetRawData(DataBlock p_header, DataBlock p_payload)
     }
     std::memcpy(&m_header, p_header.data(), sizeof(Header));
     m_payload = std::move(p_payload);
+    if (GetHeader().m_compression_type == CompressionType::none)
+    {
+        m_data_size = m_payload.size();
+    }
+    else
+    {
+        Compressor<DataBlock>::RLE_Meta rle;
+        rle.code_for_most = std::byte(GetHeader().m_code_for_most);
+        rle.code_for_multiples = std::byte(GetHeader().m_code_for_multiples);
+        rle.value_for_most = std::byte(GetHeader().m_value_for_most);
+        DataBlock decompressed_data = Compressor<DataBlock>::DeCompress(m_payload, rle);
+        m_data_size = decompressed_data.size();
+    }
     return *this;
 }
 

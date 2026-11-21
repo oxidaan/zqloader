@@ -12,7 +12,6 @@
 #include "datablock.h"
 #include "compressor.h"
 #include "types.h"          // CompressionType
-#include "loader_defaults.h"
 #include "pulsers.h"
 #include <string>
 #include <cstring>          // memcpy
@@ -95,7 +94,7 @@ public:
     /// m_length,
     /// m_compression_type,
     /// RLE meta data
-    TurboBlock& SetData( DataBlock p_data, CompressionType p_compression_type = loader_defaults::compression_type);
+    TurboBlock& SetData(DataBlock p_data, CompressionType p_compression_type);
 
     /// Set header and payload directly eg when read from ZQLoader-tzx file.
     TurboBlock& SetRawData(DataBlock p_header, DataBlock p_payload);

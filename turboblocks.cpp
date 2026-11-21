@@ -12,13 +12,13 @@
 #include "turboblocks.h"
 #include "taploader.h"
 #include "memoryblock.h"
-#include "loader_defaults.h"
 #include "spectrum_consts.h"        // SCREEN_END
 #include "spectrum_types.h"         // ZxBlockType
 #include "symbols.h"
 #include "spectrum_screen.h"
 #include <filesystem>
 #include "spectrum_loader.h"        // CalculateChecksum
+#include "loaderparameters.h"
 #include <bitset>
 #include <iostream>
 
@@ -62,10 +62,10 @@ public:
         LoadSymbolFilename(filename_exp);
 
         TapLoader loader;
-        loader.SetOnHandleTapBlock([&](DataBlock p_block, std::string, bool)
-                                   {
-                                       return HandleZqLoaderTapBlock(std::move(p_block));
-                                   });
+        loader.SetOnIncomingBlock([&](DataBlock p_block, std::string, int)
+        {
+            return HandleZqLoaderTapBlock(std::move(p_block));
+        });
         loader.Load(p_filename, "");
     }
 
@@ -87,7 +87,7 @@ public:
     // Else get whatever was set before (snapshots do this)
     uint16_t GetLoaderCopyStart(const MemoryBlocks & p_memory_blocks) const
     {
-        if (m_loader_copy_start == 0)
+        if (m_loader_parameters.loader_copy_start == 0)
         {
             auto clear = m_symbols.GetSymbol("CLEAR");
             for (auto& block : p_memory_blocks)
@@ -104,7 +104,7 @@ public:
                 }
             }
         }
-        return m_loader_copy_start;
+        return m_loader_parameters.loader_copy_start;
     }
 
 
@@ -225,7 +225,6 @@ public:
         // Check and set m_loader_copy_start when not done so already.
         // Will be set when any block overlaps loader at basic.
         auto loader_copy_start = GetLoaderCopyStart(memory_blocks);
-        DONT_USE(m_loader_copy_start);
 
 
         // Make space for new loader location
@@ -308,7 +307,7 @@ public:
         {
             p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_header), spectrum::tstate_quick_zero, 1750ms);
             p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_code), spectrum::tstate_quick_zero, 1500ms);
-            m_pause_before = m_initial_wait;
+            m_pause_before = m_loader_parameters.initial_wait;
         }
 
 
@@ -317,7 +316,7 @@ public:
 
         for (auto& tblock : m_turbo_blocks)
         {
-            auto next_pause = tblock.EstimateHowLongSpectrumWillTakeToDecompress(m_decompression_speed); // b4 because moved
+            auto next_pause = tblock.EstimateHowLongSpectrumWillTakeToDecompress(m_loader_parameters.decompression_speed); // b4 because moved
             // TODO skip for now tblock.SetSkipPilot(p_is_fun_attribute);
             if (!p_is_fun_attribute)
             {
@@ -328,7 +327,7 @@ public:
                 }
                 tblock.DebugDump();
             }
-            std::move(tblock).MoveToLoader(p_spectrumloader, m_pause_before, m_zero_duration, m_one_duration, m_end_of_byte_delay);
+            std::move(tblock).MoveToLoader(p_spectrumloader, m_pause_before, m_loader_parameters.zero_duration, m_loader_parameters.one_duration, m_loader_parameters.end_of_byte_delay);
             m_pause_before = next_pause;
         }
         m_turbo_blocks.clear();
@@ -337,74 +336,20 @@ public:
 
 
 
-    std::string GetDebugString() const
-    {
-        std::stringstream ss;
-        ss << "Duration of Zero/One: " << m_zero_duration << '/' << m_one_duration <<
-            "; Max zero: " << m_zero_max <<
-            "; End of byte: " << m_end_of_byte_delay <<
-            "; Decompr. speed (kb/s): " << m_decompression_speed <<
-            "; Init. wait: " << m_initial_wait.count();
-        return ss.str();
-    }
-
-    // Write/serialize.
-    std::ostream & Write(std::ostream &p_stream) const
-    {
-        #define WRITE_CMD(what) \
-             p_stream << #what << m_##what << '\n'
-        WRITE_CMD(zero_duration);
-        WRITE_CMD(one_duration);
-        WRITE_CMD(zero_max);
-        WRITE_CMD(end_of_byte_delay);
-        WRITE_CMD(decompression_speed);
-        p_stream << "initial_wait " << m_initial_wait.count() << '\n';
-        return p_stream;
-    }
-    // Read/serialize.
-    std::istream & Read(std::istream &p_stream)
-    {
-        #define READ_CMD(what)  \
-            if(command == #what)  \
-            {   \
-                ss >> m_##what;  \
-            }
-        std::string line;
-        while(std::getline( p_stream, line ) )
-        {
-            std::stringstream ss( line );
-            std::string command;
-            // read command
-            ss >> command;
-            READ_CMD(zero_duration);
-            READ_CMD(one_duration);
-            READ_CMD(zero_max);
-            READ_CMD(end_of_byte_delay);
-            READ_CMD(decompression_speed);
-            if(command == "initial_wait")
-            {
-                int init_wait;
-                ss >> init_wait;
-                m_initial_wait = std::chrono::milliseconds(init_wait);
-            }
-        }
-        #undef READ_CMD
-        return p_stream;
-    }
-
+ 
     /// Set durations in T states for zero and one pulses.
     /// When 0 keep defaults.
     void SetDurations(int p_zero_duration, int p_one_duration, int p_end_of_byte_delay)
     {
         if (p_zero_duration != 0)
         {
-            m_zero_duration = p_zero_duration;
+            m_loader_parameters.zero_duration = p_zero_duration;
         }
         if (p_one_duration != 0)
         {
-            m_one_duration = p_one_duration;
+            m_loader_parameters.one_duration = p_one_duration;
         }
-        m_end_of_byte_delay = p_end_of_byte_delay;      // can be zero as well
+        m_loader_parameters.end_of_byte_delay = p_end_of_byte_delay;      // can be zero as well
         // std::cout << "Around " << ( 1000ms / spectrum::tstate_dur ) / (( m_zero_duration + m_one_duration ) / 2 ) << " bps" << std::endl;
     }
 
@@ -414,7 +359,7 @@ public:
     /// Mainly for debugging!
     void CopyLoaderTo(uint16_t p_value)
     {
-        m_loader_copy_start = p_value;
+        m_loader_parameters.loader_copy_start = p_value;
         TurboBlock empty;
         m_turbo_blocks.push_back(std::move(empty));
     }
@@ -462,10 +407,10 @@ private:
         else if (type == TapeBlockType::data)
         {
             m_zqloader_code = std::move(p_block);
-            SetDataToZqLoaderTap("BIT_LOOP_MAX", std::byte(m_bit_loop_max));
-            SetDataToZqLoaderTap("BIT_ONE_THESHLD", std::byte(m_bit_loop_max - m_zero_max));
-            SetDataToZqLoaderTap("IO_INIT_VALUE", std::byte(m_io_init_value));
-            SetDataToZqLoaderTap("IO_XOR_VALUE", std::byte(m_io_xor_value));
+            SetDataToZqLoaderTap("BIT_LOOP_MAX", std::byte(m_loader_parameters.bit_loop_max));
+            SetDataToZqLoaderTap("BIT_ONE_THESHLD", std::byte(m_loader_parameters.bit_loop_max - m_loader_parameters.zero_max));
+            SetDataToZqLoaderTap("IO_INIT_VALUE", std::byte(m_loader_parameters.io_init_value));
+            SetDataToZqLoaderTap("IO_XOR_VALUE", std::byte(m_loader_parameters.io_xor_value));
         }
 
         // m_spectrumloader.AddLeaderPlusData(std::move(p_block), g_tstate_quick_zero, 1750ms);
@@ -512,9 +457,6 @@ private:
         RecalculateChecksum(m_zqloader_code);
         std::cout << "Patching word '" << p_name << "' to: " << int(p_value) << " hex= " << std::hex << int(p_value) << std::dec << "\n";
     }
-
-
-
     void SetDataToZqLoaderTap(const char* p_name, std::byte p_value)
     {
         uint16_t adr = GetZqLoaderSymbolAddress(p_name);
@@ -613,7 +555,7 @@ private:
         {
             tblock.SetLoadAddress(p_load_address);
         }
-        tblock.SetData(std::move(p_block.m_datablock), m_compression_type);
+        tblock.SetData(std::move(p_block.m_datablock), m_loader_parameters.compression_type);
 
         m_turbo_blocks.push_back(std::move(tblock));
         return m_turbo_blocks.back();
@@ -635,20 +577,11 @@ private:
     MemoryBlocks                m_memory_blocks;                   // blocks to load
     std::list<TurboBlock>       m_turbo_blocks;                    // turbo blocks to load
     Symbols                     m_symbols;                         // named symbols as read from EXP file
-    uint16_t                    m_loader_copy_start   = 0;         // start of free space were our loader can be copied to, begins with stack, then Control code copied from basic
-    CompressionType             m_compression_type    = loader_defaults::compression_type;
-    int                         m_zero_duration       = loader_defaults::zero_duration;
-    int                         m_one_duration        = loader_defaults::one_duration;
-    int                         m_end_of_byte_delay   = loader_defaults::end_of_byte_delay;
-    int                         m_bit_loop_max        = loader_defaults::bit_loop_max;        // aka ONE_MAX, the wait for edge loop counter until timeout
-    int                         m_zero_max            = loader_defaults::zero_max;            // aka ZERO_MAX sees a 'one' when waited more than this number of cycli at wait for edge
-    int                         m_io_init_value       = loader_defaults::io_init_value;       // aka ONE_MAX, the wait for edge loop counter until timeout
-    int                         m_io_xor_value        = loader_defaults::io_xor_value;        // aka ZERO_MAX sees a 'one' when waited more than this number of cycli at wait for edge
-    int                         m_decompression_speed = loader_defaults::decompression_speed; // kb/second time spectrum needsto decompress before sending next block
-    std::chrono::milliseconds   m_initial_wait        = loader_defaults::initial_wait;        // pause after loading ZQLoader itself, give basic some time.
-    std::chrono::milliseconds   m_pause_before        = 0ms;
-    bool                        m_skip_pilots         = false;
-};                                                                                            // class TurboBlocks
+    std::chrono::milliseconds   m_pause_before = 0ms;
+    bool                        m_from_zqloader_tzx = false;       // where these read from a zqloader tzx file?
+
+    LoaderParameters            m_loader_parameters;
+};                                                                 // class TurboBlocks
 
 
 
@@ -735,7 +668,7 @@ TurboBlocks& TurboBlocks::SetBitLoopMax(int p_value)
 {
     if(p_value)
     {
-        m_pimpl->m_bit_loop_max = p_value;
+        m_pimpl->m_loader_parameters.bit_loop_max = p_value;
     }
     return *this;
 }
@@ -746,7 +679,7 @@ TurboBlocks& TurboBlocks::SetZeroMax(int p_value)
 {
     if(p_value)
     {
-        m_pimpl->m_zero_max = p_value;
+        m_pimpl->m_loader_parameters.zero_max = p_value;
     }
     return *this;
 }
@@ -755,8 +688,8 @@ TurboBlocks& TurboBlocks::SetZeroMax(int p_value)
 
 TurboBlocks& TurboBlocks::SetIoValues(int p_io_init_value, int p_io_xor_value)
 {
-    m_pimpl->m_io_init_value = p_io_init_value;
-    m_pimpl->m_io_xor_value  = ( p_io_xor_value | 0b01000000 );   // edge needs to be xored always (dialog does this too)
+    m_pimpl->m_loader_parameters.io_init_value = p_io_init_value;
+    m_pimpl->m_loader_parameters.io_xor_value  = ( p_io_xor_value | 0b01000000 );   // edge needs to be xored always (dialog does this too)
     return *this;
 }
 
@@ -764,7 +697,7 @@ TurboBlocks& TurboBlocks::SetIoValues(int p_io_init_value, int p_io_xor_value)
 
 TurboBlocks& TurboBlocks::SetCompressionType(CompressionType p_compression_type)
 {
-    m_pimpl->m_compression_type = p_compression_type;
+    m_pimpl->m_loader_parameters.compression_type = p_compression_type;
     return *this;
 }
 
@@ -774,7 +707,7 @@ TurboBlocks& TurboBlocks::SetDeCompressionSpeed(int p_kb_per_sec)
 {
     if(p_kb_per_sec != 0)
     {
-        m_pimpl->m_decompression_speed = p_kb_per_sec;
+        m_pimpl->m_loader_parameters.decompression_speed = p_kb_per_sec;
     }
     return *this;
 }
@@ -783,7 +716,7 @@ TurboBlocks& TurboBlocks::SetDeCompressionSpeed(int p_kb_per_sec)
 
 TurboBlocks& TurboBlocks::SetInitialWait(std::chrono::milliseconds p_initial_wait)
 {
-    m_pimpl->m_initial_wait = p_initial_wait;
+    m_pimpl->m_loader_parameters.initial_wait = p_initial_wait;
     return *this;
 }
 
@@ -800,7 +733,7 @@ TurboBlocks& TurboBlocks::CopyLoaderTo(uint16_t p_value)
 /// Set start of free space to copy loader including space for sp.
 TurboBlocks&  TurboBlocks::SetLoaderCopyTarget(uint16_t p_value)
 {
-    m_pimpl->m_loader_copy_start = p_value;
+    m_pimpl->m_loader_parameters.loader_copy_start = p_value;
     return *this;
 }
 
@@ -811,6 +744,12 @@ const Symbols& TurboBlocks::GetSymbols() const
 {
     return m_pimpl->m_symbols;
 }
+
+const LoaderParameters& TurboBlocks::GetLoaderParameters() const
+{
+    return m_pimpl->m_loader_parameters;
+}
+
 
 
 
@@ -823,13 +762,33 @@ uint16_t TurboBlocks::GetLoaderCodeLength(bool p_with_registers) const
 
 std::string TurboBlocks::GetDebugString() const
 {
-    return m_pimpl->GetDebugString();
+    return m_pimpl->m_loader_parameters.GetDebugString();
 }
 
 
+TurboBlocks& TurboBlocks::FromString(const std::string &p_string)
+{
+    m_pimpl->m_loader_parameters.FromString(p_string);
+    return *this;
+}
+std::string TurboBlocks::ToString() const
+{
+    return  m_pimpl->m_loader_parameters.ToString();
+}
+
+TurboBlocks& TurboBlocks::SetFromZqLoaderTzx(bool p_from_tzx)
+{
+    m_pimpl->m_from_zqloader_tzx = p_from_tzx;
+    return *this;
+}
+
+bool TurboBlocks::GetFromZqLoaderTzx() const
+{
+    return m_pimpl->m_from_zqloader_tzx;
+}
 
 TurboBlocks& TurboBlocks::SetSkipPilots(bool p_to_what)
 {
-    m_pimpl->m_skip_pilots = p_to_what;
+    m_pimpl->m_loader_parameters.skip_pilots = p_to_what;
     return *this;
 }

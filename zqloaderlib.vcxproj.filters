@@ -45,6 +45,7 @@
     <ClInclude Include="memoryblock.h" />
     <ClInclude Include="turboblock.h" />
     <ClInclude Include="tzxwriter.h" />
+    <ClInclude Include="loaderparameters.h" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="z80\zqloader_test.z80asm">

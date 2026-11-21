@@ -37,6 +37,7 @@
 
 struct DataBlock;
 struct MemoryBlock;
+struct LoaderParameters;
 
 /// This is the main ZQLoader interface used for both commandline
 /// as qt ui tool.
@@ -173,6 +174,8 @@ public:
 
     ///  Get miniadio native device sample rate
     uint32_t GetDeviceSampleRate() const;
+
+    const LoaderParameters &GetLoaderParameters() const;
 
     // Run Test
     void Test();

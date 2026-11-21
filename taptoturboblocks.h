@@ -35,7 +35,7 @@ public:
     ///     When code: Add to list of blocks to (turbo) load as given at CTOR.
     /// p_zxfilename: when !empty check if name matches before accepting header.
     /// p_is_zqloader_tzx when true its zqloader raw block from a tzx file.
-    bool HandleIncomingBlock(DataBlock p_block, const std::string &p_zxfilename, bool p_is_zqloader_tzx);
+    bool HandleIncomingBlock(DataBlock p_block, const std::string &p_zxfilename, int p_is_zqloader_tzx);
 
 
     /// Get MC start address as found in BASIC block as in RANDOMIZE USR xxxxx
@@ -59,7 +59,7 @@ public:
     }
 
 private:
-    bool HandleIncomingZqLoaderBlock(DataBlock p_block);
+    bool HandleIncomingZqLoaderBlock(DataBlock p_block, const std::string& p_stringdata);
     bool HandleIncomingTapBlock(DataBlock p_block, const std::string &p_zxfilename);
 
 
@@ -104,4 +104,5 @@ private:
     uint16_t                  m_usr        = 0;      // [RANDOMIZE] USX xxxxx found in BASIC
     uint16_t                  m_clear      = 0xff4a; // CLEAR xxxxx as found in BASIC. Default value here is SP found with debugger
     std::vector< uint16_t>    m_loadcodes;           // multiple LOAD "" CODE xxxx found in BASIC
+    size_t                    m_original_data_size = 0;
 };

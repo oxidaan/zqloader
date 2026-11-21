@@ -24,7 +24,7 @@ class TapLoader
 {
 public:
 
-    using HandleTapBlockFun = std::function<bool (DataBlock, std::string, int p_startaddress)>;
+    using HandleIncomingBlockFun = std::function<bool(DataBlock, std::string, int)>;
 
     /// Load a tap file from given filename.
     /// p_zxfilename: the ZX Spectrum file name, eg used to filter / only load certain
@@ -41,7 +41,7 @@ public:
 
 
     /// Set callback when tapblock found.
-    TapLoader& SetOnHandleTapBlock(HandleTapBlockFun p_fun)
+    TapLoader& SetOnIncomingBlock(HandleIncomingBlockFun p_fun)
     {
         m_OnHandleTapBlock = std::move(p_fun);
         return *this;
@@ -57,6 +57,6 @@ private:
 
 private:
 
-    HandleTapBlockFun   m_OnHandleTapBlock;
+    HandleIncomingBlockFun   m_OnHandleTapBlock;
 
 };

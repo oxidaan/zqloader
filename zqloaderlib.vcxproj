@@ -282,6 +282,7 @@
     <ClInclude Include="datablock.h" />
     <ClInclude Include="event.h" />
     <ClInclude Include="loadbinary.h" />
+    <ClInclude Include="loaderparameters.h" />
     <ClInclude Include="loader_defaults.h" />
     <ClInclude Include="memoryblock.h" />
     <ClInclude Include="pulsers.h" />

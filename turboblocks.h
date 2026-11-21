@@ -18,7 +18,7 @@ class Symbols;
 class TurboBlock;
 class SpectrumLoader;
 struct MemoryBlock;
-
+struct LoaderParameters;
 
 
 /// This class can be seen as the c++ counterpart of the zqloader turboloader written in z80 assembler.
@@ -123,6 +123,7 @@ public:
     /// Set start of free space to copy loader including space for sp.
     TurboBlocks& SetLoaderCopyTarget(uint16_t p_value );
 
+    const LoaderParameters& GetLoaderParameters() const;
 
 
     /// Convenience public read access to Symbols as loaded by CTOR.
@@ -135,6 +136,14 @@ public:
     TurboBlocks& SetSkipPilots(bool p_to_what);
 
     std::string GetDebugString() const;
+
+    TurboBlocks& FromString(const std::string &p_string);
+    std::string ToString() const;
+
+    TurboBlocks& SetFromZqLoaderTzx(bool p_from_tzx);
+
+    bool  GetFromZqLoaderTzx() const;
+
 private:
     class Impl;
     std::unique_ptr<Impl> m_pimpl;

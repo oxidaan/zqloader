@@ -25,18 +25,20 @@
 ///     When code: Add to list of blocks to (turbo) load
 /// p_zxfilename: when given check if name matches before accepting header.
 /// p_is_zqloader_tzx when true its zqloader raw block from a tzx file.
-bool TapToTurboBlocks::HandleIncomingBlock(DataBlock p_block, const std::string &p_zxfilename, bool p_is_zqloader_tzx)
+bool TapToTurboBlocks::HandleIncomingBlock(DataBlock p_block, const std::string &p_stringdata, int p_is_zqloader_tzx)
 {
     if(p_is_zqloader_tzx)
     {
-        return HandleIncomingZqLoaderBlock(std::move(p_block));
+        return HandleIncomingZqLoaderBlock(std::move(p_block), p_stringdata);
     }
     else
     {
-        return HandleIncomingTapBlock(std::move(p_block), p_zxfilename);
+        return HandleIncomingTapBlock(std::move(p_block), p_stringdata);
     }
 }
 
+
+// Return true when done - that is: after last expected block was read.
 bool TapToTurboBlocks::HandleIncomingTapBlock(DataBlock p_block, const std::string &p_zxfilename)
 {
     using namespace spectrum;
@@ -58,7 +60,7 @@ bool TapToTurboBlocks::HandleIncomingTapBlock(DataBlock p_block, const std::stri
         {
             name.pop_back();        // right trim spaces.
         }
-        std::cout << "Spectrum tape header: " << header.m_type << ": ";
+        std::cout << "  Spectrum tape header: " << header.m_type << ": ";
         std::cout << "'" << name << "'";
         std::cout << " Start address: " << header.GetStartAddress();
         std::cout << " Length: " << header.m_length << std::endl;
@@ -121,19 +123,25 @@ bool TapToTurboBlocks::HandleIncomingTapBlock(DataBlock p_block, const std::stri
 }
 
 // ZQLoader block eg when read from ZQLoader-tzx file.
-bool TapToTurboBlocks::HandleIncomingZqLoaderBlock(DataBlock p_block)
+bool TapToTurboBlocks::HandleIncomingZqLoaderBlock(DataBlock p_block, const std::string& p_stringdata)
 {
     if(m_zqloader_header.empty() && p_block.size() == TurboBlock::GetHeaderSize())
     {
         // Must be a ZQLoader header
         m_zqloader_header = std::move(p_block);
     }
-    else if(!m_zqloader_header.empty())
+    else if(!m_zqloader_header.empty() && !p_block.empty())
     {
         // We have the header so this must be ZQLoader data (can be compressed)
-        TurboBlock block;
-        block.SetRawData(std::move(m_zqloader_header), std::move(p_block));
-        m_tblocks.AddTurboBlock(std::move(block));
+        TurboBlock tblock;
+        tblock.SetRawData(std::move(m_zqloader_header), std::move(p_block));
+        m_tblocks.AddTurboBlock(std::move(tblock));
+        m_tblocks.SetFromZqLoaderTzx(true);
+    }
+    else if (p_block.empty() && !p_stringdata.empty())
+    {
+        // no data, string must be meta data
+        m_tblocks.FromString(p_stringdata);
     }
     else
     {

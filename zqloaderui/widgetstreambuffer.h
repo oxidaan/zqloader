@@ -37,6 +37,7 @@ public:
                 std::swap(buffer, m_buffer);        // get and empty buffer
             }
             buffer.replace("\n", "<br>");
+            buffer.replace(" ", "&nbsp;");      // to keep leading spaces
             m_output->moveCursor(QTextCursor::End);
             m_output->insertHtml(buffer);
             

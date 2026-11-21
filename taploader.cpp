@@ -48,7 +48,7 @@ inline bool TapLoader::HandleTapBlock(DataBlock p_block, std::string p_zxfilenam
 {
     if (m_OnHandleTapBlock)
     {
-        return m_OnHandleTapBlock(std::move(p_block), std::move(p_zxfilename), 0);
+        return m_OnHandleTapBlock(std::move(p_block), std::move(p_zxfilename), false);
     }
     return false;
 }
@@ -63,7 +63,7 @@ inline TapLoader& TapLoader::Read(std::istream& p_stream, const std::string &p_z
     while (p_stream.peek() && p_stream.good() && !done)
     {
         auto block = LoadTapBlock(p_stream);
-        done =       HandleTapBlock(std::move(block), p_zxfilename);   
+        done = HandleTapBlock(std::move(block), p_zxfilename);   
         //std::cout << std::endl;
     }
     return *this;
