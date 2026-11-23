@@ -49,12 +49,10 @@ Compression
 It uses a simple RLE compression algorithm that only reduces size with 20-40% thereabout. This is not that much (eg [ZX0](https://github.com/einar-saukas/ZX0) should do much better). But essential is it can be decompressed at the ZX spectrum at he same memory block - so decompressed data will overwrite compressed data during decompression. ZX0 can do this also but seems to always need to have some minimal extra space at the end (see `delta` at [ZX0 readme](https://github.com/einar-saukas/ZX0#readme)). Also I've found compressing takes long with ZX0, thus spoiling the entire idea of a quick loader.  
 The RLE compression algorithm compresses the most used byte value (usually this is 0) by writing an escape code, then the number of 'most used value'-s. Further it compresses a sequence of 3 or more the same bytes (of any value) by writing another escape code, then that byte value, then the number of these bytes.  
 
-The compression is most effective when loading a snapshot. This is because when loading a snapshot, often large parts of the memory are zero which can be compressed effectively. Therefore loading a 48kb snapshot containing a 32kb game takes only little more as loading just the 32kb game itself: around 30 seconds (jsw even < 20 seconds!).
+The compression is most effective when loading a snapshot. (a snapshot is a file containing the entire state of the computer: all memory and the CPU registers). This is because when loading a snapshot, often large parts of the memory are zero which can be compressed effectively. Therefore loading a 48kb snapshot containing a 32kb game takes only little more as loading just the 32kb game itself: around 30 seconds (jsw even < 20 seconds!).
 
 Limitations/TODO's
 ---
-
-* It is only tested with 48K ZX Spectrum! (And simulators like Fuse.) Because thats all I have to test it with! (if you have it working on a 128K or any other ZX Spectrum let me know!...). The 128K snapshots were only tested with Fuse.
 
 *When using TAP or TZX files:*
 
@@ -124,7 +122,7 @@ sudo make install
 
 Instructions
 ---
-You need a *real* ZX-spectrum. Connect the ZX-spectrums EAR input to your host computers sound output. At the host computer set sound to maximum.  
+You need a *real* ZX-spectrum (or ZX-spectrum next). Connect the ZX-spectrums EAR input to your host computers sound output. At the host computer set sound to maximum.  
 At Windows, make sure *Audio Enhancements* are switched off. 
 Eg at `Settings -> System -> Sound -> Speakers -> Advanced`   
 Switch off `Audio Enhancements` there.
@@ -159,8 +157,11 @@ And when using stereo it is probably best to invert one sound output (left or ri
 Personally I was using stereo, but without inverting one channel. I used a 'composite-video to hdmi hardware box' that was powered through USB from my laptop. This way, the ZX Spectrum shared ground with the laptop. Later I used composite video directly. For some reason the ZX-Spectrum did not receive any sound at all - until I switched to a mono cable.  
 _A good test is to try to play any sound at the host laptop (eg music) (play loud!). When all is good the ZX-Spectrum border should flash between red-cyan (after typing `LOAD ""`)_  
 Moral of the story: try stereo/mono cables, try with inverted or not inverted sound channels - until it works.  
--> The user interface has a 'Tune' button that plays a leader tone forever. You can then adjust volume (and sample rate) until you get the red/cyan stripes.
+-> **The user interface has a 'Tune' button that plays a leader tone forever. You can then adjust volume (and sample rate) until you get the red/cyan stripes.**
 
+ZX Spectrum next
+---
+ZQloader also works with a ZX Spectrum next ;-) Use a stereo cable. At the host computer turn down the volume of the left channel to zero. For the right channel it is not needed to set it to maximum volume. As described above turn off audio enhancements, make sure no other sound is playing.
 
 
 ZQloader commandline options
