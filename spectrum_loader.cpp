@@ -136,7 +136,7 @@ bool SpectrumLoader::Next()
     if (current.Next())     // true when at end of pulser
     {
         m_current_pulser++;
-        if (IsDone())       // all pulsers are done. Check for more (usually only at end)
+        if (IsAtEndOfActivePulsers())       // all pulsers are done. Check for more (usually only at end)
         {
             return CheckDone(); // calls callback
         }
@@ -172,15 +172,15 @@ Edge SpectrumLoader::GetEdge() const
 /// Return true when completely done.
 bool SpectrumLoader::CheckDone()
 {
-    if (IsDone())
+    if (IsAtEndOfActivePulsers())   // any active pulers left?
     {
         StandbyToActive();
-        if(IsDone() && m_OnDone)
+        if(IsAtEndOfActivePulsers() && m_OnDone)
         {
             m_OnDone();
             StandbyToActive();  // maybe 'm_OnDone' added more pulsers
         }
-        return IsDone();
+        return IsAtEndOfActivePulsers();
     }
     return false;
 }

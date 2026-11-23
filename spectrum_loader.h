@@ -196,8 +196,8 @@ private:
     // runs in miniaudio thread
     bool CheckDone();
 
-    /// Return true when done (that is no more pulsers)
-    bool IsDone() const
+    /// Return true when done (that is no more active pulsers)
+    bool IsAtEndOfActivePulsers() const
     {
         return m_current_pulser >= m_active_pulsers.size();
     }

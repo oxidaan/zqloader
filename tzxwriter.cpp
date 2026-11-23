@@ -715,6 +715,7 @@ void TzxWriter::WriteAsZqLoaderTurboData(std::ostream &p_stream, const TonePulse
     }
     else
     {
+        // TODO if no leader write minisync differently!
         generalized_data_block.npp   = BYTE(std::max(leader ? leader->GetPattern().size() : 0, 1 + p_sync.GetPattern().size()));    // add  1 + for *3)
         generalized_data_block.totd = DWORD(data_size);      // so # bytes
         generalized_data_block.npd  = 1 + BYTE(std::max(8 * zero_pattern.size(), 8 * one_pattern.size())); // should be 8 -> 9 add 1 + for *2)

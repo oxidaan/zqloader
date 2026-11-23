@@ -14,7 +14,7 @@
 #include "memoryblock.h"
 #include <string>
 #include "turboblock.h"
-
+#include "loaderparameters.h"
 
 /// call back
 /// Handle loaded/incoming data block (while reading tap or tzx):
@@ -125,6 +125,7 @@ bool TapToTurboBlocks::HandleIncomingTapBlock(DataBlock p_block, const std::stri
 // ZQLoader block eg when read from ZQLoader-tzx file.
 bool TapToTurboBlocks::HandleIncomingZqLoaderBlock(DataBlock p_block, const std::string& p_stringdata)
 {
+    m_from_zqloader_tzx = true;
     if(m_zqloader_header.empty() && p_block.size() == TurboBlock::GetHeaderSize())
     {
         // Must be a ZQLoader header
@@ -136,12 +137,13 @@ bool TapToTurboBlocks::HandleIncomingZqLoaderBlock(DataBlock p_block, const std:
         TurboBlock tblock;
         tblock.SetRawData(std::move(m_zqloader_header), std::move(p_block));
         m_tblocks.AddTurboBlock(std::move(tblock));
-        m_tblocks.SetFromZqLoaderTzx(true);
     }
     else if (p_block.empty() && !p_stringdata.empty())
     {
         // no data, string must be meta data
-        m_tblocks.FromString(p_stringdata);
+        auto loader_parameters = m_tblocks.GetLoaderParameters();
+        loader_parameters.FromString(p_stringdata);
+        m_tblocks.SetLoaderParameters(loader_parameters);
     }
     else
     {

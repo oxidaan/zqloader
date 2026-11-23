@@ -680,6 +680,7 @@ private:
                 ui->progressBar->setFormat("Done");
                 SetState(State::Idle);
                 LoaderParametersToUi(m_zqloader.GetLoaderParameters());
+                m_zqloader.Reset();
             }
         }
         catch (...)
@@ -808,9 +809,7 @@ private:
     void LoaderParametersToUi(const LoaderParameters&p_loaderparameters)
     {
 
-        ui->lineEditWantedZeroCyclii->setText(QString::number(p_loaderparameters.wanted_zero_cyclii));
         ui->lineEditZeroMax->setText(QString::number(p_loaderparameters.zero_max));
-        ui->lineEditWantedOneCyclii->setText(QString::number(p_loaderparameters.wanted_one_cyclii));
         ui->lineEditBitLoopMax->setText(QString::number(p_loaderparameters.bit_loop_max));
 
         ui->lineEditZeroTStates->setText(QString::number(p_loaderparameters.zero_duration));

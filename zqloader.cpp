@@ -28,7 +28,9 @@
 #include <iostream>
 #include <fstream>
 #include <filesystem>
+#include "loaderparameters.h"
 namespace fs = std::filesystem;
+
 
 
 // ** version **
@@ -43,18 +45,18 @@ class ZQLoader::Impl
 {
 public:
 
-    Impl(const Impl &)              = delete;
-    Impl(Impl &&) noexcept          = default;
-    Impl & operator =(Impl &&)      = default;
-    Impl & operator =(const Impl &) = delete;
-    Impl()                          = default;
+    Impl(const Impl&) = delete;
+    Impl(Impl&&) noexcept = default;
+    Impl& operator =(Impl&&) = default;
+    Impl& operator =(const Impl&) = delete;
+    Impl() = default;
 
 
     /// Set normal filename (eg the top filename in the dialog)
-    void SetNormalFilename(fs::path p_filename, const std::string &p_zxfilename)
+    void SetNormalFilename(fs::path p_filename, const std::string& p_zxfilename)
     {
         m_normal_filename = std::move(p_filename);
-        if(!FileIsZqLoader(m_normal_filename))
+        if (!FileIsZqLoader(m_normal_filename))
         {
             AddNormalSpeedFile(m_normal_filename, p_zxfilename);    // when p_filename emtpy makes it zqloader.tap
         }
@@ -64,9 +66,9 @@ public:
 
     /// Set and adds turbo filename eg the 2nd filename in the dialog.
     /// This adds all data as turbo blocks and then pulsers to m_spectrumloader.
-    void SetTurboFilename(fs::path p_filename, const std::string &p_zxfilename)
+    void SetTurboFilename(fs::path p_filename, const std::string& p_zxfilename)
     {
-        if(!p_filename.empty() && p_filename.string()[0] != '[')
+        if (!p_filename.empty() && p_filename.string()[0] != '[')
         {
             m_turbo_filename = std::move(p_filename);
             AddTurboSpeedFile(m_turbo_filename, p_zxfilename);
@@ -99,19 +101,32 @@ public:
     /// Set volume left + right (-100, 100)
     void SetVolume(int p_volume_left, int p_volume_right)
     {
-        m_volume_left  = p_volume_left;
+        m_volume_left = p_volume_left;
         m_volume_right = p_volume_right;
         m_sample_sender.SetVolume(m_volume_left, m_volume_right);
     }
 
+    void SetSampleRate(uint32_t p_sample_rate)
+    {
+        auto loader_params = GetLoaderParameters();
+        loader_params.sample_rate = p_sample_rate;
+        m_turboblocks.SetLoaderParameters(loader_params);
+    }
 
+
+    void SetCatchUp(bool p_catch_up)
+    {
+        auto loader_params = GetLoaderParameters();
+        loader_params.catch_up = p_catch_up;
+        m_turboblocks.SetLoaderParameters(loader_params);
+    }
 
     /// Set spectrum clock frequency -> m_spectrumloader
     void SetSpectrumClock(int p_spectrum_clock)
     {
         // some reasonable range
         // dont accept 35000000 either probably typo
-        if(p_spectrum_clock < (spectrum::spectrum_clock / 2) ||
+        if (p_spectrum_clock < (spectrum::spectrum_clock / 2) ||
            p_spectrum_clock >= (spectrum::spectrum_clock * 10))
         {
             throw std::runtime_error("Invalid value (" + std::to_string(p_spectrum_clock) + ") for ZX Spectrum clock Frequeny");
@@ -126,9 +141,9 @@ public:
     /// See remark at  SampleSender::GetNextSample
     std::chrono::milliseconds GetEstimatedDuration() const
     {
-        return m_catch_up ? 
-                std::chrono::duration_cast<std::chrono::milliseconds>( m_spectrumloader.GetDurationInSeconds()) :
-                std::chrono::duration_cast<std::chrono::milliseconds>(1.2 * m_spectrumloader.GetDurationInSeconds());
+        return GetLoaderParameters().catch_up ?
+            std::chrono::duration_cast<std::chrono::milliseconds>(m_spectrumloader.GetDurationInSeconds()) :
+            std::chrono::duration_cast<std::chrono::milliseconds>(1.2 * m_spectrumloader.GetDurationInSeconds());
     }
 
 
@@ -161,30 +176,32 @@ public:
 
         m_spectrumloader.AddEndlessLeader();
         m_spectrumloader.Attach(m_sample_sender);
-        m_sample_sender.SetVolume(m_volume_left, m_volume_right).SetSampleRate(m_sample_rate).SetCatchUp(m_catch_up);
+        m_sample_sender.SetVolume(m_volume_left, m_volume_right).SetSampleRate(GetLoaderParameters().sample_rate).SetCatchUp(GetLoaderParameters().catch_up);
         m_sample_sender.Start();            // Play!
         m_is_busy = true;
     }
 
-
+    const LoaderParameters &GetLoaderParameters() const
+    {
+        return m_turboblocks.GetLoaderParameters();
+    }
 
     /// Run it (go pressed)
     void Run(bool p_threaded)
     {
         Check();
-        std::cout << m_turboblocks.GetDebugString() << " Samplerate = " << m_sample_rate << "; Catch up = " << m_catch_up << '\n';      // "Duration of Zero / One ... etc
+        std::cout << GetLoaderParameters().GetDebugString() << '\n';      // "Duration of Zero / One ... etc
         std::cout << "Estimated duration: " << GetEstimatedDuration().count() << "ms  (" << m_spectrumloader.GetDurationInTStates() << " TStates)" << std::endl;
-        //                       "; Sample rate: " << m_sample_rate << "; Catch up: " << m_catch_up << std::endl;
         m_spectrumloader.SetOnDone([this]
-                                   {
-                                       OnDone();
-                                   });
+        {
+            OnDone();
+        });
         m_start_time = std::chrono::steady_clock::now();      // to measure duration only
         if(m_action == Action::play_audio)
         {
             // normal, so play as sound
             m_spectrumloader.Attach(m_sample_sender);
-            m_sample_sender.SetVolume(m_volume_left, m_volume_right).SetSampleRate(m_sample_rate).SetCatchUp(m_catch_up);
+            m_sample_sender.SetVolume(m_volume_left, m_volume_right).SetSampleRate(GetLoaderParameters().sample_rate).SetCatchUp(GetLoaderParameters().catch_up);
             if(p_threaded)
             {
                 m_is_busy = true;
@@ -204,9 +221,8 @@ public:
             std::ofstream filewrite = OpenFileToWrite(outputfilename, m_allow_overwrite);
             SampleToWav   wav_writer;
             m_spectrumloader.Attach(wav_writer);
-            wav_writer.SetVolume(m_volume_left, m_volume_right).SetSampleRate(m_sample_rate).SetCatchUp(m_catch_up);
+            wav_writer.SetVolume(m_volume_left, m_volume_right).SetSampleRate(GetLoaderParameters().sample_rate).SetCatchUp(GetLoaderParameters().catch_up);
             wav_writer.WriteToFile(filewrite);
-            //Reset();        // needed?
             if(!filewrite)
             {
                 throw std::runtime_error("Error writing file: " + outputfilename.string());
@@ -218,8 +234,7 @@ public:
             // Write to tzx file
             auto outputfilename     = GetOutputFilename();
             std::ofstream filewrite = OpenFileToWrite(outputfilename, m_allow_overwrite);
-            WriteTzxFile(filewrite, m_catch_up);        // mis-use m_catch_up as algortihm selection
-           // Reset();        // needed?
+            WriteTzxFile(filewrite, GetLoaderParameters().catch_up);        // mis-use m_catch_up as algortihm selection
             if(!filewrite)
             {
                 throw std::runtime_error("Error writing file: " + outputfilename.string());
@@ -316,13 +331,14 @@ private:
         extern const char* GetVersion();
         TzxWriter::WriteBegin(p_filewrite);
         TzxWriter::WriteInfo(p_filewrite, std::string("File written by ZQLoader version ") + GetVersion());
+        TzxWriter::WriteInfo(p_filewrite, std::string("Converted from file: ") + m_turbo_filename.filename().string());
         std::stringstream ss;
-        ss << m_turboblocks.GetDebugString() << " Samplerate = " << m_sample_rate << "; Catch up = " << m_catch_up;
-        TzxWriter::WriteInfo(p_filewrite, ss.str());
-        TzxWriter::WriteCustomInfo(p_filewrite, m_turboblocks.ToString());
+        ss << GetLoaderParameters().GetDebugString();
+        TzxWriter::WriteInfo(p_filewrite, ss.str());        // debug info
+        TzxWriter::WriteCustomInfo(p_filewrite, GetLoaderParameters().ToString());  // loadable info
         if (p_how)
         {
-            m_spectrumloader.WritePulsersAsTzx(p_filewrite, m_sample_rate);
+            m_spectrumloader.WritePulsersAsTzx(p_filewrite, GetLoaderParameters().sample_rate);
         }
         else
         {
@@ -333,13 +349,14 @@ private:
 
 
     // runs in miniaudio / samplesender thread
+    // Called when done loading 
     void OnDone()
     {
         if(m_is_busy)
         {
             m_time_needed = GetCurrentTime();
             std::cout << "Took: " << std::dec << m_time_needed.count() << " ms\n" << std::endl;
-            m_is_busy     = false;
+            m_is_busy = false;
         }
         if(m_OnDone && m_action == Action::play_audio)
         {
@@ -503,7 +520,7 @@ private:
             return tab_to_turbo_blocks.HandleIncomingBlock(std::move(p_block), p_stringdata, p_is_zqloader_tzx);
         });
         tap_or_tzx_loader.Load(p_filename, p_zxfilename);
-        if (!m_turboblocks.GetFromZqLoaderTzx())
+        if (!tab_to_turbo_blocks.GetFromZqLoaderTzx())
         {
             if (m_turboblocks.size() != tab_to_turbo_blocks.GetNumberLoadCode())
             {
@@ -614,9 +631,7 @@ private:
     SampleSender                m_sample_sender;
 
     bool                        m_use_fun_attribs           = false;
-    
-    uint32_t                    m_sample_rate               = loader_defaults::sample_rate;
-    bool                        m_catch_up                  = loader_defaults::catch_up;
+   
 
     fs::path                    m_exe_path;                           // s/a argv[0]
     Action                      m_action                    = Action::play_audio;
@@ -688,13 +703,13 @@ ZQLoader& ZQLoader::SetVolume(int p_volume_left, int p_volume_right)
 
 ZQLoader& ZQLoader::SetSampleRate(uint32_t p_sample_rate)
 {
-    m_pimpl->m_sample_rate = p_sample_rate;
+    m_pimpl->SetSampleRate(p_sample_rate);
     return *this;
 }
 
 ZQLoader& ZQLoader::SetCatchUp(bool p_catch_up)
 {
-    m_pimpl->m_catch_up = p_catch_up;
+    m_pimpl->SetCatchUp(p_catch_up);
     return *this;
 }
 
@@ -953,7 +968,7 @@ uint32_t ZQLoader::GetDeviceSampleRate() const
 
 const LoaderParameters& ZQLoader::GetLoaderParameters() const
 {
-    return m_pimpl->m_turboblocks.GetLoaderParameters();
+    return m_pimpl->GetLoaderParameters();
 }
 
 

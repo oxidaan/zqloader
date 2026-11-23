@@ -58,6 +58,12 @@ public:
         return m_loadcodes.size();
     }
 
+    ///  Was load from a tzx file that was earlier written by ZQLoader
+    bool GetFromZqLoaderTzx() const
+    {
+        return m_from_zqloader_tzx;
+    }
+
 private:
     bool HandleIncomingZqLoaderBlock(DataBlock p_block, const std::string& p_stringdata);
     bool HandleIncomingTapBlock(DataBlock p_block, const std::string &p_zxfilename);
@@ -104,5 +110,5 @@ private:
     uint16_t                  m_usr        = 0;      // [RANDOMIZE] USX xxxxx found in BASIC
     uint16_t                  m_clear      = 0xff4a; // CLEAR xxxxx as found in BASIC. Default value here is SP found with debugger
     std::vector< uint16_t>    m_loadcodes;           // multiple LOAD "" CODE xxxx found in BASIC
-    size_t                    m_original_data_size = 0;
+    bool                      m_from_zqloader_tzx = false;
 };

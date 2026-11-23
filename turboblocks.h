@@ -124,6 +124,7 @@ public:
     TurboBlocks& SetLoaderCopyTarget(uint16_t p_value );
 
     const LoaderParameters& GetLoaderParameters() const;
+    TurboBlocks& SetLoaderParameters(LoaderParameters p_params);
 
 
     /// Convenience public read access to Symbols as loaded by CTOR.
@@ -135,14 +136,6 @@ public:
    
     TurboBlocks& SetSkipPilots(bool p_to_what);
 
-    std::string GetDebugString() const;
-
-    TurboBlocks& FromString(const std::string &p_string);
-    std::string ToString() const;
-
-    TurboBlocks& SetFromZqLoaderTzx(bool p_from_tzx);
-
-    bool  GetFromZqLoaderTzx() const;
 
 private:
     class Impl;

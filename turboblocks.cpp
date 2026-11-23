@@ -45,7 +45,7 @@ using namespace std::placeholders;
 
 class TurboBlocks::Impl
 {
-    friend class TurboBlocks;
+    friend class TurboBlocks;       // TODO
 
 public:
 
@@ -306,7 +306,9 @@ public:
         if (IsZqLoaderAdded())        // Add zqloader when added here. When not added here probably already preloaded.
         {
             p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_header), spectrum::tstate_quick_zero, 1750ms);
+           // std::cout << p_spectrumloader.GetDurationInTStates() << std::endl;
             p_spectrumloader.AddLeaderPlusData(std::move(m_zqloader_code), spectrum::tstate_quick_zero, 1500ms);
+           // std::cout << p_spectrumloader.GetDurationInTStates() << std::endl;
             m_pause_before = m_loader_parameters.initial_wait;
         }
 
@@ -578,8 +580,7 @@ private:
     std::list<TurboBlock>       m_turbo_blocks;                    // turbo blocks to load
     Symbols                     m_symbols;                         // named symbols as read from EXP file
     std::chrono::milliseconds   m_pause_before = 0ms;
-    bool                        m_from_zqloader_tzx = false;       // where these read from a zqloader tzx file?
-
+public:
     LoaderParameters            m_loader_parameters;
 };                                                                 // class TurboBlocks
 
@@ -750,6 +751,12 @@ const LoaderParameters& TurboBlocks::GetLoaderParameters() const
     return m_pimpl->m_loader_parameters;
 }
 
+TurboBlocks& TurboBlocks::SetLoaderParameters(LoaderParameters p_params)
+{
+    m_pimpl->m_loader_parameters = std::move(p_params);
+    return *this;
+}
+
 
 
 
@@ -760,32 +767,8 @@ uint16_t TurboBlocks::GetLoaderCodeLength(bool p_with_registers) const
 
 
 
-std::string TurboBlocks::GetDebugString() const
-{
-    return m_pimpl->m_loader_parameters.GetDebugString();
-}
 
 
-TurboBlocks& TurboBlocks::FromString(const std::string &p_string)
-{
-    m_pimpl->m_loader_parameters.FromString(p_string);
-    return *this;
-}
-std::string TurboBlocks::ToString() const
-{
-    return  m_pimpl->m_loader_parameters.ToString();
-}
-
-TurboBlocks& TurboBlocks::SetFromZqLoaderTzx(bool p_from_tzx)
-{
-    m_pimpl->m_from_zqloader_tzx = p_from_tzx;
-    return *this;
-}
-
-bool TurboBlocks::GetFromZqLoaderTzx() const
-{
-    return m_pimpl->m_from_zqloader_tzx;
-}
 
 TurboBlocks& TurboBlocks::SetSkipPilots(bool p_to_what)
 {
