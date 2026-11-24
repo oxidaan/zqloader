@@ -27,7 +27,7 @@ struct LoaderParameters
     int                         io_xor_value = loader_defaults::io_xor_value;      
 
     uint32_t                    sample_rate = loader_defaults::sample_rate;         // device default
-    bool                        catch_up = loader_defaults::catch_up;;
+    bool                        catch_up = loader_defaults::catch_up;
 
     CompressionType             compression_type = loader_defaults::compression_type;
     int                         decompression_speed = loader_defaults::decompression_speed; // kb/second time spectrum needsto decompress before sending next block
@@ -60,7 +60,7 @@ public:
     {
         std::stringstream ss;
     #define WRITE_CMD(what) \
-                ss << #what << ' ' <<what << '\n'
+                ss << #what << ' ' << what << '\n'
         WRITE_CMD(zero_max);
         WRITE_CMD(bit_loop_max);
         WRITE_CMD(zero_duration);

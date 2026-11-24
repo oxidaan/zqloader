@@ -19,15 +19,14 @@
 #include <QDesktopServices>
 #include <QTimer>
 #include "./ui_dialog.h"
-//#include <datablock.h>
 #include "memoryblock.h"
 #include <QMessageBox>
-#include "byte_tools.h"
+
 
 #include "spectrum_consts.h"
 #include "loader_defaults.h"        // consts with default settings for ZQLoader
 #include "widgetstreambuffer.h"
-#include "Loaderparameters.h"
+#include "loaderparameters.h"
 
 #include <filesystem>
 #include <qevent.h>
@@ -74,7 +73,7 @@ inline void FocusIn(QLineEdit *p_line_edit)
 }
 
 // Set tip-text when empty and make gray
-void FocusOut(QLineEdit *p_line_edit, const char *p_tip_text)
+inline void FocusOut(QLineEdit *p_line_edit, const char *p_tip_text)
 {
     if(p_line_edit->text().isEmpty() || p_line_edit->text()[0] == '[')
     {
@@ -137,8 +136,7 @@ class Dialog::Impl
 public:
     Impl(Dialog* p_this) :
         m_this(p_this),
-        ui(p_this->ui),
-        m_state(State::Idle)
+        ui(p_this->ui)
     {
         m_zqloader.SetExeFilename(QCoreApplication::applicationDirPath().toStdString());
 
@@ -193,40 +191,40 @@ public:
         ConnectVolume(ui->dialVolumeRight, ui->lineEditVolumeRight);
 
         // common connect code for all browse buttons
-        auto ConnectBrowse = [this](QPushButton* p_button, QLineEdit* p_edit, QString p_text, QString p_filter, QFileDialog::FileMode p_mode, QString p_setting_name)
+        auto ConnectBrowse = [this](QPushButton* p_button, QLineEdit* p_edit, const QString &p_text, const QString &p_filter, QFileDialog::FileMode p_mode, const QString &p_setting_name)
         {
             connect(p_button, &QPushButton::pressed, [=, this]
             {
-                    QSettings settings("Oxidaan", "ZQLoader");
-                    QString dir = settings.value(p_setting_name, "").toString();    // remember last used dir.
-                    QFileDialog dialog(m_this);
-                    dialog.setDirectory(dir);
-                    dialog.setNameFilter(p_filter);
-                    dialog.setWindowTitle(p_text);
-                    dialog.setFileMode(p_mode);
-                    dialog.setOption(QFileDialog::DontConfirmOverwrite, true);  // Now done later
-                    // Else hangs when (??)
-                    // preload->cancel preload, open this dialog -> cancel ->  preload->cancel preload -> open this dialog:
-                    // https://stackoverflow.com/questions/31983412/code-freezes-on-trying-to-open-qdialog
-                    // 9 years old issue still not solved???
-                    // No same issue as see comment at DTOR ~SampleSender
-                    // dialog.setOption(QFileDialog::DontUseNativeDialog, true);
-                    if (p_mode == QFileDialog::Directory)
-                    {
-                        dialog.setOption(QFileDialog::ShowDirsOnly);
-                    }
-                    else
-                    {
-                        dialog.setAcceptMode(p_mode == QFileDialog::ExistingFiles ? QFileDialog::AcceptOpen : QFileDialog::AcceptSave);
-                    }
-                    if (dialog.exec() == QDialog::Accepted)
-                    {
-                        auto filename = QDir::toNativeSeparators(dialog.selectedFiles().first());   // else wrong slashes in Windows
-                        p_edit->setText(filename);
-                        MakeBlack(p_edit);
-                        QFileInfo fileInfo(dialog.selectedFiles().first());
-                        settings.setValue(p_setting_name, fileInfo.absolutePath());
-                    }
+                QSettings settings("Oxidaan", "ZQLoader");
+                QString dir = settings.value(p_setting_name, "").toString();    // remember last used dir.
+                QFileDialog dialog(m_this);
+                dialog.setDirectory(dir);
+                dialog.setNameFilter(p_filter);
+                dialog.setWindowTitle(p_text);
+                dialog.setFileMode(p_mode);
+                dialog.setOption(QFileDialog::DontConfirmOverwrite, true);  // Now done later
+                // Else hangs when (??)
+                // preload->cancel preload, open this dialog -> cancel ->  preload->cancel preload -> open this dialog:
+                // https://stackoverflow.com/questions/31983412/code-freezes-on-trying-to-open-qdialog
+                // 9 years old issue still not solved???
+                // No same issue as see comment at DTOR ~SampleSender
+                // dialog.setOption(QFileDialog::DontUseNativeDialog, true);
+                if (p_mode == QFileDialog::Directory)
+                {
+                    dialog.setOption(QFileDialog::ShowDirsOnly);
+                }
+                else
+                {
+                    dialog.setAcceptMode(p_mode == QFileDialog::ExistingFiles ? QFileDialog::AcceptOpen : QFileDialog::AcceptSave);
+                }
+                if (dialog.exec() == QDialog::Accepted)
+                {
+                    auto filename = QDir::toNativeSeparators(dialog.selectedFiles().first());   // else wrong slashes in Windows
+                    p_edit->setText(filename);
+                    MakeBlack(p_edit);
+                    QFileInfo fileInfo(dialog.selectedFiles().first());
+                    settings.setValue(p_setting_name, fileInfo.absolutePath());
+                }
             });
         };
         ConnectBrowse(ui->pushButtonBrowseNormalFile, ui->lineEditNormalFile,
@@ -1234,10 +1232,10 @@ private:
 
     }
 private:
-    Ui::Dialog* ui;
     Dialog* m_this;
+    Ui::Dialog* ui;
     ZQLoader m_zqloader;
-    State m_state;
+    State m_state = State::Idle;
 };
 
 
