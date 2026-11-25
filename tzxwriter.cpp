@@ -44,7 +44,7 @@ inline void CheckGeneralizedDatablock(size_t p_databytes, std::streampos pos_sta
     }
 }
 
-// Is given (Tone)Pulser a leader tone?
+// Is given (Tone)Pulser a leader tone? (aka pilot tone)
 inline bool TzxWriter::IsPulserLeader(const Pulser &p_pulser)
 {
     const TonePulser *pulser_ptr = dynamic_cast<const TonePulser *>( &p_pulser );
@@ -123,8 +123,8 @@ inline bool TzxWriter::IsZqLoaderTurboData(const Pulser &p_pulser)
 
 void TzxWriter::WriteBegin(std::ostream& p_stream)
 {
-    p_stream << "ZXTape!";
     std::cout << "Start writing TZX file (ZXTape!)" << std::endl;
+    p_stream << "ZXTape!";
     WriteBinary(p_stream, std::byte { 0x1A });
     WriteBinary(p_stream, std::byte { 1 });
     WriteBinary(p_stream, std::byte { 20 });
@@ -693,6 +693,7 @@ void TzxWriter::WriteAsTurboData(std::ostream& p_stream, const TonePulser &p_pil
 // *1) remove edge at (start of) first bit (01: "same as the current level (no edge - prolongs the previous pulse)")
 // *2) add an egde before the eobd at the last bit
 // *3) To compensate for 1 add an egde at end of msync (by adding 1 extra t state)  ->  npp +=1
+// *4) Only write edge at end of minisync after a leader+ls (so when writing header block)
 void TzxWriter::WriteAsZqLoaderTurboData(std::ostream &p_stream, const TonePulser *p_leader, const TonePulser &p_sync, const DataPulser &p_data)
 {
     const auto &one_pattern  = p_data.GetOnePattern();
@@ -720,17 +721,8 @@ void TzxWriter::WriteAsZqLoaderTurboData(std::ostream &p_stream, const TonePulse
     }
     else
     {
-        // TODO if no leader write minisync differently!
-        if(leader)
-        {
-            generalized_data_block.npp  = BYTE(std::max(leader->GetPattern().size(), 1 + p_sync.GetPattern().size()));    // add  1 + for *3)
-            generalized_data_block.npd  = 1 + BYTE(std::max(8 * zero_pattern.size(), 8 * one_pattern.size())); // should be 8 -> 9 add 1 + for *2)
-        }
-        else
-        {
-            generalized_data_block.npp  = BYTE( 1 + p_sync.GetPattern().size());    // add  1 + for *3)
-            generalized_data_block.npd  = 1 + BYTE(std::max(8 * zero_pattern.size(), 8 * one_pattern.size())); // should be 8 -> 9 add 1 + for *2)
-        }
+        generalized_data_block.npp  = BYTE(std::max(leader ? leader->GetPattern().size() : 0, 1 + p_sync.GetPattern().size()));    // add  1 + for *3)
+        generalized_data_block.npd  = 1 + BYTE(std::max(8 * zero_pattern.size(), 8 * one_pattern.size())); // should be 8 -> 9 add 1 + for *2)
         generalized_data_block.asd  = 0;               // 0=256! we have a pattern for 256 byte values
         generalized_data_block.totd = DWORD(data_size);      // so # bytes
     }
@@ -752,19 +744,19 @@ void TzxWriter::WriteAsZqLoaderTurboData(std::ostream &p_stream, const TonePulse
             GeneralizedDataBlock::SymDef symdef{};
             if(leader)
             {
-                // when a leader is present (so is ZQLoader header data block)
+                // egde when a leader is present (so is ZQLoader header data block)
                 symdef.m_edge = Edge::toggle;   // <- edge for leader-sync
             }
             else
             {
-                // no leader so no leader-sync. (so is ZQLoader main data block)
+                // *4) no leader so no leader-sync. (so is ZQLoader main data block)
                 symdef.m_edge = Edge::no_change;
             }
             WriteBinary(p_stream, symdef);
             for(int npp = 0; npp < generalized_data_block.npp; npp++)      
             {
                 bool is_leader = ( asp == 0 && leader );        // when there is a leader then the first symbol is the leader.
-                const auto pattern =  is_leader ? leader->GetPattern() : p_sync.GetPattern();
+                const auto &pattern =  is_leader ? leader->GetPattern() : p_sync.GetPattern();
                 if(!is_leader && delay_after_byte)
                 {
                     // write the pattern for the sync
