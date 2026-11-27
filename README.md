@@ -1,4 +1,4 @@
-ZQloader
+ZQLoader
 ====
 
 This is a turbo loader used to load machine code games into a **real**, unmodified ZX Spectrum at high speed.
@@ -23,21 +23,21 @@ Project
 ----
 There are three parts: 
 
-The Z80 assembled ZQloader.
+The Z80 assembled ZQLoader.
 --
 This is the turbo loader running at the ZX spectrum, written in Z80 assembly. It is stored entirely into a BASIC `REM` statement, so it can be loaded in just one step, and all you have to type is `LOAD ""`.  
 
 Once loaded it copies itself to upper memory regions because lower RAM is [contended](https://en.wikipedia.org/wiki/Contended_memory) and not quick/stable enough for loading algortihms. Then it starts waiting for incoming turbo blocks.
-More about the [Z80 assembled ZQloader]
+More about the [Z80 assembled ZQLoader]
 
 
 zqloader.exe coded in C++ (20) 
 ---
 Commandline version, runs on the host computer. It uses [miniaudio](https://github.com/mackron/miniaudio) to generated loading sounds.  
-First it uploads the ZQloader machine code (described above) itself to the ZX spectrum. It uses traditional ROM speed for that.
+First it uploads the ZQLoader machine code (described above) itself to the ZX spectrum. It uses traditional ROM speed for that.
 
 After that it will read a TAP, TZX or Z80/sna (snapshot) file. For TAP or TZX files it will recognize a basic loader, taking the start address from that (as in `RANDOMIZE USR XXXX`) (also read `CLEAR` value, if any). Then it will load 1 or more code blocks, which can be a spash screen or machine code, compress them, and send these at turbo speed into the ZX spectrum. 
-More about the [C++ ZQloader...]
+More about the [C++ ZQLoader...]
 
 zqloaderui.exe coded in C++ (20)
 ---
@@ -60,7 +60,7 @@ Limitations/TODO's
 It therefore ignores any BASIC when processing a TAP or TZX file, except trying to find the CLEAR and USR adresses in it.
 **Of course with a snapshot it can still load any BASIC program.**
 
-* It cannot load games that have any kind of copy protection. Or does any loading without BASIC. Eg *Horace and the Spiders* does some additional loading after Machine code started. ZQloader cannot possible know where this extra datablock needs to go. Same for headerless: ZQloader does not know where to put these. **Of course these games can be loaded without problem using a Z80 snapshot.**
+* It cannot load games that have any kind of copy protection. Or does any loading without BASIC. Eg *Horace and the Spiders* does some additional loading after Machine code started. ZQLoader cannot possible know where this extra datablock needs to go. Same for headerless: ZQLoader does not know where to put these. **Of course these games can be loaded without problem using a Z80 snapshot.**
 In general it only works when the BASIC loader has exactly one USR xxxxx statement and the number of LOAD "" CODE matches the actual found number of blocks.
 
 * The file associations when set for Windows is not working very well. In Windows I'd like to have an explorer contect menu entry for TAP/Z80/TZX files `Load with ZQ-Loader`. This sometimes works, sometimes not, not sure. The installer was made with the 'Visual Studio Windows Installer Projects' extension. This tool is really wobbly imho.
@@ -73,7 +73,7 @@ First get sources with:
 git clone https://github.com/oxidaan/zqloader
 ```
 
-You can use the file `zqloader.sln` with `zqloader.vcproj` to build the ZQloader executable with Visual studio 2026 in **Windows**.  
+You can use the file `zqloader.sln` with `zqloader.vcproj` to build the ZQLoader executable with Visual studio 2026 in **Windows**.  
 Or - at **Linux** - use the `CMakeList.txt` file to build it with CMake eg:
 ```
 mkdir build
@@ -81,7 +81,7 @@ cd build
 cmake ..
 make
 ```
-This will also try to build the z80 assembly code - but only if [sjasmplus](https://github.com/z00m128/sjasmplus) is present. For instructions see [sjasmplus](https://github.com/z00m128/sjasmplus/blob/master/INSTALL.md); I recommend what is described there under *CMAKE method for Linux / Unix / macOS / BSD* because ZQloader also uses CMake.
+This will also try to build the z80 assembly code - but only if [sjasmplus](https://github.com/z00m128/sjasmplus) is present. For instructions see [sjasmplus](https://github.com/z00m128/sjasmplus/blob/master/INSTALL.md); I recommend what is described there under *CMAKE method for Linux / Unix / macOS / BSD* because ZQLoader also uses CMake.
 The assembler will also need the `BasicLib` to be present in the `examples` directory that comes with sjasmplus.   
 It will also try to find QT to build the user interface. If this fails, it only builds the commandline version of the tool.  
 If you can not build sjasmplus: no problem because its output files `zqloader.tap` and `zqloader.exp` and `snapshotregs.bin` are also here at github.
@@ -144,7 +144,7 @@ Eg:
 ```
 zqloader z80/zqloader.tap c:\games\manic.z80`
 ```
-You can play with options like, for example (see also [ZQloader commandline options](#ZQloader-commandline-options) ):
+You can play with options like, for example (see also [ZQLoader commandline options](#ZQLoader-commandline-options) ):
 ```
 zqloader samplerate=48000 volume_left=-100 volume_right=-100 z80/zqloader.tap c:\games/rtype.z80
 ```  
@@ -161,10 +161,10 @@ Moral of the story: try stereo/mono cables, try with inverted or not inverted so
 
 ZX Spectrum next
 ---
-ZQloader also works with a ZX Spectrum next ;-) Use a stereo cable. At the host computer turn down the volume of the left channel to zero. For the right channel it is not needed to set it to maximum volume. As described above turn off audio enhancements, make sure no other sound is playing.
+ZQLoader also works with a ZX Spectrum next ;-) Use a stereo cable. At the host computer turn down the volume of the left channel to zero. For the right channel it is not needed to set it to maximum volume. As described above turn off audio enhancements, make sure no other sound is playing.
 
 
-ZQloader commandline options
+ZQLoader commandline options
 ---
 
 Syntax:
@@ -200,7 +200,7 @@ and decoding thresholds must be tuned together.
 
 * zero_tstates = value
 * one_tstates = value  
-     The number of TStates a zero / one pulse will take when using the ZQloader/turboloader. Not giving this (or 0) uses a default that worked for me. (118/293)
+     The number of TStates a zero / one pulse will take when using the ZQLoader/turboloader. Not giving this (or 0) uses a default that worked for me. (118/293)
 * bit_one_threshold = value      
     A time value in 50xTStates used at Z80 turboloader indicating the  time between edges when it is considered a 'one' - below this time it is considered a 'zero'. Related to 'one_tstates' above. Not giving this (or 0) uses a default that worked for me (4)
 * bit_loop_max = value           
