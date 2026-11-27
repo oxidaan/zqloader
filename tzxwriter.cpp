@@ -318,7 +318,7 @@ void TzxWriter::WritePulsers(const Pulsers& p_pulsers, std::ostream& p_stream,  
             prev    = nullptr;
             current = nullptr;
         }
-        // Is it leader-sync-data? A zqloader turbo block?
+        // Is it leader-sync-data? A 'standard' turbo block?
         else if(prevprev && IsPulserLeader(*prevprev) &&
                 prev && IsPulserSync(*prev) &&
                 IsPulserTurboData(*current))
@@ -331,6 +331,7 @@ void TzxWriter::WritePulsers(const Pulsers& p_pulsers, std::ostream& p_stream,  
             prev && IsPulserSync(*prev) &&
             IsZqLoaderTurboData(*current))
         {
+            // A zqloader turboblock, when leader is is the header, else the data.
             if(prevprev && IsPulserLeader(*prevprev))
             {
                 zqblocks++;
@@ -520,7 +521,7 @@ void TzxWriter::WriteAsTzxBlock(const PausePulser &p_pulser, std::ostream& p_str
         GeneralizedDataBlock generalized_data_block{};
         generalized_data_block.pause        = 0;
         generalized_data_block.totp         = 2;    // pause, then the edge
-        generalized_data_block.npp          = 1;
+        generalized_data_block.npp          = 1;    // max pulses at SymDef
         generalized_data_block.asp          = 2;    // two symbols one for pause one for edge
 
         generalized_data_block.totd         = 0;    // no data
@@ -546,7 +547,7 @@ void TzxWriter::WriteAsTzxBlock(const PausePulser &p_pulser, std::ostream& p_str
             // 2nd symdef for just an edge
             symdef.m_edge = edge;
             WriteBinary(p_stream, symdef);
-            WriteBinary(p_stream, WORD(0));     // no waits here
+            WriteBinary(p_stream, WORD(0));     // TODO! 1? else maybe ignored! no waits here
 
 
             // write pause (1x) - sync(1x) sequence.
@@ -577,6 +578,7 @@ void TzxWriter::WriteAsTzxBlock(const PausePulser &p_pulser, std::ostream& p_str
 
 // Write a generalizedDataBlock with *just* data.
 // No pilot/sync.
+// Not (yet) used (anymore).
 void TzxWriter::WriteAsTzxBlock(const DataPulser &p_pulser, std::ostream& p_stream, Doublesec p_tstate_dur)
 {
     (void)p_tstate_dur;
